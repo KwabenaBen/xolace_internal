@@ -42,3 +42,6 @@ yarn-error.*
 # Generated native folders
 /ios
 /android
+
+# Convex Auth signing keys (scripts/generate-auth-keys.mjs) — never commit
+.auth-keys/

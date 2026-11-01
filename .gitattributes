@@ -1,0 +1,9 @@
+# Always check text files out with LF (matches .prettierrc.json "endOfLine": "lf"),
+# even on Windows machines with core.autocrlf=true.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

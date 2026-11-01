@@ -1,0 +1,170 @@
+import { authTables } from "@convex-dev/auth/server";
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+import {
+  activityEntityTypeValidator,
+  extensionStatusValidator,
+  extensionTypeValidator,
+  featureStatusValidator,
+  roleValidator,
+  settingKeyValidator,
+  settingValueValidator,
+  taskPriorityValidator,
+  taskStatusValidator,
+  verificationDecisionValidator,
+  verificationStageValidator,
+} from "./lib/validators";
+
+/**
+ * Cadence data model (docs/REQUIREMENTS.md → "Data model").
+ *
+ * Conventions:
+ * - Points in time (deadlines, decisions, timestamps) are ms since epoch (`Date.now()`).
+ *   A deadline picked as a date is stored as the end of that day in GMT.
+ * - Calendar dates (daily logs) are "YYYY-MM-DD" strings in GMT.
+ * - Index names list their fields: `by_a_and_b` indexes ["a", "b"].
+ * - Deadlines, reviews, verifications and logs are never deleted; changes go to `activity`.
+ */
+export default defineSchema({
+  // Convex Auth's tables (sessions, accounts, refresh tokens, ...). `users` is overridden below.
+  ...authTables,
+
+  users: defineTable({
+    // Convex Auth's optional built-in fields. Cadence doesn't use them, but the library's
+    // `users` shape includes them, so they stay for compatibility.
+    image: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+
+    // Cadence fields. Always set by the sign-up callback in convex/lib/accounts.ts.
+    name: v.string(),
+    email: v.string(), // normalised: trimmed + lower-case
+    title: v.string(), // free text ("CTO", "Head of Ops", ...); never used in permission logic
+    role: roleValidator,
+    isActive: v.boolean(),
+    pushToken: v.optional(v.string()),
+    timezone: v.string(), // IANA name, e.g. "Africa/Accra"
+  })
+    // "email" and "phone" are the index names Convex Auth expects.
+    .index("email", ["email"])
+    .index("phone", ["phone"])
+    .index("by_isActive", ["isActive"]),
+
+  features: defineTable({
+    title: v.string(),
+    description: v.string(),
+    expectedResult: v.string(),
+    sourceNote: v.string(), // e.g. which meeting the feature came from
+    deadline: v.number(),
+    status: featureStatusValidator,
+    createdBy: v.id("users"),
+  })
+    .index("by_status_and_deadline", ["status", "deadline"])
+    .index("by_deadline", ["deadline"]),
+
+  tasks: defineTable({
+    featureId: v.id("features"),
+    title: v.string(),
+    description: v.string(),
+    acceptanceCriteria: v.array(v.string()),
+    // Owner and deadline may be unset only while a task is "proposed"; mutations enforce
+    // them for every other status.
+    ownerId: v.optional(v.id("users")),
+    peerReviewerId: v.optional(v.id("users")), // set for code tasks
+    proposedBy: v.optional(v.id("users")), // set when a member proposed the task
+    deadline: v.optional(v.number()),
+    originalDeadline: v.optional(v.number()),
+    priority: taskPriorityValidator,
+    status: taskStatusValidator,
+    progress: v.number(), // 0–100
+    countsAsLate: v.boolean(),
+    submittedAt: v.optional(v.number()),
+    verifiedAt: v.optional(v.number()),
+  })
+    .index("by_featureId_and_status", ["featureId", "status"])
+    .index("by_ownerId_and_status", ["ownerId", "status"])
+    .index("by_ownerId_and_deadline", ["ownerId", "deadline"])
+    .index("by_status_and_deadline", ["status", "deadline"])
+    .index("by_peerReviewerId_and_status", ["peerReviewerId", "status"]),
+
+  extensionRequests: defineTable({
+    taskId: v.id("tasks"),
+    requestedBy: v.id("users"),
+    requestedAt: v.number(),
+    currentDeadline: v.number(),
+    requestedDeadline: v.number(),
+    reason: v.string(),
+    type: extensionTypeValidator,
+    status: extensionStatusValidator,
+    reviewerId: v.optional(v.id("users")),
+    decidedAt: v.optional(v.number()),
+  })
+    .index("by_taskId_and_status", ["taskId", "status"])
+    .index("by_status", ["status"])
+    .index("by_requestedBy", ["requestedBy"]),
+
+  verifications: defineTable({
+    taskId: v.id("tasks"),
+    stage: verificationStageValidator,
+    submittedBy: v.id("users"),
+    note: v.string(),
+    proofUrl: v.optional(v.string()), // link, PR or build URL
+    proofStorageId: v.optional(v.id("_storage")), // screenshot in Convex file storage
+    decision: v.optional(verificationDecisionValidator), // unset while pending
+    reviewerId: v.optional(v.id("users")),
+    reason: v.optional(v.string()),
+    decidedAt: v.optional(v.number()),
+  })
+    .index("by_taskId_and_stage", ["taskId", "stage"])
+    .index("by_reviewerId_and_decision", ["reviewerId", "decision"])
+    .index("by_stage_and_decision", ["stage", "decision"]),
+
+  dailyLogs: defineTable({
+    userId: v.id("users"),
+    date: v.string(), // "YYYY-MM-DD" in GMT
+    isWeekend: v.boolean(),
+    done: v.string(),
+    next: v.optional(v.string()),
+    blockers: v.optional(v.string()),
+    taskIds: v.array(v.id("tasks")),
+  })
+    .index("by_userId_and_date", ["userId", "date"])
+    .index("by_date", ["date"]),
+
+  comments: defineTable({
+    taskId: v.id("tasks"),
+    authorId: v.id("users"),
+    body: v.string(),
+  }).index("by_taskId", ["taskId"]),
+
+  activity: defineTable({
+    actorId: v.optional(v.id("users")), // unset for scheduled jobs
+    entityType: activityEntityTypeValidator,
+    entityId: v.string(),
+    action: v.string(), // e.g. "user.signed_up", "task.status_changed"
+    before: v.optional(v.any()),
+    after: v.optional(v.any()),
+    timestamp: v.number(),
+  })
+    .index("by_entityType_and_entityId", ["entityType", "entityId"])
+    .index("by_actorId", ["actorId"]),
+
+  invites: defineTable({
+    email: v.string(), // normalised: trimmed + lower-case
+    role: roleValidator,
+    title: v.string(),
+    invitedBy: v.optional(v.id("users")), // unset for invites created by the seed
+    usedAt: v.optional(v.number()),
+    usedBy: v.optional(v.id("users")),
+  }).index("by_email", ["email"]),
+
+  settings: defineTable({
+    key: settingKeyValidator,
+    value: settingValueValidator,
+    updatedBy: v.optional(v.id("users")),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+});

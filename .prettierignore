@@ -11,3 +11,8 @@ bun.lockb
 expo-env.d.ts
 uniwind-types.d.ts
 .DS_Store
+convex/_generated
+# Vendored agent skills (managed by `npx convex ai-files`) and the spec as authored
+.agents
+.claude
+docs/REQUIREMENTS.md

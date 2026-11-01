@@ -1,46 +1,28 @@
-# Welcome to your HeroUI Native app 👋
+# Cadence
 
-This is an [Expo](https://expo.dev) project preconfigured with
-[HeroUI Native](https://heroui.com/docs/native), [Uniwind](https://docs.uniwind.dev)
-(Tailwind CSS for React Native), and [Expo Router](https://docs.expo.dev/router/introduction)
-with a bottom-tab layout.
+Internal task and accountability app for the Xolace founding team: features, tasks, owners,
+deadlines, daily logs and verification, on iOS and web.
 
-## Get started
+- **Spec:** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)
+- **Working on the code (setup, conventions, phases):** [CLAUDE.md](CLAUDE.md)
 
-1. Install dependencies
+## Quick start
 
-   ```bash
-   npm install
-   ```
+```bash
+bun install
+bun run convex   # first run: log in to Convex and pick the project; writes .env.local
+bun start        # Expo dev server; press w for web
+```
 
-2. Start the app
+First-time deployment setup (auth signing keys, seeding invites) is in
+[CLAUDE.md → How to run](CLAUDE.md#how-to-run).
 
-   ```bash
-   npx expo start
-   ```
+## Stack
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. The tabs themselves live under `src/app/(tabs)/`. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## What's preconfigured
-
-- **HeroUI Native** (`heroui-native`) wrapped in `HeroUINativeProvider` and `GestureHandlerRootView` in `src/app/_layout.tsx`
-- **Uniwind** + **Tailwind CSS** wired through `metro.config.js` and `src/global.css`
-- All HeroUI Native mandatory peer dependencies: `react-native-reanimated`, `react-native-gesture-handler`, `react-native-worklets`, `react-native-safe-area-context`, `react-native-svg`, `react-native-screens`
-- `@gorhom/bottom-sheet` for bottom-sheet UIs
-- `@expo/vector-icons` (Ionicons) for tab bar icons
-- TypeScript with `strict: true` and `@/*` path alias to `./src/*`
-- React Compiler enabled
-
-## Learn more
-
-- [HeroUI Native components](https://heroui.com/docs/native) — full component reference
-- [Expo documentation](https://docs.expo.dev/) — Expo fundamentals and guides
-- [Uniwind documentation](https://docs.uniwind.dev) — Tailwind for React Native
-- [Expo Router](https://docs.expo.dev/router/introduction) — file-based routing
+- [Expo](https://docs.expo.dev/) SDK 58 + [Expo Router](https://docs.expo.dev/router/introduction)
+  (routes in `src/app`), TypeScript strict, React Compiler
+- [HeroUI Native](https://heroui.com/docs/native) components with
+  [Uniwind](https://docs.uniwind.dev) (Tailwind CSS for React Native)
+- [Convex](https://docs.convex.dev/) backend with [Convex Auth](https://labs.convex.dev/auth)
+  (email + password, invite-only)
+- bun, ESLint + Prettier, Vitest + convex-test

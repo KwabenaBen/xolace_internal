@@ -200,6 +200,29 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   doesn't re-render every second.
 - Prettier formats; ESLint (Expo + Convex + Prettier rules) must pass.
 
+## Definition of done (before every commit)
+
+After every milestone, sprint, phase or batch of fixes, run a **strict full audit of the whole
+system** (not just the changed files), then commit only if all of it is clean. If anything fails
+or conflicts, don't commit: report it, fix it or ask. Push only when asked (to `origin`).
+
+1. **Checks:** `bun run typecheck` (route types, app, backend), `bun run lint`,
+   `bunx prettier --check .`, `bun run test`, `bunx expo-doctor`, and production builds:
+   `bunx expo export --platform ios` and `--platform web` (to a temp folder).
+2. **Dependencies:** `bun audit`: no new critical/high advisories in what ships in the app.
+3. **Secrets:** scan the diff for keys, tokens, real email addresses and deployment names/URLs
+   (the repos are public).
+4. **Shaders:** if a Skia shader changed, compile it with CanvasKit (`node_modules/canvaskit-wasm`).
+5. **Review the diff:** every public Convex function checks the caller first; data changes call
+   `logActivity`; no page colours hard-coded (theme tokens / `usePageColors`); Reduce Motion and
+   accessibility labels kept; web still works without Skia (`.web.tsx`).
+6. **Docs in step:** `docs/FEATURES.md`, this file, and the shared guide when asked.
+7. **No conflicts:** `git merge-tree --write-tree origin/main HEAD` exits 0 (merges cleanly).
+8. **Report honestly:** what was verified, and what only an iPhone can confirm.
+
+At the end of a phase, also run a full audit like the 9 Nov one (backend, app code, navigation and
+UX, security) and write the findings up before moving on.
+
 ## How to run
 
 **First-time setup**

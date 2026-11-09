@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import type { JSX, ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { Sym, symbols, type SymbolSpec } from "./sym";
@@ -45,6 +45,7 @@ export function RoundButton({
  * The top of a detail page: a round back button alone on its row, then the page's subject (a
  * task's or a feature's title) in big type, with an optional grey line under it. With
  * `onSubtitlePress` the grey line is a link (e.g. "Part of <feature> ›" opens the feature).
+ * `action` sits to the right of the title (e.g. People's round Invite button).
  */
 export function PageHeader({
   s,
@@ -53,6 +54,7 @@ export function PageHeader({
   onSubtitlePress,
   subtitleHint,
   onBack,
+  action,
 }: {
   s: number;
   title: string;
@@ -61,6 +63,7 @@ export function PageHeader({
   /** What tapping the subtitle does, for screen readers. */
   subtitleHint?: string;
   onBack: () => void;
+  action?: ReactNode;
 }): JSX.Element {
   const c = usePageColors();
   const subtitleStyle = { fontFamily: fonts.medium, fontSize: 14 * s, color: c.muted };
@@ -69,35 +72,38 @@ export function PageHeader({
       <View style={{ flexDirection: "row" }}>
         <RoundButton symbol={symbols.back} label="Back" onPress={onBack} s={s} />
       </View>
-      <View style={{ gap: 6 * s, paddingHorizontal: 2 }}>
-        <Text
-          accessibilityRole="header"
-          style={{
-            fontFamily: fonts.black,
-            fontSize: 30 * s,
-            lineHeight: 34 * s,
-            letterSpacing: -1,
-            color: c.text,
-          }}
-        >
-          {title}
-        </Text>
-        {subtitle === undefined ? null : onSubtitlePress !== undefined ? (
-          <Pressable
-            accessibilityRole="link"
-            accessibilityHint={subtitleHint}
-            hitSlop={8}
-            onPress={onSubtitlePress}
-            className="self-start active:opacity-60"
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 * s }}>
+        <View style={{ flex: 1, gap: 6 * s, paddingHorizontal: 2 }}>
+          <Text
+            accessibilityRole="header"
+            style={{
+              fontFamily: fonts.black,
+              fontSize: 30 * s,
+              lineHeight: 34 * s,
+              letterSpacing: -1,
+              color: c.text,
+            }}
           >
-            <Text style={subtitleStyle}>
-              {subtitle}
-              <Text style={{ fontFamily: fonts.bold, color: c.text }}>{" ›"}</Text>
-            </Text>
-          </Pressable>
-        ) : (
-          <Text style={subtitleStyle}>{subtitle}</Text>
-        )}
+            {title}
+          </Text>
+          {subtitle === undefined ? null : onSubtitlePress !== undefined ? (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityHint={subtitleHint}
+              hitSlop={8}
+              onPress={onSubtitlePress}
+              className="self-start active:opacity-60"
+            >
+              <Text style={subtitleStyle}>
+                {subtitle}
+                <Text style={{ fontFamily: fonts.bold, color: c.text }}>{" ›"}</Text>
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={subtitleStyle}>{subtitle}</Text>
+          )}
+        </View>
+        {action}
       </View>
     </View>
   );

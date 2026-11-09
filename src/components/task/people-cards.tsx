@@ -25,7 +25,8 @@ export type PersonCard = {
   hint?: string;
 };
 
-function initials(name: string): string {
+/** "Ama Mensah" → "AM": the badge in place of a photo (people cards, the People page). */
+export function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const first = parts[0]?.[0] ?? "?";
   const last = parts.length > 1 ? (parts[parts.length - 1][0] ?? "") : "";

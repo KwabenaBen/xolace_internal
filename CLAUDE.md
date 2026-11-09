@@ -32,7 +32,9 @@ src/app/                 Expo Router routes
   (auth)/                welcome → sign-in / sign-up (signed-out only)
   (app)/_layout.tsx      Stack: loads the user, then (tabs) + pages + modal forms
   (app)/(tabs)/          Tabs: Board (index), My Tasks, Logs, Settings, Admin (admins only)
-  (app)/settings/        Pages under Settings: account (profile + sign out)
+  (app)/settings/        Pages under Settings: account (profile + sign out), people/index (the
+                         team grid, invites waiting, deactivated; person cards), people/invite
+                         (modal: invite with a live ticket, then the code to share)
   (app)/features/        new (modal), [featureId]/index (page), [featureId]/edit (modal),
                          [featureId]/people/[userId] (one person's work on the feature)
   (app)/tasks/           new (modal: admin creates / member proposes), [taskId]/index (page),
@@ -43,20 +45,28 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
   ui/                    The shared kit, used across screens: theme.ts (usePageColors: the
                          theme's page colours; `colors`: sticker palette; fonts, FONT_FILES,
                          STATUS_COLORS), pill-button.tsx (PillButton, PillRow), page-header.tsx
-                         (PageHeader, RoundButton), detail-page.tsx (DetailPage, usePageSize,
-                         useGoBack), panel.tsx (Panel, SectionTitle), task-row.tsx (TaskRow,
+                         (PageHeader with an optional action, RoundButton), detail-page.tsx
+                         (DetailPage, usePageSize, useGoBack), panel.tsx (Panel, SectionTitle),
+                         task-row.tsx (TaskRow,
                          StatusPill, FeatureStatusPill), progress-bar.tsx, sym.tsx (SF Symbol /
-                         Material icon)
+                         Material icon), sheet.tsx (Sheet: every overlay card; SheetScrollView,
+                         useSheet), action-sheet.tsx (ActionSheet), use-sheet-actions.ts
+                         (confirm-in-sheet), role-pill.tsx (RolePill)
   settings/              The Settings tab: ClayRelightSettings.tsx (Native Cook's "Clay Relight
                          Settings": a Skia ray-marched clay scene relit from noon to night by the
                          Dark mode switch, crs-hero-shader.ts / crs-icon-shader.ts / crs-motion.ts /
                          crs-theme.ts; .web.tsx = flat version without Skia), use-settings-rows.ts
+  people/                The People page: team-grid.tsx, list-row.tsx, avatar.tsx (pastel
+                         initials), person-card.tsx (the editorial card, in a Sheet),
+                         stickers.tsx (SVG stickers + pen marks), person-actions.ts /
+                         invite-actions.ts (what an admin can do, mirroring the server's rules),
+                         invite-form.tsx + invite-ticket.tsx
   auth/                  Signed-out UI: DotField (dots that spell "cadence"; dot-field.tsx = Skia,
                          dot-field.web.tsx = canvas, math in dot-formations.ts), DotWordmark,
                          AuthTextField, AuthFormScreen
-  planning/              Forms: OptionPicker (modal select), ChoiceChips, CriteriaEditor,
-                         DateField (iOS: calendar sheet with Done; .web.tsx = browser date input),
-                         FeatureForm, TaskForm, useUnsavedGuard ("Discard changes?"),
+  planning/              Forms: OptionPicker (a select in a Sheet), ChoiceChips, CriteriaEditor,
+                         DateField (iOS: calendar in a Sheet with Done; .web.tsx = browser date
+                         input), FeatureForm, TaskForm, useUnsavedGuard ("Discard changes?"),
                          HeaderCancel, AdminOnly, FormError, NotFound
   board/                 The Board's bento (after Native Cook's "Paddock Widget Bento"):
                          board-theme.ts (sizes in points on a 402-wide screen, ×s), pit-stop.ts
@@ -74,7 +84,7 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
 src/lib/                 Convex client, auth token storage, theme-preference (the Dark mode
                          switch's choice, remembered per device), error messages, hooks (useNow, useDeviceFlag for
-                         per-device yes/no settings, ...)
+                         per-device yes/no settings, useReduceTransparency, ...)
 convex/                  Backend (deployed by `bunx convex dev`)
   schema.ts              All tables + indexes
   convex.config.ts       App config: typed deployment env vars (CADENCE_DEMO), read via `env`
@@ -87,8 +97,9 @@ convex/                  Backend (deployed by `bunx convex dev`)
                          get, mine, proposals, create, update (admin),
                          propose (anyone), approveProposal, declineProposal (admin)
   seed.ts                Internal seed mutation (CLI only); prints each new invite's code
-  demo.ts                Dev-only demo data: demo:seed / demo:clear (CLI only; refuse to run
-                         unless the deployment has CADENCE_DEMO=on)
+  demo.ts                Dev-only: demo:seed / demo:clear (demo data), demo:setRole (make an
+                         account admin or member) (CLI only; refuse to run unless the deployment
+                         has CADENCE_DEMO=on)
   lib/                   Server helpers: auth (permissions), accounts, settings, activity,
                          validators (enums), errors, constants, dates (EVERY date helper:
                          GMT days, "Fri 14 Nov", "in 3 days"; shared with the app),
@@ -181,7 +192,19 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   Route types live in `.expo/types/router.d.ts`; **on Windows the dev server's watcher writes
   them wrong for files added while it runs** — `bun run typegen` (or a dev-server restart) fixes
   them, and `bun run typecheck` runs it first.
-- Selects use `OptionPicker` (RN `Modal`), not HeroUI's Select, so they work on web too.
+- Selects use `OptionPicker` (a `Sheet`), not HeroUI's Select, so they work on web too.
+- **Overlays:** every overlay card is a `Sheet` (`src/components/ui/sheet.tsx`). Mount it to open
+  it; it rises over the page, which blurs (expo-blur) and dims; swipe down, a tap outside or back
+  closes it with the same exit, then `onClose` unmounts it. Scrolling content goes in
+  `SheetScrollView` (a swipe scrolls first, then moves the card); content closes it with
+  `useSheet().close` and locks it with `setLocked(busy)` while saving. Ask "are you sure?"
+  inside the sheet (`useSheetActions`), never with an `Alert` over it (iOS won't show an alert
+  over a closing modal). Reduce Motion: fade; Reduce Transparency: plain dim.
+- **Navigation motion:** pushed pages keep the native push and swipe back (from anywhere on iOS
+  26); form modals are native iOS sheets (swipe down; `useUnsavedGuard` blocks the swipe and
+  asks when there are changes); signing in/out cross-fades (root stack `animation: "fade"`);
+  tabs shift (`animation: "shift"`, none with Reduce Motion). Web stacks don't animate.
+- On web, inline `pointerEvents: "box-none"` is ignored (not CSS): put it in a `StyleSheet`.
 - **Forms** (modals): `HeaderCancel` top left; `useUnsavedGuard(initial, values)` asks before
   discarding changes (Expo Router's `usePreventRemove`; call `markSaving()` before saving);
   errors show above the save button.
@@ -241,13 +264,15 @@ UX, security) and write the findings up before moving on.
    Safe to re-run; existing users/invites/settings are skipped. The result lists each new
    invite's **one-time code**: send each person theirs (codes expire after 14 days). A pending
    invite without a code (made before codes existed), or a lost/expired code:
-   `bunx convex run invites:newCode "{email:'coo@example.com'}"`, or New code on the Admin tab.
+   `bunx convex run invites:newCode "{email:'coo@example.com'}"`, or New code on Settings → People.
 5. Optional, **dev only**: demo data so the Board has something to show. Switch it on for the
    dev deployment once: `bunx convex env set CADENCE_DEMO on` (never on prod; without it both
    commands refuse). Then `bunx convex run demo:seed` (3 demo people with `@demo.cadence.test`
    emails and no login, 3 features titled "Demo: …", 12 tasks across every status, spread over
    real users too) and `bunx convex run demo:clear` to remove it (only features a demo person
-   created; the activity log is kept).
+   created; the activity log is kept). To try the app as an admin or a member:
+   `bunx convex run demo:setRole "{email:'you@example.com',role:'admin'}"` (and back with
+   `role:'member'`).
 
 **Daily**
 
@@ -276,9 +301,11 @@ UX, security) and write the findings up before moving on.
 - [ ] **Phase 3 — Settings:** the Settings tab built from Native Cook's "Clay Relight Settings"
       block (`src/components/settings/`): the Dark mode switch is the app theme (overrides the
       phone, remembered per device); five rows (Notifications, Daily log reminder, People, Team
-      rules, Account & security) with clay icons; Account page (profile, sign out). Next: People
-      (invite with code, new code, revoke, role, deactivate) and Team rules (admin task reviewer,
-      digest/reminder times, late window) pages. Branch `cadence-phase-3-settings-screen`.
+      rules, Account & security) with clay icons; Account page (profile, sign out). Branch
+      `cadence-phase-3-settings-screen`. People page (team grid, editorial person cards, invites
+      with codes to share, roles, deactivate) and every overlay as a swipe-to-close Sheet over a
+      blurred page: `cadence-phase-3-peoplescreen`. Next: Team rules (admin task reviewer,
+      digest/reminder times, late window) and the Notifications / Daily log reminder time sheets.
 - [ ] **Phase 4 — Progress & extensions:** status changes, progress %, comments, overdue flag,
       extension requests + late rule, activity log.
 - [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.

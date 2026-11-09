@@ -30,7 +30,9 @@ export default function AppLayout(): JSX.Element {
 
   // Pages that draw their own header (back button, then the title) on the theme's page colour.
   const ownHeader = { headerShown: false, contentStyle: { backgroundColor: background } };
-  // Form modals: Cancel at the top left (it asks first if there are unsaved changes).
+  // Form modals: native iOS sheets (swipe down to close) with Cancel at the top left. With unsaved
+  // changes, both the swipe and Cancel ask first (useUnsavedGuard blocks the native dismiss).
+  // Pushed pages keep the native push and swipe back (from anywhere on the screen on iOS 26).
   const form = { presentation: "modal" as const, headerLeft: () => <HeaderCancel /> };
 
   if (user === undefined) return <LoadingScreen />;
@@ -61,10 +63,12 @@ export default function AppLayout(): JSX.Element {
       />
       <Stack.Screen name="tasks/[taskId]/index" options={{ title: "Task", ...ownHeader }} />
       <Stack.Screen name="settings/account" options={{ title: "Account", ...ownHeader }} />
+      <Stack.Screen name="settings/people/index" options={{ title: "People", ...ownHeader }} />
       <Stack.Screen name="features/new" options={{ title: "New feature", ...form }} />
       <Stack.Screen name="features/[featureId]/edit" options={{ title: "Edit feature", ...form }} />
       <Stack.Screen name="tasks/new" options={{ title: "New task", ...form }} />
       <Stack.Screen name="tasks/[taskId]/edit" options={{ title: "Edit task", ...form }} />
+      <Stack.Screen name="settings/people/invite" options={{ title: "Invite someone", ...form }} />
     </Stack>
   );
 }

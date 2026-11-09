@@ -4,7 +4,7 @@ What every part of Cadence does and why it's there, in plain language. Keep this
 with each phase (see [CLAUDE.md](../CLAUDE.md) → Phases). The full spec is
 [REQUIREMENTS.md](REQUIREMENTS.md).
 
-_As of 9 Nov 2026: Phase 1, Phase 2, the bento Board, the feature, person and task pages, and the black and off-white themes are built._
+_As of 9 Nov 2026: Phase 1, Phase 2, the bento Board, the feature, person and task pages, the black and off-white themes, and the Settings tab with its People page are built._
 
 ## What Cadence is for
 
@@ -340,27 +340,65 @@ new task starts as **To do**.
 
 Besides the Board there are four tabs; the Admin tab appears only for admins.
 
-| Tab                 | What it's for             | What's on it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| My Tasks            | Your own work at a glance | **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button.                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Logs                | Daily work logs           | A placeholder for now; the log form arrives in Phase 5.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Settings            | You and the team          | The **Dark mode** switch on a clay scene of a house on a hill: turning it on plays a sunset (the sun goes down, lights come on, the icons light up one by one) and switches the whole app to black; off brings the day and the off-white back. You can also drag across the sky to move the sun. Your choice is kept on this phone. Then five rows: Notifications (the morning digest time), Daily log reminder (its time), People (how many), Team rules (who verifies the admin's tasks) and **Account & security**, which opens your name, title, role, email and time zone, and **Sign out**. People and Team rules get their own pages next. |
-| Admin (admins only) | Running the team          | **Proposals to review**, a **New feature** button and the list of invites, each marked Pending or Joined. A pending invite shows its code (press and hold to copy it), when it expires, and **New code** for a lost or expired one; the old code stops working.                                                                                                                                                                                                                                                                                                                                                                                   |
+| Tab                 | What it's for             | What's on it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| My Tasks            | Your own work at a glance | **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Logs                | Daily work logs           | A placeholder for now; the log form arrives in Phase 5.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Settings            | You and the team          | The **Dark mode** switch on a clay scene of a house on a hill: turning it on plays a sunset (the sun goes down, lights come on, the icons light up one by one) and switches the whole app to black; off brings the day and the off-white back. You can also drag across the sky to move the sun. Your choice is kept on this phone. Then five rows: Notifications (the morning digest time), Daily log reminder (its time), People (how many), Team rules (who verifies the admin's tasks) and **Account & security**, which opens your name, title, role, email and time zone, and **Sign out**. **People** opens the People page (below); Team rules gets its own page next. |
+| Admin (admins only) | Running the team          | **Proposals to review** and a **New feature** button. Invites live on the People page (Settings → People).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+
+## People
+
+Settings → People is the team, after a "pick an expert" design: a dark panel of round avatars.
+
+- **The team.** Everyone on Cadence as a round avatar (their initials on a pastel), four to a
+  row, with their first name and title. Admins carry a small violet **Admin** tag; your own
+  says **You**. Above it, how many people and admins there are. Admins have a round **+** button
+  at the top to invite someone.
+- **A person's card.** Tap anyone (members too) and their card rises from the bottom, styled like
+  a magazine page: their pastel with big initials and stickers (a seal with their role, an
+  envelope, a heart on your own card, a green stamp if they're the admin task reviewer), then
+  "Kofi is a MEMBER" with the role underlined in pen and their title circled, when they joined,
+  their email and time zone. Admins see their options beneath: **Make admin** / **Make member**,
+  **Deactivate** / **Reactivate**. Each asks first, inside the card, and says what will happen
+  (e.g. a deactivated person is signed out everywhere; if they're the admin task reviewer, choose
+  someone else in Team rules). The page never offers what the server would refuse: nobody can
+  deactivate themselves, and the last active admin stays an admin.
+- **Waiting to join** (admins only). Each pending invite as a row: the email, its code (or "No
+  code yet" / "Code expired", with a yellow dot) and until when the code works. Tap one for
+  **Share code** (the phone's share sheet: Messages, mail, WhatsApp), **New code** (the old one
+  stops working; the card stays open so the new code can be shared straight away) and **Revoke
+  invite**.
+- **Deactivated.** Anyone deactivated, dimmed, with "Signed out"; an admin can reactivate them
+  from their card.
+- **Invite someone** (the + button, admins). A ticket at the top previews the invite as you type
+  ("You're invited", their email, "as COO" circled, their role underlined), then their email,
+  title and role (two cards: Member or Admin, each saying what it can do). **Create invite** makes
+  it and shows the one-time code on the ticket, with **Share code** and **Done**, so it can be
+  sent straight away.
+
+**Cards and sheets everywhere** (a person's card, an invite's options, the option and date
+pickers) rise from the bottom over the page, which blurs and dims so the card is all you look
+at. Swipe a card down to close it (the blur clears as it goes), or tap outside it. With Reduce
+Motion on, cards fade instead of sliding; with Reduce Transparency, the page dims without the
+blur. Forms (new feature, new task, invite) open as the phone's own sheets: swipe down to close,
+and if you've typed something it asks before throwing it away. Pages slide in from the right and
+swipe back; switching tabs slides the new one in gently; signing in or out fades.
 
 ## Who can do what
 
 Everyone sees everything; only admins plan and decide. Every rule is checked on the server, so
 hiding a button is never the only protection.
 
-| Action                                                          | Admin                 | Member |
-| --------------------------------------------------------------- | --------------------- | ------ |
-| See the Board, every feature, task and proposal                 | Yes                   | Yes    |
-| Propose a task                                                  | Yes                   | Yes    |
-| Create and edit features                                        | Yes                   | No     |
-| Create and edit tasks, including owners, deadlines and criteria | Yes                   | No     |
-| Approve or decline proposals                                    | Yes                   | No     |
-| Invite people, change roles, deactivate accounts                | Yes (screens to come) | No     |
-| Change team settings                                            | Yes                   | No     |
+| Action                                                          | Admin                   | Member |
+| --------------------------------------------------------------- | ----------------------- | ------ |
+| See the Board, every feature, task and proposal                 | Yes                     | Yes    |
+| Propose a task                                                  | Yes                     | Yes    |
+| Create and edit features                                        | Yes                     | No     |
+| Create and edit tasks, including owners, deadlines and criteria | Yes                     | No     |
+| Approve or decline proposals                                    | Yes                     | No     |
+| Invite people, change roles, deactivate accounts                | Yes (Settings → People) | No     |
+| Change team settings                                            | Yes                     | No     |
 
 - More than one admin is allowed; the last active admin can't be demoted or deactivated.
 - Deactivated people can't be given work.
@@ -373,8 +411,9 @@ A few things work without a screen of their own.
 
 - **Invites.** The four cofounders were invited when Cadence was set up. Each invite carries a
   role, a title and a one-time code, works once and expires after 14 days. The first codes come
-  from the command that sets up the invites (or `invites:newCode`), because nobody can see the
-  Admin tab before the first admin has joined.
+  from the command that sets up the invites (or `invites:newCode`), because nobody can open the
+  People page as an admin before the first admin has joined. After that, admins invite people
+  and make new codes on the People page.
 - **Team settings.** Team rules are stored as settings, not written into the app, so they can
   change without a new release: the admin task reviewer (the CEO, who verifies tasks the admin
   owns), the morning digest time (08:00), the daily log reminder (20:00), the team time zone
@@ -392,20 +431,22 @@ A few things work without a screen of their own.
   "doesn't exist" with a back button.
 - **Demo data (development only).** The development copy can be filled with sample features and
   tasks (titles start with "Demo:", sample people are marked "(demo)") to try the Board, and
-  emptied again with one command (`bunx convex run demo:seed` / `demo:clear`). Both commands only
-  work where demo data has been switched on, so they can't touch the live app. Clearing removes
-  only what the demo created and never the activity log.
+  emptied again with one command (`bunx convex run demo:seed` / `demo:clear`). A third,
+  `demo:setRole`, makes an account an admin or a member, to try the app from either side. All
+  three only work where demo data has been switched on, so they can't touch the live app.
+  Clearing removes only what the demo created and never the activity log.
 
 ## Coming next
 
-Four more phases complete version 1; each starts once the previous one runs on a phone.
+Phase 3 (Settings) is under way; four more phases complete version 1. Each starts once the
+previous one runs on a phone.
 
 | Phase                           | What it adds                                                                                                                                                                                                                                                                                                                                                                                         |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 3. Progress and extensions      | Owners move their tasks through the statuses, set a progress percentage and comment. Overdue tasks are flagged automatically. Owners can ask for a later deadline with a reason and a type (scope change or other); the admin approves or declines. An approved extension counts as late if it was asked for within 24 hours of the deadline or isn't a scope change. A screen for the activity log. |
-| 4. Daily logs                   | A short log every weekday: what I did, what's next, blockers and linked tasks. An optional one-liner at weekends, never counted as missed. Each person's history, with missed weekdays recorded.                                                                                                                                                                                                     |
-| 5. Peer review and verification | Code tasks go to their peer reviewer first. Owners submit with a note and proof (a link, screenshot, PR or build). The admin checks each acceptance criterion and verifies or sends it back with a reason; the CEO does this for tasks the admin owns. A feature moves to Internal testing once all its tasks are verified, and to Shipped when the admin marks it live.                             |
-| 6. Notifications and release    | One 8am digest: your tasks due in 48 hours, your overdue tasks, reviews waiting on you, and yesterday's missing log. Instant pushes only for assignments, review requests, verifications and decisions. An 8pm reminder on weekdays if your log isn't in. Then a TestFlight build and the web version going live.                                                                                    |
+| 4. Progress and extensions      | Owners move their tasks through the statuses, set a progress percentage and comment. Overdue tasks are flagged automatically. Owners can ask for a later deadline with a reason and a type (scope change or other); the admin approves or declines. An approved extension counts as late if it was asked for within 24 hours of the deadline or isn't a scope change. A screen for the activity log. |
+| 5. Daily logs                   | A short log every weekday: what I did, what's next, blockers and linked tasks. An optional one-liner at weekends, never counted as missed. Each person's history, with missed weekdays recorded.                                                                                                                                                                                                     |
+| 6. Peer review and verification | Code tasks go to their peer reviewer first. Owners submit with a note and proof (a link, screenshot, PR or build). The admin checks each acceptance criterion and verifies or sends it back with a reason; the CEO does this for tasks the admin owns. A feature moves to Internal testing once all its tasks are verified, and to Shipped when the admin marks it live.                             |
+| 7. Notifications and release    | One 8am digest: your tasks due in 48 hours, your overdue tasks, reviews waiting on you, and yesterday's missing log. Instant pushes only for assignments, review requests, verifications and decisions. An 8pm reminder on weekdays if your log isn't in. Then a TestFlight build and the web version going live.                                                                                    |
 
 After version 1: a team health dashboard (features on track, overdue counts, log consistency),
 GitHub links for code tasks, a contribution graph and an Android build.

@@ -50,7 +50,13 @@ export function useSettingsRows(): Row[] {
       hint: "The morning digest's time. Notifications arrive in a later phase.",
     },
     { title: "Daily log reminder", day: reminder, night: reminder },
-    { title: "People", day: people, night: people },
+    {
+      title: "People",
+      day: people,
+      night: people,
+      onPress: () => router.push("/settings/people"),
+      hint: user.role === "admin" ? "The team, invites and roles" : "Who's on the team",
+    },
     { title: "Team rules", day: reviewer, night: reviewer },
     {
       title: "Account & security",

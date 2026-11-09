@@ -6,9 +6,8 @@ import { DetailPage, useGoBack, usePageSize } from "@/components/ui/detail-page"
 import { PageHeader } from "@/components/ui/page-header";
 import { Panel } from "@/components/ui/panel";
 import { PillButton } from "@/components/ui/pill-button";
-import { Pill } from "@/components/ui/task-row";
-import { colors, fonts, usePageColors } from "@/components/ui/theme";
-import { ROLE_LABELS } from "@/constants/labels";
+import { RolePill } from "@/components/ui/role-pill";
+import { fonts, usePageColors } from "@/components/ui/theme";
 import { getErrorMessage } from "@/lib/errors";
 import { useSignedInUser } from "@/lib/use-current-user";
 
@@ -47,17 +46,7 @@ export default function AccountScreen(): JSX.Element {
     <DetailPage title="Account" content={content}>
       <View style={{ gap: 22 * s }}>
         <PageHeader s={s} title={user.name} subtitle={user.title} onBack={goBack} />
-        <Panel
-          s={s}
-          title="Account"
-          aside={
-            <Pill
-              label={ROLE_LABELS[user.role]}
-              fill={user.role === "admin" ? colors.violet : colors.cream}
-              ink={user.role === "admin" ? colors.white : colors.black}
-            />
-          }
-        >
+        <Panel s={s} title="Account" aside={<RolePill role={user.role} />}>
           {row("Email", user.email)}
           {row("Time zone", user.timezone)}
         </Panel>

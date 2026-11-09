@@ -10,7 +10,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
   type LayoutChangeEvent,
 } from "react-native";
@@ -19,7 +18,6 @@ import Animated, {
   Easing,
   interpolateColor,
   ReduceMotion,
-  useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
@@ -37,7 +35,6 @@ import { CRS_HERO_SKSL } from "./crs-hero-shader";
 import { CRS_ICON_SKSL } from "./crs-icon-shader";
 import {
   dusk,
-  evening,
   frameAt,
   lamp,
   LOOP,
@@ -52,7 +49,6 @@ import {
 } from "./crs-motion";
 import {
   BAND_H,
-  CLOCK,
   FONT,
   ICON_COL,
   makeLayout,
@@ -71,8 +67,8 @@ import {
  Clay Relight Settings — the settings of a phone, every icon made of clay, relit by the evening.
  (Native Cook's block, brought into Cadence; changes from the source are marked "Cadence".)
 
- The screen: the title; the Appearance card, a clay house on a hill under the sun, with the time,
- Dark mode and its switch; the list, each row with a clay icon.
+ The screen: the title; the Appearance card, a clay house on a hill under the sun, with Dark mode
+ and its switch; the list, each row with a clay icon.
 
  Signature: Dark mode is not a theme switch, it is sunset. Turn it on and the sun goes down behind
  the far hill: every shadow on the screen (the trees' and the house's, each symbol's on its tile,
@@ -105,7 +101,6 @@ const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
 const EASE_IN_OUT = Easing.bezier(0.77, 0, 0.175, 1);
 const EASE_EVENING = Easing.bezier(0.45, 0, 0.55, 1);
 const NEVER = ReduceMotion.Never;
-const AnimatedInput = Animated.createAnimatedComponent(TextInput);
 
 function buzz(kind: "light" | "tick") {
   if (process.env.EXPO_OS === "web") return;
@@ -118,16 +113,6 @@ function tone(key: keyof typeof PALETTE, m: number, theme: number) {
   const c = PALETTE[key];
   const lit = interpolateColor(Math.min(m, 0.5), [0, 0.5], [c[0], c[1]]);
   return interpolateColor(theme, [0, 1], [lit, c[2]]);
-}
-
-function clockText(m: number) {
-  "worklet";
-  const raw = CLOCK.from + evening(m) * CLOCK.span;
-  const mins = Math.round(raw / 5) * 5;
-  const h24 = Math.floor(mins / 60) % 24;
-  const mm = mins % 60;
-  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-  return `${h12}:${mm < 10 ? "0" : ""}${mm} ${h24 < 12 ? "AM" : "PM"}`;
 }
 
 type Props = {
@@ -434,13 +419,6 @@ export function ClayRelightSettings({
   const lineStyle = useAnimatedStyle(() => ({
     backgroundColor: tone("line", m.get(), theme.get()),
   }));
-  const pillStyle = useAnimatedStyle(() => ({
-    backgroundColor: tone("pill", m.get(), theme.get()),
-  }));
-  const pillInk = useAnimatedStyle(() => ({ color: tone("pillInk", m.get(), theme.get()) }));
-  const clockProps = useAnimatedProps(
-    () => ({ text: clockText(m.get()), defaultValue: clockText(m.get()) }) as never
-  );
   // the subtitle rolls over as night falls: the old line leaves upward, the new one rises in
   const subDay = useAnimatedStyle(() => {
     const k = smooth(0.56, 0.66, m.get());
@@ -525,15 +503,6 @@ export function ClayRelightSettings({
                   </Fill>
                 </Canvas>
               ) : null}
-              <Animated.View style={[styles.timePill, pillStyle]} pointerEvents="none">
-                <AnimatedInput
-                  editable={false}
-                  style={[styles.timeText, pillInk]}
-                  animatedProps={clockProps}
-                  allowFontScaling={false}
-                  accessible={false}
-                />
-              </Animated.View>
             </View>
           </GestureDetector>
           <View style={styles.band}>
@@ -699,22 +668,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
   },
   card: { position: "absolute", borderRadius: 28, overflow: "hidden", borderCurve: "continuous" },
-  timePill: {
-    position: "absolute",
-    left: SPACE.m,
-    top: SPACE.m,
-    height: 28,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    justifyContent: "center",
-  },
-  timeText: {
-    fontFamily: FONT.semibold,
-    fontSize: 13,
-    padding: 0,
-    minWidth: 64,
-    fontVariant: ["tabular-nums"],
-  },
   band: {
     height: BAND_H,
     flexDirection: "row",

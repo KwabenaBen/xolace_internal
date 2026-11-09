@@ -2,6 +2,8 @@
 // Cadence: noon and night are the app's own themes (the off-white #FEFAF3 and black pages, the same
 // panels and text as src/global.css), so the switch lands exactly on the app's real look; the sunset
 // tones in between are the block's. Text is the app's Montserrat instead of the block's Inter.
+// Cadence: the block's clock pill on the scene (a pretend time running 2:40 PM → 11:40 PM with the
+// sunset) is left out; it read as the real time.
 
 /** Each token at noon, at sunset and at night. Noon → sunset follows the light (m); the step to night
  * is its own short fade (`theme`, see crs-motion). */
@@ -12,8 +14,6 @@ export const PALETTE = {
   mute: ["#6B665D", "#7A6058", "#A29E97"],
   line: ["#E2D9C7", "#EED9CC", "#262523"],
   trackOff: ["#E3DBCA", "#E9D6CB", "#29262B"],
-  pill: ["rgba(254,250,243,0.72)", "rgba(255,244,235,0.72)", "rgba(0,0,0,0.55)"],
-  pillInk: ["#000000", "#3A2620", "#FEFAF3"],
 } as const;
 
 export const TRACK_ON = "#5B5BD6";
@@ -40,9 +40,6 @@ export type Row = {
 /** The icon shader draws exactly five rows (crs-icon-shader.ts): bell, crescent, people, shield,
  * padlock. */
 export const ROW_COUNT = 5;
-
-/** m → the time on the card's clock, in minutes after midnight (2:40 PM … 11:40 PM). */
-export const CLOCK = { from: 14 * 60 + 40, span: 540 } as const;
 
 export const SCENE_H = 232;
 export const BAND_H = 76;

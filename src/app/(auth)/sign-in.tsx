@@ -1,9 +1,11 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "expo-router";
-import { Button, Input, Label, TextField } from "heroui-native";
 import { useState, type JSX } from "react";
+import { Pressable, Text } from "react-native";
 
-import { AuthScreen } from "@/components/auth-screen";
+import { AuthFormScreen } from "@/components/auth/auth-form-screen";
+import { AuthTextField } from "@/components/auth/auth-text-field";
+import { PillButton } from "@/components/auth/pill-button";
 import { getErrorMessage } from "@/lib/errors";
 
 export default function SignInScreen(): JSX.Element {
@@ -32,45 +34,46 @@ export default function SignInScreen(): JSX.Element {
   }
 
   return (
-    <AuthScreen
-      subtitle="Sign in to see the team's features, tasks and logs."
+    <AuthFormScreen
+      title="Sign in"
+      subtitle="Welcome back. Pick up where the team left off."
       error={error}
       footer={
-        <Button variant="ghost" onPress={() => router.replace("/sign-up")}>
-          Have an invite? Create your account
-        </Button>
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.replace("/sign-up")}
+          className="items-center py-3 active:opacity-70"
+        >
+          <Text className="text-sm text-neutral-400">
+            Have an invite? <Text className="font-semibold text-white">Create your account</Text>
+          </Text>
+        </Pressable>
       }
     >
-      <TextField isRequired>
-        <Label>Email</Label>
-        <Input
-          value={email}
-          onChangeText={setEmail}
-          placeholder="you@company.com"
-          autoCapitalize="none"
-          autoComplete="email"
-          autoCorrect={false}
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          returnKeyType="next"
-        />
-      </TextField>
-      <TextField isRequired>
-        <Label>Password</Label>
-        <Input
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Your password"
-          secureTextEntry
-          autoComplete="current-password"
-          textContentType="password"
-          returnKeyType="go"
-          onSubmitEditing={handleSignIn}
-        />
-      </TextField>
-      <Button onPress={handleSignIn} isDisabled={isSubmitting}>
-        {isSubmitting ? "Signing in…" : "Sign in"}
-      </Button>
-    </AuthScreen>
+      <AuthTextField
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        placeholder="you@company.com"
+        autoCapitalize="none"
+        autoComplete="email"
+        autoCorrect={false}
+        keyboardType="email-address"
+        textContentType="emailAddress"
+        returnKeyType="next"
+      />
+      <AuthTextField
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Your password"
+        secureTextEntry
+        autoComplete="current-password"
+        textContentType="password"
+        returnKeyType="go"
+        onSubmitEditing={handleSignIn}
+      />
+      <PillButton label="Sign in" onPress={handleSignIn} isLoading={isSubmitting} />
+    </AuthFormScreen>
   );
 }

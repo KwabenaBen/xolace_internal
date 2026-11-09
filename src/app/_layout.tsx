@@ -16,6 +16,7 @@ import "../global.css";
 
 // Keep the native splash up until we know whether the user is signed in.
 void SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout(): JSX.Element {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -47,7 +48,7 @@ function RootNavigator(): JSX.Element {
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: background } }}>
-      <Stack.Protected guard={isAuthenticated} redirectTo="/sign-in">
+      <Stack.Protected guard={isAuthenticated} redirectTo="/welcome">
         <Stack.Screen name="(app)" />
       </Stack.Protected>
       <Stack.Protected guard={!isAuthenticated} redirectTo="/">

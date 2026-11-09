@@ -10,7 +10,10 @@ before starting a phase.**
 - **App:** Expo SDK 58 (React Native 0.88, React 19.3), TypeScript strict, Expo Router (routes in
   `src/app`). One codebase for iOS and web.
 - **UI:** HeroUI Native components + Uniwind (Tailwind v4 classes via `className`). HeroUI Native
-  is officially "not recommended for web"; check every new screen on web too.
+  is officially "not recommended for web"; check every new screen on web too. The signed-out
+  screens are a bespoke always-black design (RN primitives + Uniwind, not HeroUI).
+- **Graphics:** `@shopify/react-native-skia` for the welcome dot animation on iOS (Skia is in Expo
+  Go); the web build uses a plain 2D canvas instead (`*.web.tsx`) to avoid Skia's WebAssembly.
 - **Backend:** Convex (database, functions, auth, crons later). Convex Auth 0.0.96 with the
   Password provider. Stay on 0.0.x until Convex Auth 2.0 is production-ready.
 - **Package manager:** bun (`bun install`, `bun add`, `bunx …`). Use `bunx expo install` for
@@ -21,9 +24,12 @@ before starting a phase.**
 ```
 src/app/                 Expo Router routes
   _layout.tsx            Providers, offline banner, auth gate (Stack.Protected)
-  (auth)/                sign-in, sign-up (signed-out only)
+  (auth)/                welcome → sign-in / sign-up (signed-out only; always black)
   (app)/                 Tabs: Board (index), My Tasks, Logs, Profile, Admin (admins only)
-src/components/          Shared UI (Screen, PlaceholderScreen, AuthScreen, OfflineBanner, ...)
+src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ...)
+  auth/                  Signed-out UI: DotField (dots that spell "cadence"; dot-field.tsx = Skia,
+                         dot-field.web.tsx = canvas, math in dot-formations.ts), DotWordmark,
+                         PillButton, AuthTextField, AuthFormScreen
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
 src/lib/                 Convex client, auth token storage, error messages, hooks
 convex/                  Backend (deployed by `bunx convex dev`)
@@ -71,6 +77,12 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 - Never import `convex/auth.ts`, `@convex-dev/auth/server` or other server-only modules into
   `src/` — Metro can't bundle them. Shared constants go in `convex/lib/constants.ts`.
 - Read env vars as `process.env.EXPO_PUBLIC_…` (dot notation). No secrets in `EXPO_PUBLIC_*`.
+- **Worklets** (`"worklet"` functions for Reanimated/Skia): define each one _before_ any worklet
+  that calls it. The worklets Babel plugin turns them into `const`s that capture dependencies
+  when defined, so a forward reference crashes at load ("Cannot access … before
+  initialization") — on iOS and web alike.
+- Animations must respect Reduce Motion (`useReducedMotion()` on native,
+  `prefers-reduced-motion` on web).
 - Prettier formats; ESLint (Expo + Convex + Prettier rules) must pass.
 
 ## How to run

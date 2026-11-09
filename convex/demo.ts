@@ -2,16 +2,28 @@ import { v } from "convex/values";
 
 import type { Doc, Id } from "./_generated/dataModel";
 import { env, internalMutation, type MutationCtx } from "./_generated/server";
+import { findUserByEmail, normalizeEmail } from "./lib/accounts";
+import { logActivity } from "./lib/activity";
+import { countActiveAdmins } from "./lib/auth";
 import { DAY_MS, endOfDayGmt, toDateOnly } from "./lib/dates";
 import { appError } from "./lib/errors";
-import type { FeatureStatus, TaskKind, TaskPriority, TaskStatus } from "./lib/validators";
+import {
+  roleValidator,
+  type FeatureStatus,
+  type TaskKind,
+  type TaskPriority,
+  type TaskStatus,
+} from "./lib/validators";
 
 /**
  * Demo data for the dev deployment, so the Board has something to show. CLI only, never prod.
- * Both commands refuse to run unless the deployment has CADENCE_DEMO=on (set it on dev only:
+ * Every command refuses to run unless the deployment has CADENCE_DEMO=on (set it on dev only:
  * `bunx convex env set CADENCE_DEMO on`), so a slip of `--prod` does nothing.
  *   bunx convex run demo:seed     adds demo people, features ("Demo: …"), tasks and proposals
  *   bunx convex run demo:clear    removes the demo people, and the demo features with their tasks
+ *   bunx convex run demo:setRole "{email:'you@example.com',role:'admin'}"
+ *                                 makes a signed-up account an admin or a member, to try the app
+ *                                 from either side (switch it back the same way)
  * A demo feature is one whose title starts with "Demo: " AND that a demo person created, so a
  * real feature is never removed. The activity log is never touched.
  * Demo people have emails ending in DEMO_EMAIL_DOMAIN and no login. Tasks are spread across them
@@ -342,5 +354,34 @@ export const clear = internalMutation({
     }
     // The activity log is the audit trail: it is never deleted, demo entries included.
     return `Removed ${features.length} demo features (with their tasks) and ${users.length} demo people.`;
+  },
+});
+
+/**
+ * Dev only: make an account an admin or a member, to see the app from either side. Unlike the
+ * app's own setRole it needs no admin to run it (there may be none yet on dev), and it may leave
+ * no active admin, which the reply says. Recorded in the activity log like any role change.
+ */
+export const setRole = internalMutation({
+  args: { email: v.string(), role: roleValidator },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    requireDemoDeployment();
+    const user = await findUserByEmail(ctx, normalizeEmail(args.email));
+    if (user === null) throw appError("NOT_FOUND", `No account for ${args.email}.`);
+    if (user.role !== args.role) {
+      await ctx.db.patch("users", user._id, { role: args.role });
+      await logActivity(ctx, {
+        entityType: "user",
+        entityId: user._id,
+        action: "user.role_changed",
+        before: { role: user.role },
+        after: { role: args.role, source: "demo:setRole" },
+      });
+    }
+    const admins = await countActiveAdmins(ctx);
+    return `${user.name} is now ${args.role === "admin" ? "an admin" : "a member"}.${
+      admins === 0 ? " Nobody is an active admin now." : ` Active admins: ${admins}.`
+    }`;
   },
 });

@@ -37,11 +37,42 @@ describe("demo data", () => {
     expect(users.map((u) => u.email)).toEqual(["real@cadence.test"]);
   });
 
-  test("both commands refuse to run without CADENCE_DEMO=on (e.g. on production)", async () => {
+  test("every command refuses to run without CADENCE_DEMO=on (e.g. on production)", async () => {
     const t = createTestConvex();
+    await insertUser(t, { email: "real@cadence.test", role: "member" });
     delete process.env.CADENCE_DEMO;
     await expectAppError(t.mutation(internal.demo.seed, {}), "FORBIDDEN");
     await expectAppError(t.mutation(internal.demo.clear, {}), "FORBIDDEN");
+    await expectAppError(
+      t.mutation(internal.demo.setRole, { email: "real@cadence.test", role: "admin" }),
+      "FORBIDDEN"
+    );
+  });
+
+  test("setRole switches an account between member and admin, and logs it", async () => {
+    const t = createTestConvex();
+    const me = await insertUser(t, { email: "me@cadence.test", role: "member", title: "CMO" });
+
+    const reply = await t.mutation(internal.demo.setRole, {
+      email: " Me@Cadence.test ",
+      role: "admin",
+    });
+    expect(reply).toContain("now an admin");
+    expect((await me.asUser.query(api.users.me, {}))?.role).toBe("admin");
+    // As an admin they can now use admin-only functions, e.g. read the invites.
+    await me.asUser.query(api.invites.list, {});
+
+    expect(
+      await t.mutation(internal.demo.setRole, { email: "me@cadence.test", role: "member" })
+    ).toContain("Nobody is an active admin now.");
+    expect((await me.asUser.query(api.users.me, {}))?.role).toBe("member");
+    const log = await t.run(async (ctx) => ctx.db.query("activity").collect());
+    expect(log.filter((e) => e.action === "user.role_changed")).toHaveLength(2);
+
+    await expectAppError(
+      t.mutation(internal.demo.setRole, { email: "nobody@cadence.test", role: "admin" }),
+      "NOT_FOUND"
+    );
   });
 
   test('clear spares a real feature named "Demo: …" and never deletes activity', async () => {

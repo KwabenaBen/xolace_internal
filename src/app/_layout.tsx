@@ -1,5 +1,6 @@
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { useConvexAuth } from "convex/react";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -7,6 +8,7 @@ import { HeroUINativeProvider, useThemeColor } from "heroui-native";
 import { useEffect, type JSX } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
+import { BOARD_FONT_FILES } from "@/components/board/board-theme";
 import { LoadingScreen } from "@/components/loading-screen";
 import { OfflineBanner } from "@/components/offline-banner";
 import { authStorage } from "@/lib/auth-storage";
@@ -37,14 +39,17 @@ function RootNavigator(): JSX.Element {
   // From convex/react: waits until the server has accepted the auth token.
   const { isLoading, isAuthenticated } = useConvexAuth();
   const background = useThemeColor("background");
+  // Montserrat for the Board. If a font fails to load, carry on with the system font.
+  const [fontsLoaded, fontError] = useFonts(BOARD_FONT_FILES);
+  const isReady = !isLoading && (fontsLoaded || fontError !== null);
 
   useEffect(() => {
-    if (!isLoading) void SplashScreen.hideAsync();
-  }, [isLoading]);
+    if (isReady) void SplashScreen.hideAsync();
+  }, [isReady]);
 
   // Mount the navigator only once auth is known, so a refresh on web keeps its URL
   // instead of bouncing through the sign-in screen.
-  if (isLoading) return <LoadingScreen />;
+  if (!isReady) return <LoadingScreen />;
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: background } }}>

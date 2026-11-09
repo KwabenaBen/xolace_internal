@@ -34,9 +34,14 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ..
   auth/                  Signed-out UI: DotField (dots that spell "cadence"; dot-field.tsx = Skia,
                          dot-field.web.tsx = canvas, math in dot-formations.ts), DotWordmark,
                          PillButton, AuthTextField, AuthFormScreen
-  planning/              Features & tasks UI: TaskCard, FeatureGroup, badges, DeadlineText,
+  planning/              Features & tasks UI: TaskCard, badges, DeadlineText,
                          OptionPicker (modal select), ChoiceChips, CriteriaEditor, DateField
                          (.web.tsx = browser date input), FeatureForm, TaskForm, AdminOnly
+  board/                 The Board's bento (after Native Cook's "Paddock Widget Bento"):
+                         board-theme.ts (colours/sizes in points on a 402-wide screen, ×s),
+                         pit-stop.ts (the fling-out/slam-back motion, worklets), bento.tsx,
+                         bento-tile.tsx, board-stats.ts, feature-feed.tsx, sym.tsx (SF Symbol /
+                         Material icon)
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
 src/lib/                 Convex client, auth token storage, error messages, hooks (useNow, ...)
 convex/                  Backend (deployed by `bunx convex dev`)
@@ -47,11 +52,14 @@ convex/                  Backend (deployed by `bunx convex dev`)
   tasks.ts               board (filters), get, mine, proposals, create, update (admin),
                          propose (anyone), approveProposal, declineProposal (admin)
   seed.ts                Internal seed mutation (CLI only)
+  demo.ts                Dev-only demo data: demo:seed / demo:clear (CLI only)
   lib/                   Server helpers: auth (permissions), accounts, settings, activity,
                          validators (enums), errors, constants, dates (deadline dates, shared
                          with the app), tasks (task rules), views (shapes sent to the app)
   tests/                 Vitest + convex-test
   test.setup.ts          Test helpers (never deployed: two dots in the name)
+assets/fonts/            Montserrat (5 weights, SIL OFL — licence alongside), loaded in the root
+                         layout with expo-font
 scripts/                 generate-auth-keys.mjs, generate-route-types.mjs
 docs/                    Requirements
 ```
@@ -108,6 +116,11 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   them wrong for files added while it runs** — `bun run typegen` (or a dev-server restart) fixes
   them, and `bun run typecheck` runs it first.
 - Selects use `OptionPicker` (RN `Modal`), not HeroUI's Select, so they work on web too.
+- **The Board** is always black with Montserrat stickers (`src/components/board/`), like the
+  signed-out screens; other tabs follow the system theme. Bento tile sizes are reference points
+  multiplied by `s = width / 402` (capped at 520 wide). Read Reanimated shared values with
+  `.get()` / `.set()` (React Compiler friendly). The pit stop plays once when the Board first
+  loads and when the feed is pulled past its top (iOS overscroll); Reduce Motion turns it off.
 - Prettier formats; ESLint (Expo + Convex + Prettier rules) must pass.
 
 ## How to run
@@ -126,6 +139,10 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
    bunx convex run seed:run "{invites:[{email:'coo@example.com',title:'COO',role:'admin'},{email:'ceo@example.com',title:'CEO',role:'member'}], adminTaskReviewerEmail:'ceo@example.com'}"
    ```
    Safe to re-run; existing users/invites/settings are skipped.
+5. Optional, **dev only**: demo data so the Board has something to show —
+   `bunx convex run demo:seed` (3 demo people with `@demo.cadence.test` emails and no login,
+   3 features titled "Demo: …", 12 tasks across every status, spread over real users too) and
+   `bunx convex run demo:clear` to remove all of it. Never run these with `--prod`.
 
 **Daily**
 

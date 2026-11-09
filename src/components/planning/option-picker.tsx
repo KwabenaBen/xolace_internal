@@ -22,6 +22,8 @@ type OptionPickerProps<T extends string> = {
   clearLabel?: string;
   /** "field": a form input. "chip": a compact filter pill. */
   variant?: "field" | "chip";
+  /** "dark": a chip for the always-black Board, whatever the app theme. */
+  tone?: "theme" | "dark";
   isDisabled?: boolean;
 };
 
@@ -37,6 +39,7 @@ export function OptionPicker<T extends string>({
   placeholder,
   clearLabel,
   variant = "field",
+  tone = "theme",
   isDisabled = false,
 }: OptionPickerProps<T>): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
@@ -57,13 +60,28 @@ export function OptionPicker<T extends string>({
         disabled={isDisabled}
         onPress={() => setIsOpen(true)}
         className={`flex-row items-center gap-1 rounded-full border px-3 py-1.5 active:opacity-70 ${
-          selected ? "border-accent bg-accent/10" : "border-border bg-surface"
+          tone === "dark"
+            ? selected
+              ? "border-white bg-white"
+              : "border-white/20 bg-white/10"
+            : selected
+              ? "border-accent bg-accent/10"
+              : "border-border bg-surface"
         }`}
       >
-        <Typography type="body-sm" weight="medium" numberOfLines={1}>
+        <Typography
+          type="body-sm"
+          weight="medium"
+          numberOfLines={1}
+          className={tone === "dark" ? (selected ? "text-black" : "text-white") : undefined}
+        >
           {selected?.label ?? placeholder}
         </Typography>
-        <Ionicons name="chevron-down" size={14} color={muted} />
+        <Ionicons
+          name="chevron-down"
+          size={14}
+          color={tone === "dark" ? (selected ? "#000000" : "rgba(255,255,255,0.7)") : muted}
+        />
       </Pressable>
     ) : (
       <View className="gap-1.5">

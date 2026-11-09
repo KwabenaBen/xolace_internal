@@ -58,7 +58,14 @@ function RootNavigator(): JSX.Element {
   if (!isReady) return <LoadingScreen />;
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: background } }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: background },
+        // Signing in or out swaps the whole app for the welcome screens: a cross-fade, not a push.
+        animation: "fade",
+      }}
+    >
       <Stack.Protected guard={isAuthenticated} redirectTo="/welcome">
         <Stack.Screen name="(app)" />
       </Stack.Protected>

@@ -3,6 +3,7 @@ import { Tabs } from "expo-router/js-tabs";
 import { useThemeColor } from "heroui-native";
 import type { ComponentProps, JSX } from "react";
 import type { ColorValue } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
 import { layout } from "@/constants/theme";
 import { useSignedInUser } from "@/lib/use-current-user";
@@ -18,6 +19,7 @@ function TabIcon({ name, color }: { name: IoniconName; color: ColorValue }): JSX
 /** The tab bar. The parent (app) layout has already loaded the signed-in user. */
 export default function TabsLayout(): JSX.Element {
   const user = useSignedInUser();
+  const reduceMotion = useReducedMotion();
   const [foreground, muted, border, background] = useThemeColor([
     "foreground",
     "muted",
@@ -28,6 +30,8 @@ export default function TabsLayout(): JSX.Element {
   return (
     <Tabs
       screenOptions={{
+        // Switching tabs: the new one slides in a little and fades up (none with Reduce Motion).
+        animation: reduceMotion ? "none" : "shift",
         headerShown: false,
         tabBarActiveTintColor: foreground,
         tabBarInactiveTintColor: muted,

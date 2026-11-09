@@ -1,10 +1,13 @@
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Typography, useThemeColor } from "heroui-native";
 import { useState, type JSX } from "react";
-import { Modal, Platform, Pressable, Text, useColorScheme, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { formatDeadline } from "@convex/lib/dates";
+
+import { Sheet } from "@/components/ui/sheet";
+import { usePageColors } from "@/components/ui/theme";
 
 export type DateFieldProps = {
   label: string;
@@ -50,7 +53,7 @@ export function DateField({
   isDisabled = false,
 }: DateFieldProps): JSX.Element {
   const [accent, surface, foreground] = useThemeColor(["accent", "surface", "foreground"]);
-  const scheme = useColorScheme() === "light" ? "light" : "dark";
+  const { scheme } = usePageColors();
   const insets = useSafeAreaInsets();
   const min = minimumDate !== undefined ? toLocalDate(minimumDate) : undefined;
   const max = maximumDate !== undefined ? toLocalDate(maximumDate) : undefined;
@@ -78,11 +81,6 @@ export function DateField({
     });
   }
 
-  function done() {
-    if (draft !== null) onChange(fromLocalDate(draft));
-    setDraft(null);
-  }
-
   return (
     <View className="gap-1.5">
       <Typography type="body-sm" weight="medium">
@@ -106,36 +104,22 @@ export function DateField({
         </Typography>
       ) : null}
 
-      {Platform.OS === "ios" ? (
-        <Modal
-          visible={draft !== null}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setDraft(null)}
-        >
-          <View
-            style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.45)" }}
-          >
-            <View
-              style={{
-                backgroundColor: surface,
-                borderTopLeftRadius: 24,
-                borderTopRightRadius: 24,
-                paddingBottom: insets.bottom + 8,
-              }}
-            >
+      {Platform.OS === "ios" && draft !== null ? (
+        <Sheet onClose={() => setDraft(null)} backgroundColor={surface}>
+          {({ close }) => (
+            <View style={{ paddingBottom: insets.bottom + 8 }}>
               <View
                 style={{
                   flexDirection: "row",
                   justifyContent: "space-between",
                   paddingHorizontal: 20,
-                  paddingTop: 16,
+                  paddingTop: 24,
                 }}
               >
                 <Pressable
                   accessibilityRole="button"
                   hitSlop={10}
-                  onPress={() => setDraft(null)}
+                  onPress={close}
                   className="active:opacity-60"
                 >
                   <Text style={{ fontSize: 17, color: foreground }}>Cancel</Text>
@@ -143,27 +127,28 @@ export function DateField({
                 <Pressable
                   accessibilityRole="button"
                   hitSlop={10}
-                  onPress={done}
+                  onPress={() => {
+                    onChange(fromLocalDate(draft));
+                    close();
+                  }}
                   className="active:opacity-60"
                 >
                   <Text style={{ fontSize: 17, fontWeight: "600", color: foreground }}>Done</Text>
                 </Pressable>
               </View>
-              {draft !== null ? (
-                <DateTimePicker
-                  value={draft}
-                  mode="date"
-                  display="inline"
-                  themeVariant={scheme}
-                  accentColor={accent}
-                  minimumDate={min}
-                  maximumDate={max}
-                  onValueChange={(_event, date) => setDraft(date)}
-                />
-              ) : null}
+              <DateTimePicker
+                value={draft}
+                mode="date"
+                display="inline"
+                themeVariant={scheme}
+                accentColor={accent}
+                minimumDate={min}
+                maximumDate={max}
+                onValueChange={(_event, date) => setDraft(date)}
+              />
             </View>
-          </View>
-        </Modal>
+          )}
+        </Sheet>
       ) : null}
     </View>
   );

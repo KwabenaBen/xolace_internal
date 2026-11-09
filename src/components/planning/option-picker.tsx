@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Typography, useThemeColor } from "heroui-native";
 import { useState, type JSX } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { Sheet, SheetScrollView } from "@/components/ui/sheet";
 
 export type PickerOption<T extends string> = {
   value: T;
@@ -26,8 +28,8 @@ type OptionPickerProps<T extends string> = {
 };
 
 /**
- * A select that opens a list in a modal sheet. Built on React Native's Modal so it behaves
- * the same on iOS and web.
+ * A select that opens its list in a Sheet (rises over the blurred page; swipe down, tap outside
+ * or pick to close). Built on React Native's Modal so it behaves the same on iOS and web.
  */
 export function OptionPicker<T extends string>({
   label,
@@ -41,13 +43,13 @@ export function OptionPicker<T extends string>({
 }: OptionPickerProps<T>): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const insets = useSafeAreaInsets();
-  const [accent, accentForeground, muted] = useThemeColor(["accent", "accent-foreground", "muted"]);
+  const [accent, accentForeground, muted, surface] = useThemeColor([
+    "accent",
+    "accent-foreground",
+    "muted",
+    "surface",
+  ]);
   const selected = options.find((o) => o.value === value);
-
-  function choose(next: T | null) {
-    onChange(next);
-    setIsOpen(false);
-  }
 
   const trigger =
     variant === "chip" ? (
@@ -104,63 +106,56 @@ export function OptionPicker<T extends string>({
   return (
     <>
       {trigger}
-      <Modal
-        visible={isOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsOpen(false)}
-      >
-        <Pressable
-          accessibilityLabel="Close"
-          onPress={() => setIsOpen(false)}
-          className="flex-1 justify-end bg-black/50 sm:items-center sm:justify-center"
-        >
-          <Pressable
-            // Swallow taps inside the sheet so they don't close it.
-            onPress={() => undefined}
-            className="max-h-[75%] w-full rounded-t-3xl bg-surface sm:max-w-md sm:rounded-3xl"
-            style={{ paddingBottom: insets.bottom + 8 }}
-          >
-            <View className="flex-row items-center justify-between px-5 pb-2 pt-5">
-              <Typography type="h6">{label}</Typography>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-                hitSlop={12}
-                onPress={() => setIsOpen(false)}
-              >
-                <Ionicons name="close" size={22} color={muted} />
-              </Pressable>
-            </View>
-            <ScrollView contentContainerClassName="px-2 pb-2">
-              {rows.map((row) => {
-                const isSelected = row.value === value;
-                return (
-                  <Pressable
-                    key={row.value ?? "__clear"}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
-                    onPress={() => choose(row.value)}
-                    className="flex-row items-center gap-3 rounded-xl px-3 py-3 active:bg-default"
-                  >
-                    <View className="flex-1 gap-0.5">
-                      <Typography type="body" weight={isSelected ? "semibold" : "normal"}>
-                        {row.label}
-                      </Typography>
-                      {row.description !== undefined ? (
-                        <Typography type="body-xs" color="muted">
-                          {row.description}
+      {isOpen ? (
+        <Sheet onClose={() => setIsOpen(false)} backgroundColor={surface}>
+          {({ close }) => (
+            <View style={{ flexShrink: 1, paddingBottom: insets.bottom + 8 }}>
+              <View className="flex-row items-center justify-between px-5 pb-2 pt-7">
+                <Typography type="h6" accessibilityRole="header">
+                  {label}
+                </Typography>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                  hitSlop={12}
+                  onPress={close}
+                >
+                  <Ionicons name="close" size={22} color={muted} />
+                </Pressable>
+              </View>
+              <SheetScrollView contentContainerClassName="px-2 pb-2">
+                {rows.map((row) => {
+                  const isSelected = row.value === value;
+                  return (
+                    <Pressable
+                      key={row.value ?? "__clear"}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      onPress={() => {
+                        onChange(row.value);
+                        close();
+                      }}
+                      className="flex-row items-center gap-3 rounded-xl px-3 py-3 active:bg-default"
+                    >
+                      <View className="flex-1 gap-0.5">
+                        <Typography type="body" weight={isSelected ? "semibold" : "normal"}>
+                          {row.label}
                         </Typography>
-                      ) : null}
-                    </View>
-                    {isSelected ? <Ionicons name="checkmark" size={20} color={accent} /> : null}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+                        {row.description !== undefined ? (
+                          <Typography type="body-xs" color="muted">
+                            {row.description}
+                          </Typography>
+                        ) : null}
+                      </View>
+                      {isSelected ? <Ionicons name="checkmark" size={20} color={accent} /> : null}
+                    </Pressable>
+                  );
+                })}
+              </SheetScrollView>
+            </View>
+          )}
+        </Sheet>
+      ) : null}
     </>
   );
 }

@@ -5,7 +5,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { HeroUINativeProvider, useThemeColor } from "heroui-native";
-import { useEffect, type JSX } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { FONT_FILES } from "@/components/ui/theme";
@@ -13,6 +13,7 @@ import { LoadingScreen } from "@/components/loading-screen";
 import { OfflineBanner } from "@/components/offline-banner";
 import { authStorage } from "@/lib/auth-storage";
 import { convex } from "@/lib/convex";
+import { applySavedTheme } from "@/lib/theme-preference";
 
 import "../global.css";
 
@@ -41,7 +42,12 @@ function RootNavigator(): JSX.Element {
   const background = useThemeColor("background");
   // Montserrat for the Board. If a font fails to load, carry on with the system font.
   const [fontsLoaded, fontError] = useFonts(FONT_FILES);
-  const isReady = !isLoading && (fontsLoaded || fontError !== null);
+  // The theme chosen on this device (Settings → Dark mode) applies before the first screen shows.
+  const [themeReady, setThemeReady] = useState(false);
+  useEffect(() => {
+    void applySavedTheme().finally(() => setThemeReady(true));
+  }, []);
+  const isReady = !isLoading && themeReady && (fontsLoaded || fontError !== null);
 
   useEffect(() => {
     if (isReady) void SplashScreen.hideAsync();

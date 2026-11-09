@@ -58,10 +58,10 @@ export default function TabsLayout(): JSX.Element {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="settings"
         options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => <TabIcon name="person-circle-outline" color={color} />,
+          title: "Settings",
+          tabBarIcon: ({ color }) => <TabIcon name="settings-outline" color={color} />,
         }}
       />
       {/* UI-only: the admin tab is hidden from members, but every admin function also checks on the server. */}

@@ -60,6 +60,7 @@ export default function AppLayout(): JSX.Element {
         options={{ title: "Person", ...ownHeader }}
       />
       <Stack.Screen name="tasks/[taskId]/index" options={{ title: "Task", ...ownHeader }} />
+      <Stack.Screen name="settings/account" options={{ title: "Account", ...ownHeader }} />
       <Stack.Screen name="features/new" options={{ title: "New feature", ...form }} />
       <Stack.Screen name="features/[featureId]/edit" options={{ title: "Edit feature", ...form }} />
       <Stack.Screen name="tasks/new" options={{ title: "New task", ...form }} />

@@ -1,10 +1,12 @@
 import { useThemeColor } from "heroui-native";
-import { Platform, useColorScheme } from "react-native";
+import { Platform } from "react-native";
+import { useUniwind } from "uniwind";
 
 import type { TaskStatus } from "@convex/lib/validators";
 
 /**
- * Cadence's two themes, black and a warm off-white, following the phone's dark/light setting.
+ * Cadence's two themes, black and a warm off-white: the phone's dark/light setting, or the Dark mode
+ * switch on the Settings screen once it has been used (src/lib/theme-preference.ts).
  * The values live once, in src/global.css (HeroUI's theme variables); bespoke screens read them
  * here so they always match the HeroUI screens. Coloured stickers (tiles, status pills, pastel
  * cards) don't change with the theme.
@@ -46,7 +48,8 @@ export type PageColors = {
 
 /** The current theme's page colours (re-renders when the phone switches dark/light). */
 export function usePageColors(): PageColors {
-  const scheme = useColorScheme() === "light" ? "light" : "dark";
+  // Uniwind's theme, not the phone's: the Settings switch can override the phone (web too).
+  const scheme = useUniwind().theme === "light" ? "light" : "dark";
   const [
     page,
     text,

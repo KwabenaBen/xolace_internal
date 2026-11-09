@@ -31,7 +31,8 @@ src/app/                 Expo Router routes
   _layout.tsx            Providers, offline banner, auth gate (Stack.Protected)
   (auth)/                welcome → sign-in / sign-up (signed-out only)
   (app)/_layout.tsx      Stack: loads the user, then (tabs) + pages + modal forms
-  (app)/(tabs)/          Tabs: Board (index), My Tasks, Logs, Profile, Admin (admins only)
+  (app)/(tabs)/          Tabs: Board (index), My Tasks, Logs, Settings, Admin (admins only)
+  (app)/settings/        Pages under Settings: account (profile + sign out)
   (app)/features/        new (modal), [featureId]/index (page), [featureId]/edit (modal),
                          [featureId]/people/[userId] (one person's work on the feature)
   (app)/tasks/           new (modal: admin creates / member proposes), [taskId]/index (page),
@@ -46,6 +47,10 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          useGoBack), panel.tsx (Panel, SectionTitle), task-row.tsx (TaskRow,
                          StatusPill, FeatureStatusPill), progress-bar.tsx, sym.tsx (SF Symbol /
                          Material icon)
+  settings/              The Settings tab: ClayRelightSettings.tsx (Native Cook's "Clay Relight
+                         Settings": a Skia ray-marched clay scene relit from noon to night by the
+                         Dark mode switch, crs-hero-shader.ts / crs-icon-shader.ts / crs-motion.ts /
+                         crs-theme.ts; .web.tsx = flat version without Skia), use-settings-rows.ts
   auth/                  Signed-out UI: DotField (dots that spell "cadence"; dot-field.tsx = Skia,
                          dot-field.web.tsx = canvas, math in dot-formations.ts), DotWordmark,
                          AuthTextField, AuthFormScreen
@@ -67,7 +72,8 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          task-dates.ts (countdown maths), task-theme.ts (holo words),
                          task-symbols.ts
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
-src/lib/                 Convex client, auth token storage, error messages, hooks (useNow, useDeviceFlag for
+src/lib/                 Convex client, auth token storage, theme-preference (the Dark mode
+                         switch's choice, remembered per device), error messages, hooks (useNow, useDeviceFlag for
                          per-device yes/no settings, ...)
 convex/                  Backend (deployed by `bunx convex dev`)
   schema.ts              All tables + indexes
@@ -142,6 +148,11 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 
 **App**
 
+- **Theme switch:** Settings → Dark mode overrides the phone and is remembered on the device
+  (`src/lib/theme-preference.ts`: `chooseTheme`, `applySavedTheme` at start-up, `useIsDarkTheme`).
+  It goes through Uniwind (`Uniwind.setTheme`), so read the current theme with `useUniwind()` /
+  `usePageColors().scheme`, never React Native's `useColorScheme` (that's the phone, and on web it
+  ignores the switch).
 - **Themes:** every colour that changes with the theme is a HeroUI variable in `src/global.css`
   (light `#FEFAF3` page / black text; dark black page / `#FEFAF3` text; plain hex only). Use
   classes (`bg-background`, `text-muted`, `bg-surface`) or, for inline styles,
@@ -238,25 +249,32 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
       black feature + person pages and the feature "next up" on `cadence-phase-2-featurescreen`.
       _Built; server rules covered by tests. Tick once an admin and a member have walked through
       it on iPhone and web._
-- [ ] **Phase 3 — Progress & extensions:** status changes, progress %, comments, overdue flag,
+      _Audit fixes: batches 1–3 on `cadence-phase-2-hardening`, `-themes`, `-fixes`._
+- [ ] **Phase 3 — Settings:** the Settings tab built from Native Cook's "Clay Relight Settings"
+      block (`src/components/settings/`): the Dark mode switch is the app theme (overrides the
+      phone, remembered per device); five rows (Notifications, Daily log reminder, People, Team
+      rules, Account & security) with clay icons; Account page (profile, sign out). Next: People
+      (invite with code, new code, revoke, role, deactivate) and Team rules (admin task reviewer,
+      digest/reminder times, late window) pages. Branch `cadence-phase-3-settings-screen`.
+- [ ] **Phase 4 — Progress & extensions:** status changes, progress %, comments, overdue flag,
       extension requests + late rule, activity log.
-- [ ] **Phase 4 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.
-- [ ] **Phase 5 — Peer review & verification:** peer review for code tasks, submit with proof,
+- [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.
+- [ ] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
       verification queue (admin task reviewer for admin-owned tasks), feature status rollup.
-- [ ] **Phase 6 — Notifications & release:** push tokens, immediate pushes, digest + reminder
+- [ ] **Phase 7 — Notifications & release:** push tokens, immediate pushes, digest + reminder
       crons, empty/loading/error states, EAS build to TestFlight, web deploy.
 
 ## Open decisions (carry forward)
 
 - **App identity:** `app.json` still has the template's name/slug (`xolace_internal`) and scheme
   (`heroui-native-app`); the product name is "Cadence". An iOS bundle identifier is needed
-  before EAS builds (Phase 6).
+  before EAS builds (Phase 7).
 - **Known HeroUI-on-web issue:** in the web dev build, HeroUI's `Button` logs
   `[colorKit.RGB] … default color "black" will be used` (its JS colour parser can't read the
   `lab()`/`color-mix()` values theme variables resolve to on web), so the press highlight is
   black. Cosmetic, web-only; iOS is unaffected. Revisit if HeroUI adds web support.
-- Phase 3 needs a stored overdue flag (set by a cron, since queries can't read the clock);
-  Phase 4 needs a way to record missed weekdays. Add optional fields then.
+- Phase 4 needs a stored overdue flag (set by a cron, since queries can't read the clock);
+  Phase 5 needs a way to record missed weekdays. Add optional fields then.
 
 <!-- convex-ai-start -->
 

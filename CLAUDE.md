@@ -30,7 +30,8 @@ src/app/                 Expo Router routes
   (auth)/                welcome → sign-in / sign-up (signed-out only; always black)
   (app)/_layout.tsx      Stack: loads the user, then (tabs) + pages + modal forms
   (app)/(tabs)/          Tabs: Board (index), My Tasks, Logs, Profile, Admin (admins only)
-  (app)/features/        new (modal), [featureId]/index (page), [featureId]/edit (modal)
+  (app)/features/        new (modal), [featureId]/index (page), [featureId]/edit (modal),
+                         [featureId]/people/[userId] (one person's work on the feature)
   (app)/tasks/           new (modal: admin creates / member proposes), [taskId]/index (page),
                          [taskId]/edit (modal: edit a live task, or approve a proposal)
   (app)/board/[view].tsx The Board's tile pages: due-this-week, overdue, waiting (black style)
@@ -46,7 +47,10 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ..
                          pit-stop.ts (the fling-out/slam-back motion, worklets), bento.tsx,
                          bento-tile.tsx, board-stats.ts, board-lists.ts (the tile pages' data),
                          feature-feed.tsx, sym.tsx (SF Symbol / Material icon)
-  task/                  The task page: holo-card.tsx (Skia: the tilting status card, after Native
+  feature/               The feature and person pages: feature-team.ts (who's on a feature),
+                         person-work.tsx (summary card, task card with criteria)
+  task/                  The black detail pages' parts (task, feature, person): detail-page.tsx
+                         (DetailPage shell, usePageSize, useGoBack), holo-card.tsx (Skia: the tilting status card, after Native
                          Cook's "Holo Cash Card"; .web.tsx = still SVG; holo-shared.ts),
                          countdown-card.tsx + odometer.tsx (rolling digits), people-cards.tsx,
                          task-panels.tsx, task-header.tsx (PageHeader), task-actions.tsx,
@@ -132,9 +136,13 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   multiplied by `s = width / 402` (capped at 520 wide). Read Reanimated shared values with
   `.get()` / `.set()` (React Compiler friendly). The pit stop plays once when the Board first
   loads and when the feed is pulled past its top (iOS overscroll); Reduce Motion turns it off.
-- **The task page** is always black too and hides the stack header (it draws its own). Its
-  countdown ticks with `useNow(1000)` inside `CountdownCard` only, so the rest of the page
-  (and the Skia holo card) doesn't re-render every second.
+- **The feature, person and task pages** are black too: they hide the stack header and use
+  `DetailPage` + `PageHeader` (back button, then the title). A feature's progress is
+  `featureProgress` (`board-stats.ts`): the average of its live tasks' progress (verified = 100)
+  plus the verified count. The Board's "next up" is the unshipped feature with the nearest
+  deadline (else the most overdue) and opens the feature page. Countdowns tick with
+  `useNow(1000)` inside `CountdownCard` only, so the rest of the page (and the Skia holo card)
+  doesn't re-render every second.
 - Prettier formats; ESLint (Expo + Convex + Prettier rules) must pass.
 
 ## How to run
@@ -177,8 +185,10 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 - [ ] **Phase 2 — Features & tasks:** create/edit features and tasks with acceptance criteria
       (admin, web + phone), proposals + approval, owner/peer reviewer/deadline, shared board with
       filters, task detail. Branch `cadence-phase-2`; the bento Board + demo data on
-      `cadence-phase-2-boardscreen`. _Built; server rules covered by tests. Tick once an admin and
-      a member have walked through it on iPhone and web._
+      `cadence-phase-2-boardscreen`; the black task page on `cadence-phase-2-taskscreen`; the
+      black feature + person pages and the feature "next up" on `cadence-phase-2-featurescreen`.
+      _Built; server rules covered by tests. Tick once an admin and a member have walked through
+      it on iPhone and web._
 - [ ] **Phase 3 — Progress & extensions:** status changes, progress %, comments, overdue flag,
       extension requests + late rule, activity log.
 - [ ] **Phase 4 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.

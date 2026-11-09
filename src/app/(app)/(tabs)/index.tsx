@@ -161,7 +161,9 @@ export default function BoardScreen(): JSX.Element {
               isAdmin={isAdmin}
               showGuide={guideClosed === false}
               onCloseGuide={() => setGuideClosed(true)}
-              onOpenTask={openTask}
+              onOpenFeature={(id) =>
+                router.push({ pathname: "/features/[featureId]", params: { featureId: id } })
+              }
               onOpenList={(view) => router.push({ pathname: "/board/[view]", params: { view } })}
               onOpenMyTasks={() => router.push("/my-tasks")}
               onAction={() => router.push(isAdmin ? "/features/new" : "/tasks/new")}

@@ -7,6 +7,11 @@ import { colors as boardColors, fonts as boardFonts } from "@/components/board/b
 import { LoadingScreen } from "@/components/loading-screen";
 import { useCurrentUser } from "@/lib/use-current-user";
 
+const BLACK_PAGE = {
+  headerShown: false,
+  contentStyle: { backgroundColor: boardColors.background },
+} as const;
+
 /**
  * Signed-in area: the tabs, plus feature/task pages pushed over them and create/edit forms
  * shown as modals. Renders only once the user's profile is loaded and active.
@@ -39,16 +44,16 @@ export default function AppLayout(): JSX.Element {
           contentStyle: { backgroundColor: boardColors.background },
         }}
       />
-      <Stack.Screen name="features/[featureId]/index" options={{ title: "Feature" }} />
-      {/* The task page draws its own header, black whatever the theme. */}
+      {/* The feature, person and task pages draw their own header, black whatever the theme. */}
       <Stack.Screen
-        name="tasks/[taskId]/index"
-        options={{
-          title: "Task",
-          headerShown: false,
-          contentStyle: { backgroundColor: boardColors.background },
-        }}
+        name="features/[featureId]/index"
+        options={{ title: "Feature", ...BLACK_PAGE }}
       />
+      <Stack.Screen
+        name="features/[featureId]/people/[userId]"
+        options={{ title: "Person", ...BLACK_PAGE }}
+      />
+      <Stack.Screen name="tasks/[taskId]/index" options={{ title: "Task", ...BLACK_PAGE }} />
       <Stack.Screen name="features/new" options={{ title: "New feature", presentation: "modal" }} />
       <Stack.Screen
         name="features/[featureId]/edit"

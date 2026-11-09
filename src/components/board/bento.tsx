@@ -25,7 +25,8 @@ type BentoProps = {
   isAdmin: boolean;
   showGuide: boolean;
   onCloseGuide: () => void;
-  onOpenTask: (taskId: string) => void;
+  /** Open a feature's page ("next up"). */
+  onOpenFeature: (featureId: string) => void;
   /** Open the page listing a quick tile's tasks. */
   onOpenList: (view: BoardListView) => void;
   onOpenMyTasks: () => void;
@@ -181,7 +182,7 @@ export function Bento(props: BentoProps): JSX.Element {
             onPress={() => props.onOpenList("waiting")}
           />
         </View>
-        <NextUpTile s={s} pit={pit} stats={stats} now={now} onOpenTask={props.onOpenTask} />
+        <NextUpTile s={s} pit={pit} stats={stats} now={now} onOpenFeature={props.onOpenFeature} />
       </View>
 
       <ProgressTile s={s} pit={pit} stats={stats} />
@@ -405,22 +406,27 @@ function NextUpTile({
   pit,
   stats,
   now,
-  onOpenTask,
+  onOpenFeature,
 }: {
   s: number;
   pit: SharedValue<number>;
   stats: BoardStats;
   now: number;
-  onOpenTask: (taskId: string) => void;
+  onOpenFeature: (featureId: string) => void;
 }): JSX.Element {
   const next = stats.nextUp;
+  const progress = next?.progress;
   const inset = space.cardInset;
   const mark = 42; // a little smaller than the reference's 50, to leave room for the details
   const dateRow = 18; // the calendar row pinned to the bottom
   const label =
     next === null
-      ? "Next up: nothing due"
-      : `Next up: ${next.task.title}, ${next.task.owner?.name ?? "unassigned"}, ${next.featureTitle}, due ${formatDeadline(next.task.deadline ?? now, now)}`;
+      ? "Next up: no features planned"
+      : `Next up: feature ${next.feature.title}, due ${formatDeadline(next.feature.deadline, now)}, ${daysAway(next.feature.deadline, now)}. ${
+          next.progress.total === 0
+            ? "No tasks yet."
+            : `${next.progress.verified} of ${plural(next.progress.total, "task")} verified, ${next.progress.percent} percent done.`
+        }`;
 
   return (
     <BentoTile
@@ -432,7 +438,7 @@ function NextUpTile({
       pit={pit}
       fill={colors.cream}
       label={label}
-      onPress={next !== null ? () => onOpenTask(next.task._id) : undefined}
+      onPress={next !== null ? () => onOpenFeature(next.feature._id) : undefined}
     >
       <View
         style={{
@@ -514,7 +520,7 @@ function NextUpTile({
             color: colors.black,
           }}
         >
-          {next?.task.title ?? "Nothing due"}
+          {next?.feature.title ?? "Nothing planned"}
         </Txt>
         <Txt
           numberOfLines={1}
@@ -523,28 +529,51 @@ function NextUpTile({
             fontFamily: fonts.medium,
             fontSize: type.cardSmall * s,
             lineHeight: 13 * s,
-            color: colors.black,
-            opacity: 0.9,
+            color: colors.ink55Black,
           }}
         >
-          {next !== null ? (next.task.owner?.name ?? "Unassigned") : "Plan a feature to start"}
+          {progress === undefined
+            ? "Plan a feature to start"
+            : progress.total === 0
+              ? "No tasks yet"
+              : `${progress.verified} of ${plural(progress.total, "task")} verified`}
         </Txt>
-        {next !== null ? (
-          <Txt
-            numberOfLines={1}
-            style={{
-              fontFamily: fonts.medium,
-              fontSize: type.cardSmall * s,
-              lineHeight: 13 * s,
-              color: colors.ink55Black,
-            }}
+        {progress !== undefined && progress.total > 0 ? (
+          <View
+            style={{ marginTop: 5 * s, flexDirection: "row", alignItems: "center", gap: 6 * s }}
           >
-            {next.featureTitle}
-          </Txt>
+            <View
+              style={{
+                flex: 1,
+                height: 5 * s,
+                borderRadius: 999,
+                backgroundColor: "rgba(0,0,0,0.15)",
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  width: `${progress.percent}%`,
+                  height: "100%",
+                  borderRadius: 999,
+                  backgroundColor: colors.black,
+                }}
+              />
+            </View>
+            <Txt
+              style={{
+                fontFamily: fonts.extraBold,
+                fontSize: type.cardSmall * s,
+                color: colors.black,
+              }}
+            >
+              {progress.percent}%
+            </Txt>
+          </View>
         ) : null}
       </View>
 
-      {next?.task.deadline !== undefined ? (
+      {next !== null ? (
         <View
           style={{
             position: "absolute",
@@ -559,7 +588,7 @@ function NextUpTile({
         >
           <Sym symbol={symbols.calendar} size={18 * s} color={colors.black} />
           <Txt style={{ fontFamily: fonts.extraBold, fontSize: 14 * s, color: colors.black }}>
-            {formatDeadline(next.task.deadline, now)}
+            {formatDeadline(next.feature.deadline, now)}
           </Txt>
           <Txt
             numberOfLines={1}
@@ -567,10 +596,10 @@ function NextUpTile({
               flexShrink: 1,
               fontFamily: fonts.medium,
               fontSize: type.cardSmall * s,
-              color: next.task.deadline < now ? colors.red : colors.ink55Black,
+              color: next.feature.deadline < now ? colors.red : colors.ink55Black,
             }}
           >
-            {daysAway(next.task.deadline, now)}
+            {daysAway(next.feature.deadline, now)}
           </Txt>
         </View>
       ) : null}

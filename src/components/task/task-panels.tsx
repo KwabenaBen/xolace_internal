@@ -8,7 +8,7 @@ import { taskSymbols } from "./task-symbols";
 import { taskColors } from "./task-theme";
 
 /** A dark rounded panel with a white heading, like the Board's stats tile. */
-function Panel({
+export function Panel({
   s,
   title,
   aside,
@@ -151,9 +151,17 @@ export function CriteriaCard({
   );
 }
 
-export function DescriptionCard({ s, text }: { s: number; text: string }): JSX.Element {
+export function DescriptionCard({
+  s,
+  text,
+  title = "Description",
+}: {
+  s: number;
+  text: string;
+  title?: string;
+}): JSX.Element {
   return (
-    <Panel s={s} title="Description">
+    <Panel s={s} title={title}>
       <Text
         selectable
         style={{
@@ -206,6 +214,37 @@ export function TaskBanner({
           {body}
         </Text>
       </View>
+    </View>
+  );
+}
+
+/** A white section heading on the black page, with an optional count. */
+export function SectionTitle({
+  s,
+  title,
+  count,
+}: {
+  s: number;
+  title: string;
+  count?: number;
+}): JSX.Element {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, paddingHorizontal: 4 }}>
+      <Text
+        accessibilityRole="header"
+        allowFontScaling={false}
+        style={{ fontFamily: fonts.extraBold, fontSize: 18 * s, color: taskColors.white }}
+      >
+        {title}
+      </Text>
+      {count !== undefined ? (
+        <Text
+          allowFontScaling={false}
+          style={{ fontFamily: fonts.semibold, fontSize: 14 * s, color: taskColors.secondary }}
+        >
+          {count}
+        </Text>
+      ) : null}
     </View>
   );
 }

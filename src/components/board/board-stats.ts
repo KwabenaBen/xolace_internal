@@ -13,8 +13,11 @@ export type BoardStats = {
   dueSoon: TaskView[];
   /** Not verified and past the deadline. */
   overdue: TaskView[];
-  /** The nearest upcoming deadline (or, if nothing is upcoming, the most overdue task). */
-  nextUp: { task: TaskView; featureTitle: string } | null;
+  /**
+   * The feature that needs attention next: the unshipped feature with the nearest deadline from
+   * today, or, if every unshipped one is past its deadline, the most overdue.
+   */
+  nextUp: { feature: FeatureSummary; progress: FeatureProgress } | null;
   /** The signed-in user's open (not verified) tasks. */
   myOpen: number;
 };
@@ -28,6 +31,32 @@ const EMPTY_COUNTS: Record<LiveTaskStatus, number> = {
   verified: 0,
   changes_requested: 0,
 };
+
+export type FeatureProgress = {
+  /** Live tasks (proposals and declined ones don't count). */
+  total: number;
+  verified: number;
+  /** The average of the tasks' progress, a verified task counting as 100%. 0 with no tasks. */
+  percent: number;
+};
+
+/** How far a feature has got, from its tasks. */
+export function featureProgress(tasks: readonly TaskView[]): FeatureProgress {
+  let total = 0;
+  let verified = 0;
+  let sum = 0;
+  for (const task of tasks) {
+    if (task.status === "proposed" || task.status === "declined") continue;
+    total++;
+    if (task.status === "verified") {
+      verified++;
+      sum += 100;
+    } else {
+      sum += Math.max(0, Math.min(100, task.progress));
+    }
+  }
+  return { total, verified, percent: total === 0 ? 0 : Math.round(sum / total) };
+}
 
 export function isOverdue(task: TaskView, now: number): boolean {
   return task.status !== "verified" && task.deadline !== undefined && task.deadline < now;
@@ -51,12 +80,20 @@ export function computeBoardStats(
   const byStatus = { ...EMPTY_COUNTS };
   const dueSoon: TaskView[] = [];
   const overdue: TaskView[] = [];
-  let upcoming: { task: TaskView; featureTitle: string } | null = null;
-  let late: { task: TaskView; featureTitle: string } | null = null;
+  let upcoming: BoardGroup | null = null;
+  let late: BoardGroup | null = null;
   let total = 0;
   let myOpen = 0;
 
-  for (const { feature, tasks } of groups) {
+  for (const group of groups) {
+    const { feature, tasks } = group;
+    if (feature.status !== "shipped") {
+      if (feature.deadline >= now) {
+        if (upcoming === null || feature.deadline < upcoming.feature.deadline) upcoming = group;
+      } else if (late === null || feature.deadline < late.feature.deadline) {
+        late = group;
+      }
+    }
     for (const task of tasks) {
       if (task.status === "proposed" || task.status === "declined") continue;
       total++;
@@ -64,17 +101,17 @@ export function computeBoardStats(
       if (task.ownerId === userId && task.status !== "verified") myOpen++;
       if (isDueSoon(task, now)) dueSoon.push(task);
       if (isOverdue(task, now)) overdue.push(task);
-      if (task.status === "verified" || task.deadline === undefined) continue;
-      if (task.deadline >= now) {
-        if (upcoming === null || task.deadline < (upcoming.task.deadline ?? Infinity)) {
-          upcoming = { task, featureTitle: feature.title };
-        }
-      } else if (late === null || task.deadline < (late.task.deadline ?? Infinity)) {
-        late = { task, featureTitle: feature.title };
-      }
     }
   }
-  return { total, byStatus, dueSoon, overdue, nextUp: upcoming ?? late, myOpen };
+  const next = upcoming ?? late;
+  return {
+    total,
+    byStatus,
+    dueSoon,
+    overdue,
+    nextUp: next === null ? null : { feature: next.feature, progress: featureProgress(next.tasks) },
+    myOpen,
+  };
 }
 
 export function plural(count: number, one: string, many = `${one}s`): string {

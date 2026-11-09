@@ -1,4 +1,4 @@
-import type { TaskStatus } from "@convex/lib/validators";
+import type { FeatureStatus, TaskStatus } from "@convex/lib/validators";
 
 /**
  * The task page's look: the Board's black and Montserrat, a holographic status card after Native
@@ -39,4 +39,12 @@ export const STATUS_WORDS: Record<TaskStatus, string> = {
   submitted: "SUBMITTED",
   verified: "VERIFIED",
   changes_requested: "CHANGES",
+};
+
+/** The word a feature's holo card spells for each stage. */
+export const FEATURE_STATUS_WORDS: Record<FeatureStatus, string> = {
+  planned: "PLANNED",
+  in_progress: "IN PROGRESS",
+  internal_testing: "TESTING",
+  shipped: "SHIPPED",
 };

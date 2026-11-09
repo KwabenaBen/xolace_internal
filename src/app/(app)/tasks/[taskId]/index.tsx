@@ -1,27 +1,30 @@
 import { useQuery } from "convex/react";
-import { Stack, useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View } from "react-native";
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 
-import { fonts, MAX_BOARD_WIDTH, REFERENCE_WIDTH } from "@/components/board/board-theme";
+import type { UserSummary } from "@convex/lib/views";
+
 import { CountdownCard } from "@/components/task/countdown-card";
+import {
+  DetailPage,
+  PageLoading,
+  PageNotFound,
+  useGoBack,
+  usePageSize,
+} from "@/components/task/detail-page";
 import { HoloCard } from "@/components/task/holo-card";
 import { PeopleCards, type PersonCard } from "@/components/task/people-cards";
 import { TaskActions } from "@/components/task/task-actions";
 import { shortDay } from "@/components/task/task-dates";
-import { PageHeader, RoundButton } from "@/components/task/task-header";
+import { PageHeader } from "@/components/task/task-header";
 import { CriteriaCard, DescriptionCard, TaskBanner } from "@/components/task/task-panels";
-import { taskSymbols } from "@/components/task/task-symbols";
 import { STATUS_WORDS, taskColors } from "@/components/task/task-theme";
 import { TASK_KIND_LABELS, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/constants/labels";
 import { useSignedInUser } from "@/lib/use-current-user";
-
-const GUTTER = 18;
 
 /**
  * A task, in the Board's black style: back button, its title (and the feature it's part of), a
@@ -35,34 +38,15 @@ export default function TaskScreen(): JSX.Element {
   const data = useQuery(api.tasks.get, { taskId });
   const user = useSignedInUser();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const isFocused = useIsFocused();
-  const { width: windowWidth } = useWindowDimensions();
-  const width = Math.min(windowWidth, MAX_BOARD_WIDTH);
-  const s = width / REFERENCE_WIDTH;
-  const content = width - GUTTER * 2;
+  const goBack = useGoBack();
+  const { s, content } = usePageSize();
   const isAdmin = user.role === "admin";
-
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/"));
 
   let body: JSX.Element;
   if (data === undefined) {
-    body = (
-      <View style={{ paddingTop: 80, alignItems: "center" }}>
-        <ActivityIndicator color={taskColors.white} />
-      </View>
-    );
+    body = <PageLoading />;
   } else if (data === null) {
-    body = (
-      <View style={{ gap: 24 }}>
-        <View style={{ flexDirection: "row" }}>
-          <RoundButton symbol={taskSymbols.back} label="Back" onPress={goBack} s={s} />
-        </View>
-        <Text style={{ fontFamily: fonts.medium, fontSize: 15, color: taskColors.secondary }}>
-          This task doesn&apos;t exist.
-        </Text>
-      </View>
-    );
+    body = <PageNotFound s={s} message="This task doesn't exist." onBack={goBack} />;
   } else {
     const { task, feature } = data;
     const isProposal = task.status === "proposed";
@@ -70,6 +54,15 @@ export default function TaskScreen(): JSX.Element {
     const isLive = !isProposal && !isDeclined;
     const edit = () =>
       router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId: task._id } });
+    // Owner and reviewer cards open that person's work on this feature.
+    const openPerson = (person: UserSummary | null) =>
+      person === null
+        ? undefined
+        : () =>
+            router.push({
+              pathname: "/features/[featureId]/people/[userId]",
+              params: { featureId: feature._id, userId: person._id },
+            });
 
     const people: PersonCard[] = [];
     if (isLive) {
@@ -79,6 +72,8 @@ export default function TaskScreen(): JSX.Element {
         fallback: "Unassigned",
         color: taskColors.peach,
         tag: TASK_PRIORITY_LABELS[task.priority],
+        onPress: openPerson(task.owner),
+        hint: "Shows their work on this feature",
       });
       if (task.kind === "code") {
         people.push({
@@ -87,6 +82,8 @@ export default function TaskScreen(): JSX.Element {
           fallback: "Not set",
           color: taskColors.sky,
           tag: TASK_KIND_LABELS.code,
+          onPress: openPerson(task.peerReviewer),
+          hint: "Shows their work on this feature",
         });
       }
     }
@@ -181,20 +178,8 @@ export default function TaskScreen(): JSX.Element {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: taskColors.page }}>
-      <Stack.Screen options={{ title: data?.task.status === "proposed" ? "Proposal" : "Task" }} />
-      {isFocused ? <StatusBar style="light" /> : null}
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        contentContainerStyle={{
-          paddingTop: insets.top + 8,
-          paddingBottom: insets.bottom + 40,
-          alignItems: "center",
-        }}
-      >
-        <View style={{ width: content }}>{body}</View>
-      </ScrollView>
-    </View>
+    <DetailPage title={data?.task.status === "proposed" ? "Proposal" : "Task"} content={content}>
+      {body}
+    </DetailPage>
   );
 }

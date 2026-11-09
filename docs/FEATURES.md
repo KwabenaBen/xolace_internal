@@ -4,7 +4,7 @@ What every part of Cadence does and why it's there, in plain language. Keep this
 with each phase (see [CLAUDE.md](../CLAUDE.md) → Phases). The full spec is
 [REQUIREMENTS.md](REQUIREMENTS.md).
 
-_As of 9 Nov 2026: Phase 1, Phase 2 and the bento Board are built._
+_As of 9 Nov 2026: Phase 1, Phase 2, the bento Board and the black feature, person and task pages are built._
 
 ## What Cadence is for
 
@@ -178,17 +178,17 @@ dark setting, and the tab bar turns black too while the Board is showing.
 
 The tiles always count the whole team, even when the list below is filtered.
 
-| Tile                               | What it shows                                                                                           | Tap it to                                                                           |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| due this week (violet)             | How many unverified tasks are due in the next 7 days                                                    | Open a page of those tasks, grouped by feature                                      |
-| overdue (orange)                   | How many unverified tasks are past their deadline                                                       | Open a page of those tasks, grouped by feature                                      |
-| waiting (yellow)                   | How many proposals are waiting for approval                                                             | Open a page of every waiting proposal; the admin approves or declines from each one |
-| next up (tall, cream)              | The nearest deadline: the task, its owner and feature, the date, and "in 3 days" or "2 days late"       | Open that task                                                                      |
-| the team · Progress (dark)         | Total tasks, how many are verified, in progress and blocked, and bars for To do, Doing, Review and Done | Nothing; it's a summary                                                             |
-| assigned to me (green)             | How many of your own tasks are still open                                                               | Open My Tasks                                                                       |
-| New feature or Propose task (blue) | Admins plan a feature; members suggest a task                                                           | Open the form                                                                       |
-| every task / one owner (red)       | Cadence's promise, in big letters                                                                       | Nothing                                                                             |
-| how does it work? (yellow)         | A two-line guide to the Board                                                                           | Its × hides it for good on this device                                              |
+| Tile                               | What it shows                                                                                                                            | Tap it to                                                                           |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| due this week (violet)             | How many unverified tasks are due in the next 7 days                                                                                     | Open a page of those tasks, grouped by feature                                      |
+| overdue (orange)                   | How many unverified tasks are past their deadline                                                                                        | Open a page of those tasks, grouped by feature                                      |
+| waiting (yellow)                   | How many proposals are waiting for approval                                                                                              | Open a page of every waiting proposal; the admin approves or declines from each one |
+| next up (tall, cream)              | The feature due next (not yet shipped): its name, "2 of 5 tasks verified", a progress bar, its deadline and "in 3 days" or "2 days late" | Open that feature's page                                                            |
+| the team · Progress (dark)         | Total tasks, how many are verified, in progress and blocked, and bars for To do, Doing, Review and Done                                  | Nothing; it's a summary                                                             |
+| assigned to me (green)             | How many of your own tasks are still open                                                                                                | Open My Tasks                                                                       |
+| New feature or Propose task (blue) | Admins plan a feature; members suggest a task                                                                                            | Open the form                                                                       |
+| every task / one owner (red)       | Cadence's promise, in big letters                                                                                                        | Nothing                                                                             |
+| how does it work? (yellow)         | A two-line guide to the Board                                                                                                            | Its × hides it for good on this device                                              |
 
 ### The pit stop
 
@@ -220,9 +220,40 @@ a proposal.
 
 ### The feature page
 
-Shows the feature's stage, deadline, description, expected result, where it was agreed and who
-planned it, then its tasks and any proposals waiting for approval. Admins get **Add task** and
-**Edit feature**; members get **Propose a task**. A shipped feature takes no new work.
+The Board's **next up** tile and every feature card open it. Like the Board, it is always black.
+From top to bottom:
+
+- **Header.** A round back button on its own, then the feature's title in big letters, with where
+  it was agreed and who planned it underneath.
+- **The status card.** The same shiny tilting card as the task page, spelling the feature's stage
+  (PLANNED, IN PROGRESS, TESTING, SHIPPED). A feature has no owner, so the bottom line shows how
+  many tasks it has and how many are verified. A shipped feature's card shines brighter.
+- **The countdown card.** "Feature due in …" to the feature's own deadline, red and counting up
+  once it's late, with the LATE or TODAY sticker. Its progress bar is the average of the tasks'
+  progress (a verified task counts as 100%), with "2 of 5 tasks verified" beside it, since only
+  verified counts as done. A shipped feature shows "Done".
+- **Description** and **Expected result** on dark cards.
+- **Who's on it.** A pastel card for everyone working on the feature: each task owner (orange,
+  with how many tasks they own and their progress) and each peer reviewer on its code tasks
+  (blue). Tap a card to see that person's work on the feature (below).
+- **Tasks.** Every task, in the Board's rows, each with its progress bar. Tap one to open it.
+- **Waiting for approval.** Proposals for this feature, if any.
+- **Buttons.** Admins get **Add task** and **Edit feature**; members get **Propose a task**. A
+  shipped feature takes no new work, so only **Edit feature** remains.
+
+### A person's work on a feature
+
+Tap someone in **Who's on it** (on the feature page, or the owner or reviewer card on a task page)
+to see what they're doing for that feature:
+
+- Their name, title and role on it (owner, peer reviewer, or both).
+- A summary card: how many tasks they own there, how many are verified and their overall progress.
+- **Their tasks**, each in full: status, deadline (red when overdue), priority, type, progress,
+  and the acceptance criteria they have to deliver, ticked once the task is verified. Tap one to
+  open it.
+- **Reviewing**: the code tasks there they peer-review.
+- What they log each day (Phase 4) and the proof they submit (Phase 5) will be added to this page
+  when those phases are built.
 
 ### The task page
 
@@ -246,7 +277,7 @@ Like the Board, the task page is always black. From top to bottom:
 - **Description** on a dark card, if there is one.
 - **Who's on it.** Pastel cards: the owner (orange, with the priority), the peer reviewer for code
   tasks (blue) and whoever proposed it (pink), each with initials, name and title. Someone who
-  has left is tagged "Deactivated".
+  has left is tagged "Deactivated". Tap the owner or reviewer to see their work on the feature.
 - **Acceptance criteria** on a dark card, numbered; they turn into ticks once the task is verified.
 - **Buttons (admins only).** **Edit task**. Members have no buttons yet; updating your own task
   arrives in Phase 3.

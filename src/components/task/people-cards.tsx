@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import type { UserSummary } from "@convex/lib/views";
 
@@ -8,6 +8,8 @@ import { fonts } from "@/components/board/board-theme";
 import { taskColors } from "./task-theme";
 
 export type PersonCard = {
+  /** A unique key when the same role appears more than once (e.g. the user's id). */
+  id?: string;
   /** "Owner", "Peer reviewer", "Proposed by". */
   role: string;
   user: UserSummary | null;
@@ -16,6 +18,12 @@ export type PersonCard = {
   color: string;
   /** The small white tag top-right, e.g. the priority. */
   tag?: string;
+  /** 0–100: adds a progress bar along the bottom. */
+  progress?: number;
+  /** Makes the card a button (e.g. open their work on a feature). */
+  onPress?: () => void;
+  /** What pressing does, for screen readers. */
+  hint?: string;
 };
 
 function initials(name: string): string {
@@ -26,8 +34,9 @@ function initials(name: string): string {
 }
 
 /**
- * Who's on the task, as the reference's "Your plan" pastel cards: two to a row, an odd one out
- * full width. Black ink on the pastel, a black initials badge in place of the reference's photo.
+ * Who's on a task or feature, as the reference's "Your plan" pastel cards: two to a row, an odd
+ * one out full width. Black ink on the pastel, a black initials badge in place of the reference's
+ * photo.
  */
 export function PeopleCards({
   width,
@@ -58,7 +67,14 @@ export function PeopleCards({
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap }}>
         {people.map((person, index) => {
           const alone = index === people.length - 1 && people.length % 2 === 1;
-          return <Card key={person.role} person={person} s={s} width={alone ? width : half} />;
+          return (
+            <Card
+              key={person.id ?? person.role}
+              person={person}
+              s={s}
+              width={alone ? width : half}
+            />
+          );
         })}
       </View>
     </View>
@@ -70,18 +86,25 @@ function Card({ person, s, width }: { person: PersonCard; s: number; width: numb
   const name = user?.name ?? person.fallback;
   const left = user !== null && !user.isActive;
   const tag = left ? "Deactivated" : person.tag;
+  const Shell = person.onPress !== undefined ? Pressable : View;
   const spoken = [
     `${person.role}: ${name}`,
     user !== null && user.title !== "" ? user.title : null,
     tag ?? null,
+    person.progress !== undefined ? `progress ${Math.round(person.progress)} percent` : null,
   ]
     .filter((part) => part !== null)
     .join(", ");
 
   return (
-    <View
+    // A plain view unless it does something, so screen readers don't call it a dimmed button.
+    <Shell
       accessible
+      accessibilityRole={person.onPress !== undefined ? "button" : undefined}
       accessibilityLabel={spoken}
+      accessibilityHint={person.hint}
+      onPress={person.onPress}
+      className={person.onPress !== undefined ? "active:opacity-80" : undefined}
       style={{
         width,
         minHeight: 132 * s,
@@ -164,7 +187,35 @@ function Card({ person, s, width }: { person: PersonCard; s: number; width: numb
             {user.title}
           </Text>
         ) : null}
+        {person.progress !== undefined ? (
+          <View style={{ marginTop: 8 * s, flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View
+              style={{
+                flex: 1,
+                height: 6 * s,
+                borderRadius: 999,
+                backgroundColor: "rgba(17,17,17,0.14)",
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  width: `${Math.max(0, Math.min(100, Math.round(person.progress)))}%`,
+                  height: "100%",
+                  borderRadius: 999,
+                  backgroundColor: taskColors.ink,
+                }}
+              />
+            </View>
+            <Text
+              allowFontScaling={false}
+              style={{ fontFamily: fonts.extraBold, fontSize: 12 * s, color: taskColors.ink }}
+            >
+              {Math.round(person.progress)}%
+            </Text>
+          </View>
+        ) : null}
       </View>
-    </View>
+    </Shell>
   );
 }

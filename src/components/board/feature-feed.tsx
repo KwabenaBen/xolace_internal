@@ -43,15 +43,21 @@ export function StatusPill({ status }: { status: TaskStatus }): JSX.Element {
   return <Pill label={TASK_STATUS_LABELS[status]} fill={fill} ink={ink} />;
 }
 
-function TaskRow({
+/** One task in the Board's dark style; `showProgress` adds its progress bar (feature pages). */
+export function TaskRow({
   task,
   now,
   onPress,
+  showProgress = false,
 }: {
   task: TaskView;
   now: number;
   onPress: () => void;
+  showProgress?: boolean;
 }): JSX.Element {
+  const percent =
+    task.status === "verified" ? 100 : Math.max(0, Math.min(100, Math.round(task.progress)));
+  const live = task.status !== "proposed" && task.status !== "declined";
   const late = isOverdue(task, now);
   const due =
     task.deadline === undefined
@@ -70,7 +76,9 @@ function TaskRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${task.title}. ${TASK_STATUS_LABELS[task.status]}. ${person}. ${due}.`}
+      accessibilityLabel={`${task.title}. ${TASK_STATUS_LABELS[task.status]}. ${person}. ${due}.${
+        showProgress && live ? ` Progress ${percent} percent.` : ""
+      }`}
       onPress={onPress}
       style={({ pressed }) => ({
         borderRadius: radius.row,
@@ -122,6 +130,31 @@ function TaskRow({
           {TASK_KIND_LABELS[task.kind]}
         </Text>
       </View>
+      {showProgress && live ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{
+              flex: 1,
+              height: 5,
+              borderRadius: 999,
+              backgroundColor: colors.panel12,
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                width: `${percent}%`,
+                height: "100%",
+                borderRadius: 999,
+                backgroundColor: task.status === "verified" ? colors.green : colors.white,
+              }}
+            />
+          </View>
+          <Text style={{ fontFamily: fonts.bold, fontSize: 12, color: colors.white }}>
+            {percent}%
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }

@@ -415,10 +415,12 @@ function NextUpTile({
 }): JSX.Element {
   const next = stats.nextUp;
   const inset = space.cardInset;
+  const mark = 42; // a little smaller than the reference's 50, to leave room for the details
+  const dateRow = 18; // the calendar row pinned to the bottom
   const label =
     next === null
       ? "Next up: nothing due"
-      : `Next up: ${next.task.title}, ${next.task.owner?.name ?? "unassigned"}, due ${formatDeadline(next.task.deadline ?? now, now)}`;
+      : `Next up: ${next.task.title}, ${next.task.owner?.name ?? "unassigned"}, ${next.featureTitle}, due ${formatDeadline(next.task.deadline ?? now, now)}`;
 
   return (
     <BentoTile
@@ -437,16 +439,16 @@ function NextUpTile({
           position: "absolute",
           left: inset * s,
           top: inset * s,
-          width: size.mark * s,
-          height: size.mark * s,
-          borderRadius: radius.mark * s,
+          width: mark * s,
+          height: mark * s,
+          borderRadius: 12 * s,
           borderCurve: "continuous",
           backgroundColor: colors.orange,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Sym symbol={symbols.nextUp} size={26 * s} color={colors.micInk} />
+        <Sym symbol={symbols.nextUp} size={22 * s} color={colors.micInk} />
       </View>
       {next !== null ? (
         <View
@@ -466,51 +468,46 @@ function NextUpTile({
         </View>
       ) : null}
 
-      <View
-        style={{
-          position: "absolute",
-          left: inset * s,
-          top: (106.8 - ASCENT * type.cardTitle) * s,
-          flexDirection: "row",
-          alignItems: "baseline",
-        }}
-      >
-        <Txt
-          style={{
-            fontFamily: fonts.black,
-            fontSize: type.cardTitle * s,
-            letterSpacing: -0.6 * s,
-            color: colors.black,
-          }}
-        >
-          next
-        </Txt>
-        <Txt
-          style={{
-            fontFamily: fonts.serif,
-            fontStyle: "italic",
-            fontWeight: "600",
-            fontSize: type.cardTitle * s,
-            letterSpacing: -0.8 * s,
-            color: colors.black,
-          }}
-        >
-          up
-        </Txt>
-      </View>
-
+      {/* One column between the mark and the date row, so long titles push nothing off. */}
       <View
         style={{
           position: "absolute",
           left: inset * s,
           right: inset * s,
-          top: (131.4 - ASCENT * type.cardSubtitle) * s,
-          gap: 3 * s,
+          top: (inset + mark + 6) * s,
+          bottom: (14 + dateRow + 6) * s,
+          overflow: "hidden",
         }}
       >
+        {/* One text run: the baselines line up, the words keep their space, and the italic's
+            overhang gets a few points of room so iOS doesn't clip it. */}
+        <Txt
+          numberOfLines={1}
+          style={{
+            fontFamily: fonts.black,
+            fontSize: type.cardTitle * s,
+            lineHeight: 36 * s,
+            letterSpacing: -0.6 * s,
+            color: colors.black,
+            paddingRight: 4 * s,
+          }}
+        >
+          {"next "}
+          <Txt
+            style={{
+              fontFamily: fonts.serif,
+              fontStyle: "italic",
+              fontWeight: "600",
+              letterSpacing: -0.4 * s,
+            }}
+          >
+            up
+          </Txt>
+        </Txt>
         <Txt
           numberOfLines={2}
           style={{
+            marginTop: 2 * s,
             fontFamily: fonts.semibold,
             fontSize: type.cardSubtitle * s,
             lineHeight: 15 * s,
@@ -522,16 +519,29 @@ function NextUpTile({
         <Txt
           numberOfLines={1}
           style={{
+            marginTop: 3 * s,
             fontFamily: fonts.medium,
             fontSize: type.cardSmall * s,
+            lineHeight: 13 * s,
             color: colors.black,
             opacity: 0.9,
           }}
         >
-          {next !== null
-            ? `${next.task.owner?.name ?? "Unassigned"} · ${next.featureTitle}`
-            : "Plan a feature to get started"}
+          {next !== null ? (next.task.owner?.name ?? "Unassigned") : "Plan a feature to start"}
         </Txt>
+        {next !== null ? (
+          <Txt
+            numberOfLines={1}
+            style={{
+              fontFamily: fonts.medium,
+              fontSize: type.cardSmall * s,
+              lineHeight: 13 * s,
+              color: colors.ink55Black,
+            }}
+          >
+            {next.featureTitle}
+          </Txt>
+        ) : null}
       </View>
 
       {next?.task.deadline !== undefined ? (
@@ -541,6 +551,7 @@ function NextUpTile({
             left: inset * s,
             right: inset * s,
             bottom: 14 * s,
+            height: dateRow * s,
             flexDirection: "row",
             alignItems: "center",
             gap: 6 * s,

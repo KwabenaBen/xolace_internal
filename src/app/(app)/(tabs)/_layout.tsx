@@ -4,6 +4,7 @@ import { useThemeColor } from "heroui-native";
 import type { ComponentProps, JSX } from "react";
 import type { ColorValue } from "react-native";
 
+import { colors as boardColors } from "@/components/board/board-theme";
 import { layout } from "@/constants/theme";
 import { useSignedInUser } from "@/lib/use-current-user";
 
@@ -41,6 +42,11 @@ export default function TabsLayout(): JSX.Element {
         options={{
           title: "Board",
           tabBarIcon: ({ color }) => <TabIcon name="albums-outline" color={color} />,
+          // The Board is always black, so the bar goes dark while it's showing.
+          tabBarActiveTintColor: boardColors.white,
+          tabBarInactiveTintColor: boardColors.secondary,
+          tabBarStyle: { backgroundColor: boardColors.black, borderTopColor: boardColors.hairline },
+          sceneStyle: { backgroundColor: boardColors.background },
         }}
       />
       <Tabs.Screen

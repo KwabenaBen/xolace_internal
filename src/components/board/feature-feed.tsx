@@ -61,11 +61,16 @@ function TaskRow({
         : `Due ${formatDeadline(task.deadline, now)}`;
   const priorityColor =
     task.priority === "urgent" ? colors.red : task.priority === "high" ? colors.orange : undefined;
+  // A proposal has no owner yet; who suggested it matters more.
+  const person =
+    task.status === "proposed" || task.status === "declined"
+      ? `Proposed by ${task.proposer?.name ?? "someone"}`
+      : (task.owner?.name ?? "Unassigned");
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${task.title}. ${TASK_STATUS_LABELS[task.status]}. ${task.owner?.name ?? "Unassigned"}. ${due}.`}
+      accessibilityLabel={`${task.title}. ${TASK_STATUS_LABELS[task.status]}. ${person}. ${due}.`}
       onPress={onPress}
       style={({ pressed }) => ({
         borderRadius: radius.row,
@@ -93,7 +98,7 @@ function TaskRow({
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 10, rowGap: 2 }}>
         <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: colors.secondary }}>
-          {task.owner?.name ?? "Unassigned"}
+          {person}
         </Text>
         <Text
           style={{

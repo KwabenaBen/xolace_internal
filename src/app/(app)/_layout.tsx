@@ -3,6 +3,7 @@ import { useThemeColor } from "heroui-native";
 import type { JSX } from "react";
 
 import { AccountUnavailable } from "@/components/account-unavailable";
+import { colors as boardColors, fonts as boardFonts } from "@/components/board/board-theme";
 import { LoadingScreen } from "@/components/loading-screen";
 import { useCurrentUser } from "@/lib/use-current-user";
 
@@ -28,6 +29,16 @@ export default function AppLayout(): JSX.Element {
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      {/* The Board's quick-tile lists keep the Board's black look, whatever the theme. */}
+      <Stack.Screen
+        name="board/[view]"
+        options={{
+          headerStyle: { backgroundColor: boardColors.background },
+          headerTintColor: boardColors.white,
+          headerTitleStyle: { fontFamily: boardFonts.extraBold },
+          contentStyle: { backgroundColor: boardColors.background },
+        }}
+      />
       <Stack.Screen name="features/[featureId]/index" options={{ title: "Feature" }} />
       <Stack.Screen name="tasks/[taskId]/index" options={{ title: "Task" }} />
       <Stack.Screen name="features/new" options={{ title: "New feature", presentation: "modal" }} />

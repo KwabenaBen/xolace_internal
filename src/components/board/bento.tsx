@@ -7,6 +7,7 @@ import { formatDeadline } from "@convex/lib/dates";
 
 import { BentoTile } from "./bento-tile";
 import { colors, fonts, radius, size, space, type } from "./board-theme";
+import type { BoardListView } from "./board-lists";
 import { plural, type BoardStats } from "./board-stats";
 import { TILE } from "./pit-stop";
 import { Sym, symbols, Txt, type SymbolSpec } from "./sym";
@@ -15,8 +16,6 @@ import { Sym, symbols, Txt, type SymbolSpec } from "./sym";
 const ASCENT = 0.968;
 const DAY = 24 * 60 * 60 * 1000;
 
-export type QuickFilter = "dueSoon" | "overdue" | null;
-
 type BentoProps = {
   s: number;
   pit: SharedValue<number>;
@@ -24,12 +23,11 @@ type BentoProps = {
   waiting: number;
   now: number;
   isAdmin: boolean;
-  quickFilter: QuickFilter;
-  onQuickFilter: (filter: QuickFilter) => void;
   showGuide: boolean;
   onCloseGuide: () => void;
   onOpenTask: (taskId: string) => void;
-  onOpenWaiting: () => void;
+  /** Open the page listing a quick tile's tasks. */
+  onOpenList: (view: BoardListView) => void;
   onOpenMyTasks: () => void;
   onAction: () => void;
 };
@@ -147,23 +145,6 @@ function TileLabel({
   );
 }
 
-/** A white ring on a quick tile whose filter is on. */
-function ActiveRing({ on, s }: { on: boolean; s: number }): JSX.Element | null {
-  if (!on) return null;
-  return (
-    <View
-      pointerEvents="none"
-      style={{
-        position: "absolute",
-        inset: 0,
-        borderRadius: radius.quick * s,
-        borderWidth: 3 * s,
-        borderColor: colors.white,
-      }}
-    />
-  );
-}
-
 function daysAway(deadline: number, now: number): string {
   const days = Math.ceil((deadline - now) / DAY);
   if (days < 0) return plural(-days, "day") + " late";
@@ -174,7 +155,7 @@ function daysAway(deadline: number, now: number): string {
 
 /** The dashboard at the top of the Board, laid out as the reference's bento. */
 export function Bento(props: BentoProps): JSX.Element {
-  const { s, pit, stats, waiting, now, isAdmin, quickFilter, showGuide } = props;
+  const { s, pit, stats, waiting, now, isAdmin, showGuide } = props;
   const gap = space.rowGap * s;
 
   return (
@@ -185,17 +166,20 @@ export function Bento(props: BentoProps): JSX.Element {
             s={s}
             pit={pit}
             count={stats.dueSoon.length}
-            on={quickFilter === "dueSoon"}
-            onToggle={() => props.onQuickFilter(quickFilter === "dueSoon" ? null : "dueSoon")}
+            onPress={() => props.onOpenList("due-this-week")}
           />
           <OverdueTile
             s={s}
             pit={pit}
             count={stats.overdue.length}
-            on={quickFilter === "overdue"}
-            onToggle={() => props.onQuickFilter(quickFilter === "overdue" ? null : "overdue")}
+            onPress={() => props.onOpenList("overdue")}
           />
-          <WaitingTile s={s} pit={pit} waiting={waiting} onPress={props.onOpenWaiting} />
+          <WaitingTile
+            s={s}
+            pit={pit}
+            waiting={waiting}
+            onPress={() => props.onOpenList("waiting")}
+          />
         </View>
         <NextUpTile s={s} pit={pit} stats={stats} now={now} onOpenTask={props.onOpenTask} />
       </View>
@@ -269,16 +253,10 @@ type QuickTileProps = {
   s: number;
   pit: SharedValue<number>;
   count: number;
-  /** This tile's filter is applied to the feed. */
-  on: boolean;
-  onToggle: () => void;
+  onPress: () => void;
 };
 
-function filterHint(on: boolean): string {
-  return on ? "Showing only these; tap to show all." : "Tap to show only these.";
-}
-
-function DueSoonTile({ s, pit, count, on, onToggle }: QuickTileProps): JSX.Element {
+function DueSoonTile({ s, pit, count, onPress }: QuickTileProps): JSX.Element {
   return (
     <BentoTile
       index={TILE.dueSoon}
@@ -288,8 +266,8 @@ function DueSoonTile({ s, pit, count, on, onToggle }: QuickTileProps): JSX.Eleme
       s={s}
       pit={pit}
       fill={colors.violet}
-      label={`${plural(count, "task")} due this week. ${filterHint(on)}`}
-      onPress={onToggle}
+      label={`${plural(count, "task")} due this week. Opens the list.`}
+      onPress={onPress}
     >
       <View
         style={{
@@ -336,12 +314,11 @@ function DueSoonTile({ s, pit, count, on, onToggle }: QuickTileProps): JSX.Eleme
         color={colors.white}
         s={s}
       />
-      <ActiveRing on={on} s={s} />
     </BentoTile>
   );
 }
 
-function OverdueTile({ s, pit, count, on, onToggle }: QuickTileProps): JSX.Element {
+function OverdueTile({ s, pit, count, onPress }: QuickTileProps): JSX.Element {
   return (
     <BentoTile
       index={TILE.overdue}
@@ -351,8 +328,8 @@ function OverdueTile({ s, pit, count, on, onToggle }: QuickTileProps): JSX.Eleme
       s={s}
       pit={pit}
       fill={colors.orange}
-      label={`${plural(count, "task")} overdue. ${filterHint(on)}`}
-      onPress={onToggle}
+      label={`${plural(count, "task")} overdue. Opens the list.`}
+      onPress={onPress}
     >
       <TileLabel
         eyebrow="overdue"
@@ -377,7 +354,6 @@ function OverdueTile({ s, pit, count, on, onToggle }: QuickTileProps): JSX.Eleme
       >
         <Sym symbol={symbols.overdue} size={13 * s} color={colors.orange} />
       </View>
-      <ActiveRing on={on} s={s} />
     </BentoTile>
   );
 }
@@ -402,7 +378,7 @@ function WaitingTile({
       s={s}
       pit={pit}
       fill={colors.yellow}
-      label={`${plural(waiting, "proposal")} waiting for approval`}
+      label={`${plural(waiting, "proposal")} waiting for approval. Opens the list.`}
       onPress={onPress}
     >
       <Mark
@@ -793,7 +769,7 @@ function GuideTile({
       s={s}
       pit={pit}
       fill={colors.guideYellow}
-      label="How the board works. Tap a coloured tile to filter or jump in, and a task to see its details. Pull down to replay the pit stop."
+      label="How the board works. Tap a coloured tile to see its tasks, and a task to open it. Pull down to replay the pit stop."
     >
       <Line
         text="how does it work?"
@@ -806,7 +782,7 @@ function GuideTile({
         s={s}
       />
       <Line
-        text="Tap a coloured tile to filter or jump in, and a task"
+        text="Tap a coloured tile to see its tasks, and a task to"
         x={space.guideInset}
         baseline={70.7}
         fontSize={type.guideHelper}
@@ -815,7 +791,7 @@ function GuideTile({
         s={s}
       />
       <Line
-        text="to see its details. Pull down to replay the pit stop."
+        text="open it. Pull the board down to replay the pit stop."
         x={space.guideInset}
         baseline={87.9}
         fontSize={type.guideHelper}

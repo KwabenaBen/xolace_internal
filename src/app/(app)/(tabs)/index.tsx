@@ -16,19 +16,15 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { LiveTaskStatus } from "@convex/lib/validators";
 
-import { Bento, type QuickFilter } from "@/components/board/bento";
+import { Bento } from "@/components/board/bento";
 import { colors, fonts, MAX_BOARD_WIDTH, REFERENCE_WIDTH } from "@/components/board/board-theme";
-import {
-  computeBoardStats,
-  isDueSoon,
-  isOverdue,
-  type BoardGroup,
-} from "@/components/board/board-stats";
+import { computeBoardStats } from "@/components/board/board-stats";
 import { FeatureFeed } from "@/components/board/feature-feed";
 import { PIT, PIT_DURATION, PULL_TRIGGER } from "@/components/board/pit-stop";
 import { OptionPicker } from "@/components/planning/option-picker";
 import { LIVE_STATUS_ORDER, TASK_STATUS_LABELS } from "@/constants/labels";
 import { useSignedInUser } from "@/lib/use-current-user";
+import { useDeviceFlag } from "@/lib/use-device-flag";
 import { useNow } from "@/lib/use-now";
 
 /** When the Board first appears, the pit stop starts with every tile already off-screen. */
@@ -53,8 +49,8 @@ export default function BoardScreen(): JSX.Element {
   const [ownerId, setOwnerId] = useState<Id<"users"> | null>(null);
   const [featureId, setFeatureId] = useState<Id<"features"> | null>(null);
   const [status, setStatus] = useState<LiveTaskStatus | null>(null);
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>(null);
-  const [showGuide, setShowGuide] = useState(true);
+  // Closing the guide is remembered on this device; it stays hidden until it has been read.
+  const [guideClosed, setGuideClosed] = useDeviceFlag("cadence.board.guide-closed");
 
   const serverFiltered = ownerId !== null || featureId !== null || status !== null;
   // The bento always shows the whole team; the feed below follows the filters.
@@ -113,15 +109,8 @@ export default function BoardScreen(): JSX.Element {
     },
   });
 
-  const source = serverFiltered ? filteredBoard : board;
-  const feed: BoardGroup[] | undefined = source?.flatMap((group) => {
-    if (quickFilter === null) return [group];
-    const tasks = group.tasks.filter((task) =>
-      quickFilter === "overdue" ? isOverdue(task, now) : isDueSoon(task, now)
-    );
-    return tasks.length > 0 ? [{ ...group, tasks }] : [];
-  });
-  const isFiltered = serverFiltered || quickFilter !== null;
+  const feed = serverFiltered ? filteredBoard : board;
+  const isFiltered = serverFiltered;
   const openTask = (taskId: string) =>
     router.push({ pathname: "/tasks/[taskId]", params: { taskId } });
 
@@ -170,12 +159,10 @@ export default function BoardScreen(): JSX.Element {
               waiting={proposals.proposals.length}
               now={now}
               isAdmin={isAdmin}
-              quickFilter={quickFilter}
-              onQuickFilter={setQuickFilter}
-              showGuide={showGuide}
-              onCloseGuide={() => setShowGuide(false)}
+              showGuide={guideClosed === false}
+              onCloseGuide={() => setGuideClosed(true)}
               onOpenTask={openTask}
-              onOpenWaiting={() => router.push(isAdmin ? "/admin" : "/my-tasks")}
+              onOpenList={(view) => router.push({ pathname: "/board/[view]", params: { view } })}
               onOpenMyTasks={() => router.push("/my-tasks")}
               onAction={() => router.push(isAdmin ? "/features/new" : "/tasks/new")}
             />
@@ -239,7 +226,6 @@ export default function BoardScreen(): JSX.Element {
                     setOwnerId(null);
                     setFeatureId(null);
                     setStatus(null);
-                    setQuickFilter(null);
                   }}
                   style={({ pressed }) => ({
                     paddingHorizontal: 8,

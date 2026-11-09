@@ -3,7 +3,10 @@
 Internal task and accountability app for the four cofounders (CEO, CTO, CMO/CDO, COO). Every
 task has one owner and one deadline, everyone sees everything, daily work is logged, and nothing
 is done until it is verified. **Full spec: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) — read it
-before starting a phase.**
+before starting a phase.** What's built, screen by screen, in plain language:
+[docs/FEATURES.md](docs/FEATURES.md) — **update it whenever a feature or screen changes**
+(a shareable copy for the team lives at https://claude.ai/artifact/4g1pqrfLbBeWmcf8snVGrH; keep
+it in step when asked).
 
 ## Stack
 
@@ -30,6 +33,7 @@ src/app/                 Expo Router routes
   (app)/features/        new (modal), [featureId]/index (page), [featureId]/edit (modal)
   (app)/tasks/           new (modal: admin creates / member proposes), [taskId]/index (page),
                          [taskId]/edit (modal: edit a live task, or approve a proposal)
+  (app)/board/[view].tsx The Board's tile pages: due-this-week, overdue, waiting (black style)
 src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ...)
   auth/                  Signed-out UI: DotField (dots that spell "cadence"; dot-field.tsx = Skia,
                          dot-field.web.tsx = canvas, math in dot-formations.ts), DotWordmark,
@@ -40,10 +44,11 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ..
   board/                 The Board's bento (after Native Cook's "Paddock Widget Bento"):
                          board-theme.ts (colours/sizes in points on a 402-wide screen, ×s),
                          pit-stop.ts (the fling-out/slam-back motion, worklets), bento.tsx,
-                         bento-tile.tsx, board-stats.ts, feature-feed.tsx, sym.tsx (SF Symbol /
-                         Material icon)
+                         bento-tile.tsx, board-stats.ts, board-lists.ts (the tile pages' data),
+                         feature-feed.tsx, sym.tsx (SF Symbol / Material icon)
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
-src/lib/                 Convex client, auth token storage, error messages, hooks (useNow, ...)
+src/lib/                 Convex client, auth token storage, error messages, hooks (useNow, useDeviceFlag for
+                         per-device yes/no settings, ...)
 convex/                  Backend (deployed by `bunx convex dev`)
   schema.ts              All tables + indexes
   auth.ts                Convex Auth: Password provider, invite gate, inactive gate
@@ -162,8 +167,9 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
       seeded on dev; real sign-up done; runs on iPhone via Expo Go. Branch `cadence-phase-1`.
 - [ ] **Phase 2 — Features & tasks:** create/edit features and tasks with acceptance criteria
       (admin, web + phone), proposals + approval, owner/peer reviewer/deadline, shared board with
-      filters, task detail. Branch `cadence-phase-2`. _Built; server rules covered by tests. Tick
-      once an admin and a member have walked through it on iPhone and web._
+      filters, task detail. Branch `cadence-phase-2`; the bento Board + demo data on
+      `cadence-phase-2-boardscreen`. _Built; server rules covered by tests. Tick once an admin and
+      a member have walked through it on iPhone and web._
 - [ ] **Phase 3 — Progress & extensions:** status changes, progress %, comments, overdue flag,
       extension requests + late rule, activity log.
 - [ ] **Phase 4 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.

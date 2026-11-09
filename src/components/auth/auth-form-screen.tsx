@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useThemeColor } from "heroui-native";
 import type { JSX, ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,7 +19,7 @@ type AuthFormScreenProps = {
   footer?: ReactNode;
 };
 
-/** Frame for the sign-in and sign-up forms: black, back arrow, dot wordmark, big title. */
+/** Frame for the sign-in and sign-up forms: back arrow, dot wordmark, big title, in the theme. */
 export function AuthFormScreen({
   title,
   subtitle,
@@ -28,6 +29,7 @@ export function AuthFormScreen({
 }: AuthFormScreenProps): JSX.Element {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const foreground = useThemeColor("foreground");
 
   function goBack() {
     if (router.canGoBack()) router.back();
@@ -35,8 +37,8 @@ export function AuthFormScreen({
   }
 
   return (
-    <View className="flex-1 bg-black">
-      <StatusBar style="light" />
+    <View className="flex-1 bg-background">
+      <StatusBar style="auto" />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -56,28 +58,28 @@ export function AuthFormScreen({
                 accessibilityRole="button"
                 accessibilityLabel="Back"
                 hitSlop={12}
-                className="h-10 w-10 items-center justify-center rounded-full bg-neutral-900 active:opacity-70"
+                className="h-10 w-10 items-center justify-center rounded-full bg-surface active:opacity-70"
               >
-                <Ionicons name="chevron-back" size={22} color="#ffffff" />
+                <Ionicons name="chevron-back" size={22} color={foreground} />
               </Pressable>
-              <DotWordmark width={96} />
+              <DotWordmark width={96} color={foreground} />
               <View className="h-10 w-10" />
             </View>
 
             <View className="gap-2 pb-8 pt-10">
-              <Text accessibilityRole="header" className="text-4xl font-bold text-white">
+              <Text accessibilityRole="header" className="text-4xl font-bold text-foreground">
                 {title}
               </Text>
-              <Text className="text-base leading-6 text-neutral-400">{subtitle}</Text>
+              <Text className="text-base leading-6 text-muted">{subtitle}</Text>
             </View>
 
             {error !== null ? (
               <View
                 accessibilityRole="alert"
                 accessibilityLiveRegion="polite"
-                className="mb-5 rounded-2xl border border-red-900 bg-red-950 px-4 py-3"
+                className="mb-5 rounded-2xl border border-danger bg-surface px-4 py-3"
               >
-                <Text className="text-sm leading-5 text-red-200">{error}</Text>
+                <Text className="text-sm leading-5 text-foreground">{error}</Text>
               </View>
             ) : null}
 

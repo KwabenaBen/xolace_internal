@@ -7,7 +7,7 @@ import { INVITE_DAYS, INVITE_REJECTED_MESSAGE, MIN_PASSWORD_LENGTH } from "@conv
 
 import { AuthFormScreen } from "@/components/auth/auth-form-screen";
 import { AuthTextField } from "@/components/auth/auth-text-field";
-import { PillButton } from "@/components/auth/pill-button";
+import { PillButton } from "@/components/ui/pill-button";
 import { getErrorMessage } from "@/lib/errors";
 
 export default function SignUpScreen(): JSX.Element {
@@ -58,8 +58,8 @@ export default function SignUpScreen(): JSX.Element {
           onPress={() => router.replace("/sign-in")}
           className="items-center py-3 active:opacity-70"
         >
-          <Text className="text-sm text-neutral-400">
-            Already have an account? <Text className="font-semibold text-white">Sign in</Text>
+          <Text className="text-sm text-muted">
+            Already have an account? <Text className="font-semibold text-foreground">Sign in</Text>
           </Text>
         </Pressable>
       }

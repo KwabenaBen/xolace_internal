@@ -17,11 +17,12 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { LiveTaskStatus } from "@convex/lib/validators";
 
 import { Bento } from "@/components/board/bento";
-import { colors, fonts, MAX_BOARD_WIDTH, REFERENCE_WIDTH } from "@/components/board/board-theme";
+import { MAX_BOARD_WIDTH, REFERENCE_WIDTH } from "@/components/board/board-theme";
 import { computeBoardStats } from "@/components/board/board-stats";
 import { FeatureFeed } from "@/components/board/feature-feed";
 import { PIT, PIT_DURATION, PULL_TRIGGER } from "@/components/board/pit-stop";
 import { OptionPicker } from "@/components/planning/option-picker";
+import { fonts, usePageColors } from "@/components/ui/theme";
 import { LIVE_STATUS_ORDER, TASK_STATUS_LABELS } from "@/constants/labels";
 import { useSignedInUser } from "@/lib/use-current-user";
 import { useDeviceFlag } from "@/lib/use-device-flag";
@@ -40,6 +41,7 @@ export default function BoardScreen(): JSX.Element {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+  const c = usePageColors();
   const reduceMotion = useReducedMotion();
   const now = useNow();
   const { width: windowWidth } = useWindowDimensions();
@@ -115,8 +117,8 @@ export default function BoardScreen(): JSX.Element {
     router.push({ pathname: "/tasks/[taskId]", params: { taskId } });
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {isFocused ? <StatusBar style="light" /> : null}
+    <View style={{ flex: 1, backgroundColor: c.page }}>
+      {isFocused ? <StatusBar style={c.statusBar} /> : null}
       <Animated.ScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
@@ -129,7 +131,7 @@ export default function BoardScreen(): JSX.Element {
       >
         <View style={{ width, gap: 18 }}>
           <View style={{ paddingHorizontal: 10 * s + 4 }}>
-            <Text style={{ fontFamily: fonts.semibold, fontSize: 13, color: colors.secondary }}>
+            <Text style={{ fontFamily: fonts.semibold, fontSize: 13, color: c.muted }}>
               {new Date(now).toLocaleDateString(undefined, {
                 weekday: "long",
                 day: "numeric",
@@ -142,7 +144,7 @@ export default function BoardScreen(): JSX.Element {
                 fontFamily: fonts.black,
                 fontSize: 34,
                 letterSpacing: -1,
-                color: colors.white,
+                color: c.text,
               }}
             >
               board
@@ -150,7 +152,7 @@ export default function BoardScreen(): JSX.Element {
           </View>
 
           {board === undefined || proposals === undefined ? (
-            <ActivityIndicator color={colors.white} style={{ paddingVertical: 80 }} />
+            <ActivityIndicator color={c.text} style={{ paddingVertical: 80 }} />
           ) : (
             <Bento
               s={s}
@@ -177,7 +179,7 @@ export default function BoardScreen(): JSX.Element {
                 fontFamily: fonts.black,
                 fontSize: 28,
                 letterSpacing: -0.8,
-                color: colors.white,
+                color: c.text,
                 paddingHorizontal: 4,
               }}
             >
@@ -186,7 +188,6 @@ export default function BoardScreen(): JSX.Element {
             <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
               <OptionPicker
                 variant="chip"
-                tone="dark"
                 label="Owner"
                 value={ownerId}
                 options={(users ?? []).map((u) => ({
@@ -200,7 +201,6 @@ export default function BoardScreen(): JSX.Element {
               />
               <OptionPicker
                 variant="chip"
-                tone="dark"
                 label="Feature"
                 value={featureId}
                 options={(features ?? []).map((f) => ({ value: f._id, label: f.title }))}
@@ -210,7 +210,6 @@ export default function BoardScreen(): JSX.Element {
               />
               <OptionPicker
                 variant="chip"
-                tone="dark"
                 label="Status"
                 value={status}
                 options={LIVE_STATUS_ORDER.map((st) => ({
@@ -235,7 +234,14 @@ export default function BoardScreen(): JSX.Element {
                     opacity: pressed ? 0.6 : 1,
                   })}
                 >
-                  <Text style={{ fontFamily: fonts.bold, fontSize: 13, color: colors.yellow }}>
+                  <Text
+                    style={{
+                      fontFamily: fonts.bold,
+                      fontSize: 13,
+                      color: c.text,
+                      textDecorationLine: "underline",
+                    }}
+                  >
                     Clear
                   </Text>
                 </Pressable>
@@ -243,7 +249,7 @@ export default function BoardScreen(): JSX.Element {
             </View>
 
             {feed === undefined ? (
-              <ActivityIndicator color={colors.white} />
+              <ActivityIndicator color={c.text} />
             ) : (
               <FeatureFeed
                 groups={feed}

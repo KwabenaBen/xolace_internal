@@ -4,7 +4,7 @@ What every part of Cadence does and why it's there, in plain language. Keep this
 with each phase (see [CLAUDE.md](../CLAUDE.md) → Phases). The full spec is
 [REQUIREMENTS.md](REQUIREMENTS.md).
 
-_As of 9 Nov 2026: Phase 1, Phase 2, the bento Board and the black feature, person and task pages are built._
+_As of 9 Nov 2026: Phase 1, Phase 2, the bento Board, the feature, person and task pages, and the black and off-white themes are built._
 
 ## What Cadence is for
 
@@ -20,7 +20,9 @@ working on what, who was behind and what was really done. Cadence makes three pr
   acceptance criteria.
 
 It reports team progress, not rankings: there is no leaderboard. It runs on iPhone and on the
-web; the web version is mainly for the COO to plan after meetings.
+web; the web version is mainly for the COO to plan after meetings. It has two looks, black and a
+warm off-white, and follows the phone's dark or light setting; the coloured tiles, status pills
+and cards keep their colours in both.
 
 Built so far: sign-in and roles (Phase 1), and features, tasks, proposals and the Board
 (Phase 2). Progress updates, daily logs, reviews and notifications come in Phases 3 to 6 (see
@@ -152,7 +154,7 @@ Each status says who has to act next.
 
 Cadence is invite-only: only an email address the admin has invited can create an account.
 
-- **Welcome screen.** A black screen where a field of dots swirls, gathers into the word
+- **Welcome screen.** A field of dots swirls, gathers into the word
   "cadence" and dissolves again. Two buttons: **Sign in** and **I have an invite**. With Reduce
   Motion on, the word simply shows.
 - **Sign in.** Email and password. Wrong details show "That email and password don't match an
@@ -175,8 +177,8 @@ Cadence is invite-only: only an email address the admin has invited can create a
 ## The Board
 
 The Board is the home screen: a dashboard of coloured tiles that sums up the whole team, then
-the full list of features and their tasks. It is always black, whatever the phone's light or
-dark setting, and the tab bar turns black too while the Board is showing.
+the full list of features and their tasks. Like every screen, it is black or off-white,
+following the phone's dark or light setting; the tiles keep their colours in both.
 
 ### The tiles
 
@@ -212,7 +214,7 @@ Below the tiles is every feature as a dark card, with its tasks listed underneat
 
 ### The tile pages
 
-**Due this week**, **overdue** and **waiting** each open their own page in the Board's black
+**Due this week**, **overdue** and **waiting** each open their own page in the Board's
 style: a big title, how many tasks it holds, and the matching tasks grouped under their
 features, in the same rows as the Board. Tap a feature or task to open it; the back arrow
 returns to the Board. On the waiting page each row says who proposed it.
@@ -224,7 +226,8 @@ a proposal.
 
 ### The feature page
 
-The Board's **next up** tile and every feature card open it. Like the Board, it is always black.
+The Board's **next up** tile, every feature card, and the grey line under a task's or person's
+name open it.
 From top to bottom:
 
 - **Header.** A round back button on its own, then the feature's title in big letters, with where
@@ -261,10 +264,10 @@ to see what they're doing for that feature:
 
 ### The task page
 
-Like the Board, the task page is always black. From top to bottom:
+From top to bottom:
 
 - **Header.** A round back button on its own, then the task's title in big letters with "Part of
-  <feature>" under it (or "Proposed for <feature>"). Go back to reach the feature.
+  <feature> ›" under it (or "Proposed for <feature> ›"). Tap that line to open the feature.
 - **The status card.** A black card whose huge shiny word is the task's status (TO DO, IN
   PROGRESS, IN REVIEW, VERIFIED…), with the owner's name (or the proposer's) and the task type
   along the bottom. On iPhone it tilts in 3D: press and hold it for a moment, then drag, and the
@@ -371,7 +374,7 @@ A few things work without a screen of their own.
 - **Offline banner.** Cadence works online only. When the connection drops, an amber bar says
   "You're offline. Changes won't save until you reconnect."
 - **Something went wrong.** If a screen fails to load (a broken link, a lost connection, a
-  permission that changed), a black screen explains what happened, with **Try again** and **Back
+  permission that changed), a screen explains what happened, with **Try again** and **Back
   to the Board**, instead of a blank page. A link to a task or feature that doesn't exist shows
   "doesn't exist" with a back button.
 - **Demo data (development only).** The development copy can be filled with sample features and

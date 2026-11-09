@@ -6,10 +6,9 @@ import { Text, View } from "react-native";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 
-import { PillButton } from "@/components/auth/pill-button";
+import { PillButton, PillRow } from "@/components/ui/pill-button";
 import { featureProgress, plural } from "@/components/board/board-stats";
-import { fonts } from "@/components/board/board-theme";
-import { TaskRow } from "@/components/board/feature-feed";
+import { TaskRow } from "@/components/ui/task-row";
 import { featureTeam, teamRole } from "@/components/feature/feature-team";
 import { CountdownCard } from "@/components/task/countdown-card";
 import {
@@ -18,19 +17,20 @@ import {
   PageNotFound,
   useGoBack,
   usePageSize,
-} from "@/components/task/detail-page";
+} from "@/components/ui/detail-page";
 import { HoloCard } from "@/components/task/holo-card";
 import { PeopleCards } from "@/components/task/people-cards";
-import { PillRow } from "@/components/task/task-actions";
-import { PageHeader } from "@/components/task/task-header";
-import { DescriptionCard, SectionTitle } from "@/components/task/task-panels";
-import { FEATURE_STATUS_WORDS, taskColors } from "@/components/task/task-theme";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionTitle } from "@/components/ui/panel";
+import { DescriptionCard } from "@/components/task/task-panels";
+import { FEATURE_STATUS_WORDS } from "@/components/task/task-theme";
 import { FEATURE_STATUS_LABELS } from "@/constants/labels";
 import { useSignedInUser } from "@/lib/use-current-user";
+import { colors, fonts, usePageColors } from "@/components/ui/theme";
 import { useNow } from "@/lib/use-now";
 
 /**
- * A feature, in the Board's black style (the Board's "next up" tile and feature cards open it):
+ * A feature, in the app's black/off-white style (the Board's "next up" tile and feature cards open it):
  * back button, the feature's title, a holographic card spelling its stage, a lavender countdown to
  * its deadline with its progress, the description and expected result, Who's on it (tap a person
  * for their work on it), every task with its progress, proposals waiting, and pill buttons.
@@ -43,6 +43,7 @@ export default function FeatureScreen(): JSX.Element {
   const goBack = useGoBack();
   const now = useNow();
   const { s, content } = usePageSize();
+  const c = usePageColors();
   const isAdmin = user.role === "admin";
 
   if (data === undefined) {
@@ -121,7 +122,7 @@ export default function FeatureScreen(): JSX.Element {
               role: teamRole(member),
               user: member.user,
               fallback: member.user.name,
-              color: member.owns.length > 0 ? taskColors.peach : taskColors.sky,
+              color: member.owns.length > 0 ? colors.peach : colors.sky,
               tag:
                 member.owns.length > 0
                   ? plural(member.owns.length, "task")
@@ -144,7 +145,7 @@ export default function FeatureScreen(): JSX.Element {
               style={{
                 fontFamily: fonts.medium,
                 fontSize: 15,
-                color: taskColors.secondary,
+                color: c.muted,
                 paddingHorizontal: 4,
               }}
             >
@@ -175,12 +176,12 @@ export default function FeatureScreen(): JSX.Element {
         {isAdmin ? (
           canAddWork ? (
             <PillRow>
-              <PillButton label="Edit feature" variant="dark" onPress={edit} />
+              <PillButton label="Edit feature" variant="secondary" onPress={edit} />
               <PillButton label="Add task" onPress={newTask} />
             </PillRow>
           ) : (
             <PillRow>
-              <PillButton label="Edit feature" variant="dark" onPress={edit} />
+              <PillButton label="Edit feature" variant="secondary" onPress={edit} />
             </PillRow>
           )
         ) : canAddWork ? (

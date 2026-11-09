@@ -3,10 +3,9 @@ import { Text, View } from "react-native";
 
 import { longDay, sameDayGmt, startOfDayGmt } from "@convex/lib/dates";
 
-import { fonts } from "@/components/board/board-theme";
-
 import { weekLabel, weekOf } from "./task-dates";
-import { taskColors } from "./task-theme";
+
+import { colors, fonts, usePageColors } from "@/components/ui/theme";
 
 const GAP = 6;
 
@@ -31,6 +30,7 @@ export function WeekStrip({
   const week = weekOf(deadline);
   const pill = (width - GAP * 6) / 7;
   const todayStart = startOfDayGmt(now);
+  const c = usePageColors();
 
   return (
     <View
@@ -45,14 +45,14 @@ export function WeekStrip({
             flex: 1,
             fontFamily: fonts.extraBold,
             fontSize: 18 * s,
-            color: taskColors.white,
+            color: c.text,
           }}
         >
           Deadline week
         </Text>
         <Text
           allowFontScaling={false}
-          style={{ fontFamily: fonts.semibold, fontSize: 13 * s, color: taskColors.secondary }}
+          style={{ fontFamily: fonts.semibold, fontSize: 13 * s, color: c.muted }}
         >
           {weekLabel(week)}
         </Text>
@@ -70,8 +70,8 @@ export function WeekStrip({
                 height: pill * 1.75,
                 borderRadius: pill / 2,
                 borderWidth: 1.5,
-                borderColor: isDeadline ? taskColors.lavenderStrong : taskColors.pillBorder,
-                backgroundColor: isDeadline ? taskColors.lavenderStrong : taskColors.pill,
+                borderColor: isDeadline ? colors.lavenderStrong : colors.pillBorder,
+                backgroundColor: isDeadline ? colors.lavenderStrong : colors.pill,
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 2 * s,
@@ -83,14 +83,14 @@ export function WeekStrip({
                 style={{
                   fontFamily: fonts.semibold,
                   fontSize: 12 * s,
-                  color: isDeadline ? taskColors.ink : taskColors.note,
+                  color: isDeadline ? colors.ink : colors.note,
                 }}
               >
                 {day.letter}
               </Text>
               <Text
                 allowFontScaling={false}
-                style={{ fontFamily: fonts.extraBold, fontSize: 17 * s, color: taskColors.ink }}
+                style={{ fontFamily: fonts.extraBold, fontSize: 17 * s, color: colors.ink }}
               >
                 {day.date}
               </Text>
@@ -99,7 +99,7 @@ export function WeekStrip({
                   width: 5 * s,
                   height: 5 * s,
                   borderRadius: 999,
-                  backgroundColor: isToday ? taskColors.ink : "transparent",
+                  backgroundColor: isToday ? colors.ink : "transparent",
                 }}
               />
             </View>

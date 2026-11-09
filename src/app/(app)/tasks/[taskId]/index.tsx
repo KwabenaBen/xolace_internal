@@ -8,6 +8,7 @@ import type { Id } from "@convex/_generated/dataModel";
 
 import type { UserSummary } from "@convex/lib/views";
 
+import { colors } from "@/components/ui/theme";
 import { CountdownCard } from "@/components/task/countdown-card";
 import {
   DetailPage,
@@ -15,22 +16,22 @@ import {
   PageNotFound,
   useGoBack,
   usePageSize,
-} from "@/components/task/detail-page";
+} from "@/components/ui/detail-page";
 import { HoloCard } from "@/components/task/holo-card";
 import { PeopleCards, type PersonCard } from "@/components/task/people-cards";
 import { TaskActions } from "@/components/task/task-actions";
-import { PageHeader } from "@/components/task/task-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { CriteriaCard, DescriptionCard, TaskBanner } from "@/components/task/task-panels";
-import { STATUS_WORDS, taskColors } from "@/components/task/task-theme";
+import { STATUS_WORDS } from "@/components/task/task-theme";
 import { TASK_KIND_LABELS, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/constants/labels";
 import { useSignedInUser } from "@/lib/use-current-user";
 
 /**
- * A task, in the Board's black style: back button, its title (and the feature it's part of), a
+ * A task, in the app's black/off-white style: back button, its title (and a link to its feature), a
  * holographic card spelling its status (after Native Cook's "Holo Cash Card"), a lavender
  * countdown to the task's own deadline (with the feature's beside it), its description, the people
  * on it as pastel cards (after the team's fitness-app reference), its acceptance criteria, and the
- * admin's pill buttons. Always black, whatever the theme.
+ * admin's pill buttons. Black or off-white, following the phone's theme.
  */
 export default function TaskScreen(): JSX.Element {
   const { taskId } = useLocalSearchParams<{ taskId: Id<"tasks"> }>();
@@ -69,7 +70,7 @@ export default function TaskScreen(): JSX.Element {
         role: "Owner",
         user: task.owner,
         fallback: "Unassigned",
-        color: taskColors.peach,
+        color: colors.peach,
         tag: TASK_PRIORITY_LABELS[task.priority],
         onPress: openPerson(task.owner),
         hint: "Shows their work on this feature",
@@ -79,7 +80,7 @@ export default function TaskScreen(): JSX.Element {
           role: "Peer reviewer",
           user: task.peerReviewer,
           fallback: "Not set",
-          color: taskColors.sky,
+          color: colors.sky,
           tag: TASK_KIND_LABELS.code,
           onPress: openPerson(task.peerReviewer),
           hint: "Shows their work on this feature",
@@ -91,7 +92,7 @@ export default function TaskScreen(): JSX.Element {
         role: "Proposed by",
         user: task.proposer,
         fallback: "Someone",
-        color: taskColors.pink,
+        color: colors.pink,
       });
     }
 
@@ -105,6 +106,10 @@ export default function TaskScreen(): JSX.Element {
           s={s}
           title={task.title}
           subtitle={`${isLive ? "Part of" : "Proposed for"} ${feature.title}`}
+          onSubtitlePress={() =>
+            router.push({ pathname: "/features/[featureId]", params: { featureId: feature._id } })
+          }
+          subtitleHint="Opens the feature"
           onBack={goBack}
         />
 

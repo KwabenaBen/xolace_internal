@@ -3,9 +3,8 @@ import { Pressable, Text, View } from "react-native";
 
 import type { UserSummary } from "@convex/lib/views";
 
-import { fonts } from "@/components/board/board-theme";
-
-import { taskColors } from "./task-theme";
+import { ProgressBar } from "@/components/ui/progress-bar";
+import { colors, fonts, usePageColors } from "@/components/ui/theme";
 
 export type PersonCard = {
   /** A unique key when the same role appears more than once (e.g. the user's id). */
@@ -49,16 +48,17 @@ export function PeopleCards({
 }): JSX.Element {
   const gap = 12 * s;
   const half = (width - gap) / 2;
+  const c = usePageColors();
 
   return (
     <View style={{ gap: 12 * s }}>
       <Text
         accessibilityRole="header"
-        allowFontScaling={false}
+        maxFontSizeMultiplier={1.3}
         style={{
           fontFamily: fonts.extraBold,
           fontSize: 18 * s,
-          color: taskColors.white,
+          color: c.text,
           paddingHorizontal: 4,
         }}
       >
@@ -121,14 +121,14 @@ function Card({ person, s, width }: { person: PersonCard; s: number; width: numb
             width: 38 * s,
             height: 38 * s,
             borderRadius: 999,
-            backgroundColor: user === null ? "rgba(17,17,17,0.18)" : taskColors.ink,
+            backgroundColor: user === null ? "rgba(17,17,17,0.18)" : colors.ink,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
           <Text
-            allowFontScaling={false}
-            style={{ fontFamily: fonts.extraBold, fontSize: 14 * s, color: taskColors.white }}
+            maxFontSizeMultiplier={1.3}
+            style={{ fontFamily: fonts.extraBold, fontSize: 14 * s, color: colors.white }}
           >
             {user === null ? "–" : initials(user.name)}
           </Text>
@@ -138,16 +138,16 @@ function Card({ person, s, width }: { person: PersonCard; s: number; width: numb
           <View
             style={{
               borderRadius: 999,
-              backgroundColor: taskColors.tagFill,
+              backgroundColor: colors.tagFill,
               paddingHorizontal: 10 * s,
               paddingVertical: 4 * s,
               flexShrink: 1,
             }}
           >
             <Text
-              allowFontScaling={false}
+              maxFontSizeMultiplier={1.3}
               numberOfLines={1}
-              style={{ fontFamily: fonts.bold, fontSize: 11 * s, color: taskColors.ink }}
+              style={{ fontFamily: fonts.bold, fontSize: 11 * s, color: colors.ink }}
             >
               {tag}
             </Text>
@@ -156,60 +156,49 @@ function Card({ person, s, width }: { person: PersonCard; s: number; width: numb
       </View>
       <View style={{ gap: 2 }}>
         <Text
-          allowFontScaling={false}
+          maxFontSizeMultiplier={1.3}
           style={{
             fontFamily: fonts.bold,
             fontSize: 11 * s,
             letterSpacing: 0.8,
-            color: "rgba(17,17,17,0.6)",
+            color: "rgba(17,17,17,0.78)",
           }}
         >
           {person.role.toUpperCase()}
         </Text>
         <Text
-          allowFontScaling={false}
+          maxFontSizeMultiplier={1.3}
           numberOfLines={2}
           style={{
             fontFamily: fonts.extraBold,
             fontSize: 17 * s,
             letterSpacing: -0.3,
-            color: taskColors.ink,
+            color: colors.ink,
           }}
         >
           {name}
         </Text>
         {user !== null && user.title !== "" ? (
           <Text
-            allowFontScaling={false}
+            maxFontSizeMultiplier={1.3}
             numberOfLines={1}
-            style={{ fontFamily: fonts.medium, fontSize: 13 * s, color: "rgba(17,17,17,0.7)" }}
+            style={{ fontFamily: fonts.medium, fontSize: 13 * s, color: "rgba(17,17,17,0.8)" }}
           >
             {user.title}
           </Text>
         ) : null}
         {person.progress !== undefined ? (
           <View style={{ marginTop: 8 * s, flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View
-              style={{
-                flex: 1,
-                height: 6 * s,
-                borderRadius: 999,
-                backgroundColor: "rgba(17,17,17,0.14)",
-                overflow: "hidden",
-              }}
-            >
-              <View
-                style={{
-                  width: `${Math.max(0, Math.min(100, Math.round(person.progress)))}%`,
-                  height: "100%",
-                  borderRadius: 999,
-                  backgroundColor: taskColors.ink,
-                }}
-              />
-            </View>
+            <ProgressBar
+              style={{ flex: 1 }}
+              percent={Math.max(0, Math.min(100, Math.round(person.progress)))}
+              height={6 * s}
+              track={"rgba(17,17,17,0.14)"}
+              fill={colors.ink}
+            />
             <Text
-              allowFontScaling={false}
-              style={{ fontFamily: fonts.extraBold, fontSize: 12 * s, color: taskColors.ink }}
+              maxFontSizeMultiplier={1.3}
+              style={{ fontFamily: fonts.extraBold, fontSize: 12 * s, color: colors.ink }}
             >
               {Math.round(person.progress)}%
             </Text>

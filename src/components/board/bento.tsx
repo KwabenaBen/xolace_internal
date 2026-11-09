@@ -6,11 +6,14 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { formatDeadline, relativeDay } from "@convex/lib/dates";
 
 import { BentoTile } from "./bento-tile";
-import { colors, fonts, radius, size, space, type } from "./board-theme";
+import { radius, size, space, type } from "./board-theme";
 import type { BoardListView } from "./board-lists";
 import { plural, type BoardStats } from "./board-stats";
 import { TILE } from "./pit-stop";
-import { Sym, symbols, Txt, type SymbolSpec } from "./sym";
+import { ProgressBar } from "@/components/ui/progress-bar";
+import { Sym, symbols, Txt, type SymbolSpec } from "@/components/ui/sym";
+
+import { colors, fonts } from "@/components/ui/theme";
 
 /** Montserrat's ascender per point of size: a line's top is `baseline - ASCENT * size`. */
 const ASCENT = 0.968;
@@ -533,24 +536,13 @@ function NextUpTile({
           <View
             style={{ marginTop: 5 * s, flexDirection: "row", alignItems: "center", gap: 6 * s }}
           >
-            <View
-              style={{
-                flex: 1,
-                height: 5 * s,
-                borderRadius: 999,
-                backgroundColor: "rgba(0,0,0,0.15)",
-                overflow: "hidden",
-              }}
-            >
-              <View
-                style={{
-                  width: `${progress.percent}%`,
-                  height: "100%",
-                  borderRadius: 999,
-                  backgroundColor: colors.black,
-                }}
-              />
-            </View>
+            <ProgressBar
+              style={{ flex: 1 }}
+              percent={progress.percent}
+              height={5 * s}
+              track={"rgba(0,0,0,0.15)"}
+              fill={colors.black}
+            />
             <Txt
               style={{
                 fontFamily: fonts.extraBold,

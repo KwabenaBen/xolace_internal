@@ -5,7 +5,7 @@ import { Pressable, Text } from "react-native";
 
 import { AuthFormScreen } from "@/components/auth/auth-form-screen";
 import { AuthTextField } from "@/components/auth/auth-text-field";
-import { PillButton } from "@/components/auth/pill-button";
+import { PillButton } from "@/components/ui/pill-button";
 import { getErrorMessage } from "@/lib/errors";
 
 export default function SignInScreen(): JSX.Element {
@@ -44,8 +44,9 @@ export default function SignInScreen(): JSX.Element {
           onPress={() => router.replace("/sign-up")}
           className="items-center py-3 active:opacity-70"
         >
-          <Text className="text-sm text-neutral-400">
-            Have an invite? <Text className="font-semibold text-white">Create your account</Text>
+          <Text className="text-sm text-muted">
+            Have an invite?{" "}
+            <Text className="font-semibold text-foreground">Create your account</Text>
           </Text>
         </Pressable>
       }

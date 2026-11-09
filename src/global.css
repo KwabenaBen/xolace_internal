@@ -6,3 +6,106 @@
 /* End-user path: heroui-native lives in the project's node_modules, one
    level up from this src/global.css file. */
 @source '../node_modules/heroui-native/lib';
+
+/*
+ * Cadence's two themes: black, and a warm off-white (#FEFAF3) instead of pure white. The app
+ * follows the phone's dark/light setting. These override HeroUI's theme variables, so HeroUI
+ * screens and the bespoke black/off-white screens (which read the same values through
+ * `usePageColors`, src/components/ui/theme.ts) always match. Plain hex only: HeroUI's colour
+ * parser on web can't read oklch()/color-mix() (see CLAUDE.md, open decisions).
+ *
+ * The coloured stickers (Board tiles, status pills, pastel cards) are NOT here: they keep the
+ * same colours in both themes (src/components/ui/theme.ts → PALETTE).
+ */
+@layer theme {
+  :root {
+    @variant light {
+      --background: #fefaf3;
+      --foreground: #000000;
+
+      --surface: #f4eee2;
+      --surface-foreground: #000000;
+      --surface-secondary: #ece5d6;
+      --surface-secondary-foreground: #000000;
+      --surface-tertiary: #e3dbca;
+      --surface-tertiary-foreground: #000000;
+
+      --overlay: #fefaf3;
+      --overlay-foreground: #000000;
+
+      --muted: #6b665d;
+
+      --default: #ece5d6;
+      --default-foreground: #000000;
+
+      /* Primary buttons: black pills with off-white text. */
+      --accent: #000000;
+      --accent-foreground: #fefaf3;
+
+      --field-background: #f4eee2;
+      --field-foreground: #000000;
+      --field-placeholder: #8a857b;
+      --field-border: transparent;
+
+      --success: #05d082;
+      --success-foreground: #000000;
+      --warning: #ffda26;
+      --warning-foreground: #000000;
+      --danger: #b4141c;
+      --danger-foreground: #fefaf3;
+
+      --segment: #fefaf3;
+      --segment-foreground: #000000;
+
+      --border: #e2d9c7;
+      --separator: #cfc6b3;
+      --focus: #000000;
+      --link: #000000;
+    }
+
+    @variant dark {
+      --background: #000000;
+      --foreground: #fefaf3;
+
+      /* The Board's panel grey, and two steps up. */
+      --surface: #141215;
+      --surface-foreground: #fefaf3;
+      --surface-secondary: #1e1c20;
+      --surface-secondary-foreground: #fefaf3;
+      --surface-tertiary: #29262b;
+      --surface-tertiary-foreground: #fefaf3;
+
+      --overlay: #141215;
+      --overlay-foreground: #fefaf3;
+
+      --muted: #a29e97;
+
+      --default: #232025;
+      --default-foreground: #fefaf3;
+
+      /* Primary buttons: off-white pills with black text. */
+      --accent: #fefaf3;
+      --accent-foreground: #000000;
+
+      --field-background: #141215;
+      --field-foreground: #fefaf3;
+      --field-placeholder: #7d7a75;
+      --field-border: transparent;
+
+      --success: #05d082;
+      --success-foreground: #000000;
+      --warning: #ffda26;
+      --warning-foreground: #000000;
+      --danger: #ff5257;
+      --danger-foreground: #000000;
+
+      --segment: #29262b;
+      --segment-foreground: #fefaf3;
+
+      --border: #262523;
+      --separator: #3a3836;
+      --focus: #fefaf3;
+      --link: #fefaf3;
+    }
+  }
+}

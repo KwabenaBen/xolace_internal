@@ -11,38 +11,38 @@ import Animated, {
 
 import { longDay, sameDayGmt, shortDay } from "@convex/lib/dates";
 
-import { fonts } from "@/components/board/board-theme";
+import { ProgressBar } from "@/components/ui/progress-bar";
+import { colors, fonts } from "@/components/ui/theme";
 import { useNow } from "@/lib/use-now";
 
 import { OdometerDigit } from "./odometer";
 import { countdown, spokenCountdown, type Countdown } from "./task-dates";
-import { taskColors } from "./task-theme";
 
 type Tone = { fill: string; ink: string; soft: string; track: string };
 
 const TONES = {
   due: {
-    fill: taskColors.lavender,
-    ink: taskColors.ink,
-    soft: "rgba(17,17,17,0.55)",
+    fill: colors.lavender,
+    ink: colors.ink,
+    soft: "rgba(17,17,17,0.75)",
     track: "rgba(17,17,17,0.14)",
   },
   late: {
-    fill: taskColors.late,
-    ink: taskColors.white,
-    soft: "rgba(255,255,255,0.72)",
+    fill: colors.lateCard,
+    ink: colors.white,
+    soft: "rgba(255,255,255,0.88)",
     track: "rgba(255,255,255,0.28)",
   },
   done: {
-    fill: taskColors.sky,
-    ink: taskColors.ink,
-    soft: "rgba(17,17,17,0.55)",
+    fill: colors.sky,
+    ink: colors.ink,
+    soft: "rgba(17,17,17,0.75)",
     track: "rgba(17,17,17,0.14)",
   },
   unset: {
-    fill: taskColors.pill,
-    ink: taskColors.ink,
-    soft: "rgba(17,17,17,0.55)",
+    fill: colors.pill,
+    ink: colors.ink,
+    soft: "rgba(17,17,17,0.75)",
     track: "rgba(17,17,17,0.14)",
   },
 } as const satisfies Record<string, Tone>;
@@ -161,7 +161,7 @@ export function CountdownCard({
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <Text
-          allowFontScaling={false}
+          maxFontSizeMultiplier={1.3}
           style={{
             flex: 1,
             fontFamily: fonts.extraBold,
@@ -176,14 +176,14 @@ export function CountdownCard({
           <View
             style={{
               borderRadius: 999,
-              backgroundColor: taskColors.magenta,
+              backgroundColor: colors.magenta,
               paddingHorizontal: 10 * s,
               paddingVertical: 4 * s,
             }}
           >
             <Text
-              allowFontScaling={false}
-              style={{ fontFamily: fonts.extraBold, fontSize: 11 * s, color: taskColors.white }}
+              maxFontSizeMultiplier={1.3}
+              style={{ fontFamily: fonts.extraBold, fontSize: 11 * s, color: colors.white }}
             >
               {tag.text}
             </Text>
@@ -195,7 +195,7 @@ export function CountdownCard({
         <Clock clock={clock} s={s} ink={tone.ink} soft={tone.soft} animate={!reduceMotion} />
       ) : (
         <Text
-          allowFontScaling={false}
+          maxFontSizeMultiplier={1.3}
           style={{
             fontFamily: fonts.black,
             fontSize: 34 * s,
@@ -208,7 +208,7 @@ export function CountdownCard({
       )}
 
       <Text
-        allowFontScaling={false}
+        maxFontSizeMultiplier={1.3}
         style={{ fontFamily: fonts.semibold, fontSize: 13 * s, color: tone.soft }}
       >
         {dueLine}
@@ -217,36 +217,20 @@ export function CountdownCard({
       <View style={{ gap: 6 * s }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
           <Text
-            allowFontScaling={false}
+            maxFontSizeMultiplier={1.3}
             numberOfLines={1}
             style={{ flex: 1, fontFamily: fonts.bold, fontSize: 12 * s, color: tone.soft }}
           >
             {progressNote ?? "Progress"}
           </Text>
           <Text
-            allowFontScaling={false}
+            maxFontSizeMultiplier={1.3}
             style={{ fontFamily: fonts.extraBold, fontSize: 12 * s, color: tone.ink }}
           >
             {percent}%
           </Text>
         </View>
-        <View
-          style={{
-            height: 8 * s,
-            borderRadius: 999,
-            backgroundColor: tone.track,
-            overflow: "hidden",
-          }}
-        >
-          <View
-            style={{
-              width: `${percent}%`,
-              height: "100%",
-              borderRadius: 999,
-              backgroundColor: tone.ink,
-            }}
-          />
-        </View>
+        <ProgressBar percent={percent} height={8 * s} track={tone.track} fill={tone.ink} />
       </View>
 
       {sticker !== null ? (
@@ -361,7 +345,7 @@ function Sticker({
           top: -16 * s,
           right: 20 * s,
           borderRadius: 8 * s,
-          backgroundColor: taskColors.sticker,
+          backgroundColor: colors.sticker,
           paddingHorizontal: 10 * s,
           paddingVertical: 5 * s,
           boxShadow: "0 4px 10px rgba(0,0,0,0.35)",
@@ -375,7 +359,7 @@ function Sticker({
           fontFamily: fonts.black,
           fontSize: 13 * s,
           letterSpacing: 0.6,
-          color: taskColors.ink,
+          color: colors.ink,
         }}
       >
         {label}

@@ -5,25 +5,9 @@ import { Text, TextInput, View } from "react-native";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 
-import { PillButton } from "@/components/auth/pill-button";
-import { fonts } from "@/components/board/board-theme";
+import { PillButton, PillRow } from "@/components/ui/pill-button";
+import { fonts, usePageColors } from "@/components/ui/theme";
 import { getErrorMessage } from "@/lib/errors";
-
-import { taskColors } from "./task-theme";
-
-/** Two pills side by side (or one full width). */
-export function PillRow({ children }: { children: JSX.Element[] | JSX.Element }): JSX.Element {
-  const items = Array.isArray(children) ? children : [children];
-  return (
-    <View style={{ flexDirection: "row", gap: 12 }}>
-      {items.map((child, index) => (
-        <View key={index} style={{ flex: 1 }}>
-          {child}
-        </View>
-      ))}
-    </View>
-  );
-}
 
 /**
  * The admin's buttons, as the sign-in screens' big pills: edit a live task, or approve (opens the
@@ -64,6 +48,7 @@ function ProposalActions({
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const c = usePageColors();
 
   async function decline() {
     if (reason.trim() === "") {
@@ -85,7 +70,7 @@ function ProposalActions({
   if (!isDeclining) {
     return (
       <PillRow>
-        <PillButton label="Decline" variant="dark" onPress={() => setIsDeclining(true)} />
+        <PillButton label="Decline" variant="secondary" onPress={() => setIsDeclining(true)} />
         <PillButton label="Review & approve" onPress={onApprove} />
       </PillRow>
     );
@@ -96,19 +81,19 @@ function ProposalActions({
       style={{
         gap: 14,
         borderRadius: 26,
-        backgroundColor: taskColors.panel,
+        backgroundColor: c.panel,
         borderWidth: 1,
-        borderColor: taskColors.hairline,
+        borderColor: c.hairline,
         padding: 18,
       }}
     >
-      <Text style={{ fontFamily: fonts.extraBold, fontSize: 17, color: taskColors.white }}>
+      <Text style={{ fontFamily: fonts.extraBold, fontSize: 17, color: c.text }}>
         Why are you declining it?
       </Text>
       {error !== null ? (
         <Text
           accessibilityRole="alert"
-          style={{ fontFamily: fonts.semibold, fontSize: 14, color: "rgb(255,120,120)" }}
+          style={{ fontFamily: fonts.semibold, fontSize: 14, color: c.danger }}
         >
           {error}
         </Text>
@@ -118,17 +103,17 @@ function ProposalActions({
         value={reason}
         onChangeText={setReason}
         placeholder="e.g. Out of scope for v1"
-        placeholderTextColor="#737373"
-        selectionColor="#ffffff"
-        cursorColor="#ffffff"
+        placeholderTextColor={c.placeholder}
+        selectionColor={c.text}
+        cursorColor={c.text}
         multiline
         numberOfLines={3}
         textAlignVertical="top"
         autoFocus
-        className="min-h-24 rounded-2xl border border-neutral-800 bg-neutral-900 px-5 py-4 text-base text-white focus:border-neutral-400"
+        className="min-h-24 rounded-2xl border border-border bg-field px-5 py-4 text-base text-field-foreground focus:border-foreground"
       />
       <PillRow>
-        <PillButton label="Cancel" variant="dark" onPress={() => setIsDeclining(false)} />
+        <PillButton label="Cancel" variant="secondary" onPress={() => setIsDeclining(false)} />
         <PillButton
           label={isSubmitting ? "Declining…" : "Decline"}
           onPress={decline}

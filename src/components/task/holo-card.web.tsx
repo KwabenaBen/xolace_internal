@@ -2,9 +2,9 @@ import { useId, type JSX } from "react";
 import { Text, View } from "react-native";
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from "react-native-svg";
 
-import { fonts } from "@/components/board/board-theme";
-
 import { holoCardHeight, type HoloCardProps } from "./holo-shared";
+
+import { fonts } from "@/components/ui/theme";
 
 /**
  * Web: the holo card held still — the pastel foil as an SVG gradient on the wordmark, no tilt

@@ -4,7 +4,6 @@ import { useThemeColor } from "heroui-native";
 import type { ComponentProps, JSX } from "react";
 import type { ColorValue } from "react-native";
 
-import { colors as boardColors } from "@/components/board/board-theme";
 import { layout } from "@/constants/theme";
 import { useSignedInUser } from "@/lib/use-current-user";
 
@@ -19,10 +18,9 @@ function TabIcon({ name, color }: { name: IoniconName; color: ColorValue }): JSX
 /** The tab bar. The parent (app) layout has already loaded the signed-in user. */
 export default function TabsLayout(): JSX.Element {
   const user = useSignedInUser();
-  const [accent, muted, surface, border, background] = useThemeColor([
-    "accent",
+  const [foreground, muted, border, background] = useThemeColor([
+    "foreground",
     "muted",
-    "surface",
     "border",
     "background",
   ]);
@@ -31,9 +29,10 @@ export default function TabsLayout(): JSX.Element {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: accent,
+        tabBarActiveTintColor: foreground,
         tabBarInactiveTintColor: muted,
-        tabBarStyle: { backgroundColor: surface, borderTopColor: border },
+        // The bar is the page's colour (black or off-white) on every tab, with a hairline above.
+        tabBarStyle: { backgroundColor: background, borderTopColor: border },
         sceneStyle: { backgroundColor: background },
       }}
     >
@@ -42,11 +41,6 @@ export default function TabsLayout(): JSX.Element {
         options={{
           title: "Board",
           tabBarIcon: ({ color }) => <TabIcon name="albums-outline" color={color} />,
-          // The Board is always black, so the bar goes dark while it's showing.
-          tabBarActiveTintColor: boardColors.white,
-          tabBarInactiveTintColor: boardColors.secondary,
-          tabBarStyle: { backgroundColor: boardColors.black, borderTopColor: boardColors.hairline },
-          sceneStyle: { backgroundColor: boardColors.background },
         }}
       />
       <Tabs.Screen

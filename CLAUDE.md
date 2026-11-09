@@ -13,8 +13,10 @@ it in step when asked).
 - **App:** Expo SDK 58 (React Native 0.88, React 19.3), TypeScript strict, Expo Router (routes in
   `src/app`). One codebase for iOS and web.
 - **UI:** HeroUI Native components + Uniwind (Tailwind v4 classes via `className`). HeroUI Native
-  is officially "not recommended for web"; check every new screen on web too. The signed-out
-  screens are a bespoke always-black design (RN primitives + Uniwind, not HeroUI).
+  is officially "not recommended for web"; check every new screen on web too. **Two themes:**
+  black and a warm off-white (`#FEFAF3`), following the phone's dark/light setting
+  (`src/global.css`). Bespoke screens (sign-in, Board, detail pages) use RN primitives + the
+  shared kit in `src/components/ui/`.
 - **Graphics:** `@shopify/react-native-skia` for the welcome dot animation on iOS (Skia is in Expo
   Go); the web build uses a plain 2D canvas instead (`*.web.tsx`) to avoid Skia's WebAssembly.
 - **Backend:** Convex (database, functions, auth, crons later). Convex Auth 0.0.96 with the
@@ -27,36 +29,42 @@ it in step when asked).
 ```
 src/app/                 Expo Router routes
   _layout.tsx            Providers, offline banner, auth gate (Stack.Protected)
-  (auth)/                welcome → sign-in / sign-up (signed-out only; always black)
+  (auth)/                welcome → sign-in / sign-up (signed-out only)
   (app)/_layout.tsx      Stack: loads the user, then (tabs) + pages + modal forms
   (app)/(tabs)/          Tabs: Board (index), My Tasks, Logs, Profile, Admin (admins only)
   (app)/features/        new (modal), [featureId]/index (page), [featureId]/edit (modal),
                          [featureId]/people/[userId] (one person's work on the feature)
   (app)/tasks/           new (modal: admin creates / member proposes), [taskId]/index (page),
                          [taskId]/edit (modal: edit a live task, or approve a proposal)
-  (app)/board/[view].tsx The Board's tile pages: due-this-week, overdue, waiting (black style)
+  (app)/board/[view].tsx The Board's tile pages: due-this-week, overdue, waiting
 src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ErrorScreen (the signed-in
                          area's error boundary), ...)
+  ui/                    The shared kit, used across screens: theme.ts (usePageColors: the
+                         theme's page colours; `colors`: sticker palette; fonts, FONT_FILES,
+                         STATUS_COLORS), pill-button.tsx (PillButton, PillRow), page-header.tsx
+                         (PageHeader, RoundButton), detail-page.tsx (DetailPage, usePageSize,
+                         useGoBack), panel.tsx (Panel, SectionTitle), task-row.tsx (TaskRow,
+                         StatusPill, FeatureStatusPill), progress-bar.tsx, sym.tsx (SF Symbol /
+                         Material icon)
   auth/                  Signed-out UI: DotField (dots that spell "cadence"; dot-field.tsx = Skia,
                          dot-field.web.tsx = canvas, math in dot-formations.ts), DotWordmark,
-                         PillButton, AuthTextField, AuthFormScreen
-  planning/              Features & tasks UI: TaskCard, badges, DeadlineText,
-                         OptionPicker (modal select), ChoiceChips, CriteriaEditor, DateField
-                         (.web.tsx = browser date input), FeatureForm, TaskForm, AdminOnly
+                         AuthTextField, AuthFormScreen
+  planning/              Forms: OptionPicker (modal select), ChoiceChips, CriteriaEditor,
+                         DateField (.web.tsx = browser date input), FeatureForm, TaskForm,
+                         AdminOnly, FormError, NotFound
   board/                 The Board's bento (after Native Cook's "Paddock Widget Bento"):
-                         board-theme.ts (colours/sizes in points on a 402-wide screen, ×s),
-                         pit-stop.ts (the fling-out/slam-back motion, worklets), bento.tsx,
-                         bento-tile.tsx, board-stats.ts, board-lists.ts (the tile pages' data),
-                         feature-feed.tsx, sym.tsx (SF Symbol / Material icon)
+                         board-theme.ts (sizes in points on a 402-wide screen, ×s), pit-stop.ts
+                         (the fling-out/slam-back motion, worklets), bento.tsx, bento-tile.tsx,
+                         board-stats.ts, board-lists.ts (the tile pages' data), feature-feed.tsx
   feature/               The feature and person pages: feature-team.ts (who's on a feature),
                          person-work.tsx (summary card, task card with criteria)
-  task/                  The black detail pages' parts (task, feature, person): detail-page.tsx
-                         (DetailPage shell, usePageSize, useGoBack), holo-card.tsx (Skia: the tilting status card, after Native
+  task/                  The task page's parts: holo-card.tsx (Skia: the tilting status card, after Native
                          Cook's "Holo Cash Card"; .web.tsx = still SVG; holo-shared.ts),
                          countdown-card.tsx + odometer.tsx (rolling digits), people-cards.tsx,
-                         task-panels.tsx, task-header.tsx (PageHeader), task-actions.tsx,
+                         task-panels.tsx, criteria-list.tsx, task-actions.tsx,
                          week-strip.tsx (unused; parked for Phase 4's daily logs),
-                         task-dates.ts (GMT calendar maths), task-theme.ts, task-symbols.ts
+                         task-dates.ts (countdown maths), task-theme.ts (holo words),
+                         task-symbols.ts
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
 src/lib/                 Convex client, auth token storage, error messages, hooks (useNow, useDeviceFlag for
                          per-device yes/no settings, ...)
@@ -129,8 +137,15 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 
 **App**
 
-- Screens use `Screen` (safe area, scroll, max width for web) and HeroUI components; colours come
-  from HeroUI theme tokens (`bg-background`, `useThemeColor("accent")`), so light/dark both work.
+- **Themes:** every colour that changes with the theme is a HeroUI variable in `src/global.css`
+  (light `#FEFAF3` page / black text; dark black page / `#FEFAF3` text; plain hex only). Use
+  classes (`bg-background`, `text-muted`, `bg-surface`) or, for inline styles,
+  `usePageColors()` (`src/components/ui/theme.ts`). Never hard-code page black/white. Sticker
+  colours (Board tiles, status pills, pastel cards, the holo card) stay the same in both themes,
+  with ink that passes 4.5:1 on them.
+- Tab screens use `Screen` (safe area, scroll, max width for web) and HeroUI components; lists of
+  tasks use the shared `TaskRow`; section headings `SectionTitle`; buttons on bespoke screens
+  `PillButton` (`primary` / `secondary`).
 - Never import `convex/auth.ts`, `@convex-dev/auth/server` or other server-only modules into
   `src/` — Metro can't bundle them. Shared constants go in `convex/lib/constants.ts`.
 - Read env vars as `process.env.EXPO_PUBLIC_…` (dot notation). No secrets in `EXPO_PUBLIC_*`.
@@ -142,7 +157,7 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   `prefers-reduced-motion` on web).
 - Don't call `Date.now()` during render (React Compiler lint rule): use `useNow()`
   (`src/lib/use-now.ts`), which also re-renders each minute so "Overdue" labels stay current.
-- **Errors:** `src/app/(app)/_layout.tsx` exports an `ErrorBoundary` (black "Something went
+- **Errors:** `src/app/(app)/_layout.tsx` exports an `ErrorBoundary` ("Something went
   wrong" with Try again / Back to the Board) and anchors the stack on `(tabs)`, so pages opened
   straight from a link or a web refresh still have somewhere to go back to. After a save, forms
   go back if they can, else replace with the page they edited.
@@ -151,13 +166,14 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   them wrong for files added while it runs** — `bun run typegen` (or a dev-server restart) fixes
   them, and `bun run typecheck` runs it first.
 - Selects use `OptionPicker` (RN `Modal`), not HeroUI's Select, so they work on web too.
-- **The Board** is always black with Montserrat stickers (`src/components/board/`), like the
-  signed-out screens; other tabs follow the system theme. Bento tile sizes are reference points
+- **The Board**: Montserrat stickers on the theme's page (`src/components/board/`). Bento tile
+  sizes are reference points
   multiplied by `s = width / 402` (capped at 520 wide). Read Reanimated shared values with
   `.get()` / `.set()` (React Compiler friendly). The pit stop plays once when the Board first
   loads and when the feed is pulled past its top (iOS overscroll); Reduce Motion turns it off.
-- **The feature, person and task pages** are black too: they hide the stack header and use
-  `DetailPage` + `PageHeader` (back button, then the title). A feature's progress is
+- **The feature, person, task and tile pages** hide the stack header and use `DetailPage` +
+  `PageHeader` (back button, then the title; the task and person pages' grey line links to the
+  feature). A feature's progress is
   `featureProgress` (`board-stats.ts`): the average of its live tasks' progress (verified = 100)
   plus the verified count. The Board's "next up" is the unshipped feature with the nearest
   deadline (else the most overdue) and opens the feature page. Countdowns tick with

@@ -21,6 +21,7 @@ export const symbols = {
   propose: { ios: "lightbulb.fill", fallback: "lightbulb-on", fit: 1.1 },
   calendar: { ios: "calendar", fallback: "calendar-month", fit: 1.1 },
   close: { ios: "xmark", fallback: "close", fit: 1 },
+  back: { ios: "chevron.left", fallback: "chevron-left", fit: 1 },
 } as const satisfies Record<string, SymbolSpec>;
 
 /** The icon occupies a `size` square, like SwiftUI's font-sized Image. Decorative: hidden from screen readers. */

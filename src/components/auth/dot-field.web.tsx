@@ -15,7 +15,7 @@ import type { DotFieldProps } from "./dot-field";
  * Web: the same animation drawn on a 2D canvas. Skia would work on web too, but it needs a
  * multi-megabyte WebAssembly download, which the planning web app doesn't need.
  */
-export function DotField({ width }: DotFieldProps): JSX.Element {
+export function DotField({ width, color }: DotFieldProps): JSX.Element {
   const height = Math.round(width * DOT_FIELD_ASPECT);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -39,7 +39,7 @@ export function DotField({ width }: DotFieldProps): JSX.Element {
       // With reduced motion, draw one frame where the dots spell the word.
       const t = reduceMotion ? WORD_HOLD_TIME : (now - start) / 1000;
       context.clearRect(0, 0, width, height);
-      context.fillStyle = "#ffffff";
+      context.fillStyle = color;
       context.beginPath();
       for (let i = 0; i < DOT_COUNT; i++) {
         const [x, y] = dotPosition(i, t);
@@ -53,7 +53,7 @@ export function DotField({ width }: DotFieldProps): JSX.Element {
     };
     frame = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(frame);
-  }, [width, height]);
+  }, [width, height, color]);
 
   return (
     <canvas

@@ -6,7 +6,7 @@ import { Text, View } from "react-native";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 
-import { TaskRow } from "@/components/board/feature-feed";
+import { TaskRow } from "@/components/ui/task-row";
 import { featureTeam, teamRole } from "@/components/feature/feature-team";
 import { PersonSummaryCard, PersonTaskCard } from "@/components/feature/person-work";
 import {
@@ -15,11 +15,10 @@ import {
   PageNotFound,
   useGoBack,
   usePageSize,
-} from "@/components/task/detail-page";
-import { PageHeader } from "@/components/task/task-header";
-import { Panel, SectionTitle } from "@/components/task/task-panels";
-import { taskColors } from "@/components/task/task-theme";
-import { fonts } from "@/components/board/board-theme";
+} from "@/components/ui/detail-page";
+import { PageHeader } from "@/components/ui/page-header";
+import { Panel, SectionTitle } from "@/components/ui/panel";
+import { colors, fonts, usePageColors } from "@/components/ui/theme";
 import { useNow } from "@/lib/use-now";
 
 /**
@@ -37,6 +36,7 @@ export default function FeaturePersonScreen(): JSX.Element {
   const goBack = useGoBack();
   const now = useNow();
   const { s, content } = usePageSize();
+  const c = usePageColors();
 
   if (data === undefined) {
     return (
@@ -81,13 +81,17 @@ export default function FeaturePersonScreen(): JSX.Element {
           ]
             .filter((part) => part !== null)
             .join(" · ")}
+          onSubtitlePress={() =>
+            router.push({ pathname: "/features/[featureId]", params: { featureId: feature._id } })
+          }
+          subtitleHint="Opens the feature"
           onBack={goBack}
         />
 
         <PersonSummaryCard
           s={s}
           member={member}
-          color={owns.length > 0 ? taskColors.peach : taskColors.sky}
+          color={owns.length > 0 ? colors.peach : colors.sky}
         />
 
         {owns.length > 0 ? (
@@ -126,7 +130,7 @@ export default function FeaturePersonScreen(): JSX.Element {
               fontFamily: fonts.medium,
               fontSize: 14,
               lineHeight: 20,
-              color: taskColors.secondary,
+              color: c.muted,
             }}
           >
             What {user.name.split(" ")[0]} logs each day (Phase 4) and the proof submitted with each

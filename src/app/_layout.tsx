@@ -8,7 +8,7 @@ import { HeroUINativeProvider, useThemeColor } from "heroui-native";
 import { useEffect, type JSX } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { BOARD_FONT_FILES } from "@/components/board/board-theme";
+import { FONT_FILES } from "@/components/ui/theme";
 import { LoadingScreen } from "@/components/loading-screen";
 import { OfflineBanner } from "@/components/offline-banner";
 import { authStorage } from "@/lib/auth-storage";
@@ -40,7 +40,7 @@ function RootNavigator(): JSX.Element {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const background = useThemeColor("background");
   // Montserrat for the Board. If a font fails to load, carry on with the system font.
-  const [fontsLoaded, fontError] = useFonts(BOARD_FONT_FILES);
+  const [fontsLoaded, fontError] = useFonts(FONT_FILES);
   const isReady = !isLoading && (fontsLoaded || fontError !== null);
 
   useEffect(() => {

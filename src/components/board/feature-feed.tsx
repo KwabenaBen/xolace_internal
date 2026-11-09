@@ -2,164 +2,15 @@ import type { JSX } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { formatDeadline } from "@convex/lib/dates";
-import type { FeatureStatus, TaskStatus } from "@convex/lib/validators";
-import type { TaskView } from "@convex/lib/views";
 
-import {
-  FEATURE_STATUS_LABELS,
-  TASK_KIND_LABELS,
-  TASK_PRIORITY_LABELS,
-  TASK_STATUS_LABELS,
-} from "@/constants/labels";
+import { FeatureStatusPill, TaskRow } from "@/components/ui/task-row";
+import { fonts, usePageColors } from "@/components/ui/theme";
+import { FEATURE_STATUS_LABELS } from "@/constants/labels";
 
-import { colors, fonts, radius, STATUS_COLORS } from "./board-theme";
-import { isOverdue, plural, type BoardGroup } from "./board-stats";
+import { radius } from "./board-theme";
+import { plural, type BoardGroup } from "./board-stats";
 
-const FEATURE_COLORS: Record<FeatureStatus, { fill: string; ink: string }> = {
-  planned: { fill: colors.cream, ink: colors.black },
-  in_progress: { fill: colors.blue, ink: colors.white },
-  internal_testing: { fill: colors.yellow, ink: colors.black },
-  shipped: { fill: colors.green, ink: colors.black },
-};
-
-function Pill({ label, fill, ink }: { label: string; fill: string; ink: string }): JSX.Element {
-  return (
-    <View
-      style={{
-        borderRadius: 999,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        backgroundColor: fill,
-        alignSelf: "flex-start",
-      }}
-    >
-      <Text style={{ fontFamily: fonts.bold, fontSize: 11, color: ink }}>{label}</Text>
-    </View>
-  );
-}
-
-export function StatusPill({ status }: { status: TaskStatus }): JSX.Element {
-  const { fill, ink } = STATUS_COLORS[status];
-  return <Pill label={TASK_STATUS_LABELS[status]} fill={fill} ink={ink} />;
-}
-
-/** One task in the Board's dark style; `showProgress` adds its progress bar (feature pages). */
-export function TaskRow({
-  task,
-  now,
-  onPress,
-  showProgress = false,
-}: {
-  task: TaskView;
-  now: number;
-  onPress: () => void;
-  showProgress?: boolean;
-}): JSX.Element {
-  const percent =
-    task.status === "verified" ? 100 : Math.max(0, Math.min(100, Math.round(task.progress)));
-  const live = task.status !== "proposed" && task.status !== "declined";
-  const late = isOverdue(task, now);
-  const due =
-    task.deadline === undefined
-      ? "No deadline"
-      : late
-        ? `Overdue · ${formatDeadline(task.deadline, now)}`
-        : `Due ${formatDeadline(task.deadline, now)}`;
-  const priorityColor =
-    task.priority === "urgent" ? colors.red : task.priority === "high" ? colors.orange : undefined;
-  // A proposal has no owner yet; who suggested it matters more.
-  const person =
-    task.status === "proposed" || task.status === "declined"
-      ? `Proposed by ${task.proposer?.name ?? "someone"}`
-      : (task.owner?.name ?? "Unassigned");
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${task.title}. ${TASK_STATUS_LABELS[task.status]}. ${person}. ${due}.${
-        showProgress && live ? ` Progress ${percent} percent.` : ""
-      }`}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        borderRadius: radius.row,
-        borderCurve: "continuous",
-        backgroundColor: colors.panel08,
-        padding: 14,
-        gap: 8,
-        opacity: pressed ? 0.75 : 1,
-      })}
-    >
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
-        <Text
-          numberOfLines={2}
-          style={{
-            flex: 1,
-            fontFamily: fonts.semibold,
-            fontSize: 15,
-            lineHeight: 20,
-            color: colors.white,
-          }}
-        >
-          {task.title}
-        </Text>
-        <StatusPill status={task.status} />
-      </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 10, rowGap: 2 }}>
-        <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: colors.secondary }}>
-          {person}
-        </Text>
-        <Text
-          style={{
-            fontFamily: late ? fonts.bold : fonts.medium,
-            fontSize: 12,
-            color: late ? colors.rose : colors.secondary,
-          }}
-        >
-          {due}
-        </Text>
-        <Text
-          style={{
-            fontFamily: priorityColor !== undefined ? fonts.bold : fonts.medium,
-            fontSize: 12,
-            color: priorityColor ?? colors.secondary,
-          }}
-        >
-          {TASK_PRIORITY_LABELS[task.priority]}
-        </Text>
-        <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: colors.secondary }}>
-          {TASK_KIND_LABELS[task.kind]}
-        </Text>
-      </View>
-      {showProgress && live ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <View
-            style={{
-              flex: 1,
-              height: 5,
-              borderRadius: 999,
-              backgroundColor: colors.panel12,
-              overflow: "hidden",
-            }}
-          >
-            <View
-              style={{
-                width: `${percent}%`,
-                height: "100%",
-                borderRadius: 999,
-                backgroundColor: task.status === "verified" ? colors.green : colors.white,
-              }}
-            />
-          </View>
-          <Text style={{ fontFamily: fonts.bold, fontSize: 12, color: colors.white }}>
-            {percent}%
-          </Text>
-        </View>
-      ) : null}
-    </Pressable>
-  );
-}
-
-/** The features and their tasks, below the bento: graphite cards with sticker-coloured status pills. */
+/** The features and their tasks, below the bento: panels in the theme with sticker-coloured status pills. */
 export function FeatureFeed({
   groups,
   now,
@@ -173,27 +24,25 @@ export function FeatureFeed({
   onOpenFeature: (featureId: string) => void;
   onOpenTask: (taskId: string) => void;
 }): JSX.Element {
+  const c = usePageColors();
   if (groups.length === 0) {
     return (
-      <Text style={{ fontFamily: fonts.medium, fontSize: 15, color: colors.secondary }}>
-        {emptyMessage}
-      </Text>
+      <Text style={{ fontFamily: fonts.medium, fontSize: 15, color: c.muted }}>{emptyMessage}</Text>
     );
   }
 
   return (
     <View style={{ gap: 12 }}>
       {groups.map(({ feature, tasks }) => {
-        const { fill, ink } = FEATURE_COLORS[feature.status];
         return (
           <View
             key={feature._id}
             style={{
               borderRadius: radius.card,
               borderCurve: "continuous",
-              backgroundColor: colors.statsShade,
+              backgroundColor: c.panel,
               borderWidth: 1,
-              borderColor: colors.hairline,
+              borderColor: c.hairline,
               padding: 14,
               gap: 10,
             }}
@@ -216,14 +65,14 @@ export function FeatureFeed({
                     fontFamily: fonts.extraBold,
                     fontSize: 20,
                     letterSpacing: -0.4,
-                    color: colors.white,
+                    color: c.text,
                   }}
                 >
                   {feature.title} ›
                 </Text>
-                <Pill label={FEATURE_STATUS_LABELS[feature.status]} fill={fill} ink={ink} />
+                <FeatureStatusPill status={feature.status} />
               </View>
-              <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: colors.secondary }}>
+              <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: c.muted }}>
                 Deadline {formatDeadline(feature.deadline, now)} · {plural(tasks.length, "task")}
               </Text>
             </Pressable>
@@ -232,7 +81,7 @@ export function FeatureFeed({
                 style={{
                   fontFamily: fonts.medium,
                   fontSize: 13,
-                  color: colors.secondary,
+                  color: c.muted,
                   paddingHorizontal: 4,
                 }}
               >

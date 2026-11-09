@@ -13,13 +13,14 @@ import {
   WORD_HOLD_TIME,
 } from "./dot-formations";
 
-export type DotFieldProps = { width: number };
+/** `color`: the dots (the theme's text colour, so they show on black and on off-white). */
+export type DotFieldProps = { width: number; color: string };
 
 /**
  * iOS/Android: the dots are rebuilt into one Skia path every frame on the UI thread, so the
  * JS thread stays free. Web has its own canvas version (dot-field.web.tsx).
  */
-export function DotField({ width }: DotFieldProps): JSX.Element {
+export function DotField({ width, color }: DotFieldProps): JSX.Element {
   const height = Math.round(width * DOT_FIELD_ASPECT);
   const scale = dotFieldScale(width);
   const radius = dotRadius(width);
@@ -41,7 +42,7 @@ export function DotField({ width }: DotFieldProps): JSX.Element {
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={WORD}>
       <Canvas style={{ width, height }}>
-        <Path path={path} color="white" />
+        <Path path={path} color={color} />
       </Canvas>
     </View>
   );

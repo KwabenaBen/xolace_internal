@@ -8,10 +8,10 @@ const CELLS = wordCells();
 /** Static dot-matrix "cadence" — the small brand mark on the sign-in and sign-up screens. */
 export function DotWordmark({
   width = 132,
-  color = "#ffffff",
+  color,
 }: {
   width?: number;
-  color?: string;
+  color: string;
 }): JSX.Element {
   const spacing = width / WORD_GRID.columns;
   const height = spacing * WORD_GRID.rows;

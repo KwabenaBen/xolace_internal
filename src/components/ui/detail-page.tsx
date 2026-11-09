@@ -4,16 +4,16 @@ import type { JSX, ReactNode } from "react";
 import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { fonts, MAX_BOARD_WIDTH, REFERENCE_WIDTH } from "@/components/board/board-theme";
+import { MAX_BOARD_WIDTH, REFERENCE_WIDTH } from "@/components/board/board-theme";
 
-import { RoundButton } from "./task-header";
-import { taskSymbols } from "./task-symbols";
-import { taskColors } from "./task-theme";
+import { RoundButton } from "./page-header";
+import { symbols } from "./sym";
+import { fonts, usePageColors } from "./theme";
 
 const GUTTER = 18;
 
 /**
- * Sizes for the black detail pages (task, feature, person): `s` scales the reference's points as
+ * Sizes for the detail pages (task, feature, person, the Board's tile pages): `s` scales the reference's points as
  * on the Board (capped at 520 wide), `content` is the column width inside the side gutters.
  */
 export function usePageSize(): { s: number; content: number } {
@@ -29,8 +29,8 @@ export function useGoBack(): () => void {
 }
 
 /**
- * A black detail page: its own header (the stack's is hidden), light status bar, one scrolling
- * column centred on wide screens. Always black, whatever the phone's theme.
+ * A detail page: its own header (the stack's is hidden), one scrolling column centred on wide
+ * screens, on the theme's page colour (black or off-white).
  */
 export function DetailPage({
   title,
@@ -44,10 +44,11 @@ export function DetailPage({
 }): JSX.Element {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+  const c = usePageColors();
   return (
-    <View style={{ flex: 1, backgroundColor: taskColors.page }}>
+    <View style={{ flex: 1, backgroundColor: c.page }}>
       <Stack.Screen options={{ title }} />
-      {isFocused ? <StatusBar style="light" /> : null}
+      {isFocused ? <StatusBar style={c.statusBar} /> : null}
       <ScrollView
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
@@ -64,9 +65,10 @@ export function DetailPage({
 }
 
 export function PageLoading(): JSX.Element {
+  const c = usePageColors();
   return (
     <View style={{ paddingTop: 80, alignItems: "center" }}>
-      <ActivityIndicator color={taskColors.white} />
+      <ActivityIndicator color={c.text} />
     </View>
   );
 }
@@ -81,14 +83,13 @@ export function PageNotFound({
   message: string;
   onBack: () => void;
 }): JSX.Element {
+  const c = usePageColors();
   return (
     <View style={{ gap: 24 }}>
       <View style={{ flexDirection: "row" }}>
-        <RoundButton symbol={taskSymbols.back} label="Back" onPress={onBack} s={s} />
+        <RoundButton symbol={symbols.back} label="Back" onPress={onBack} s={s} />
       </View>
-      <Text style={{ fontFamily: fonts.medium, fontSize: 15, color: taskColors.secondary }}>
-        {message}
-      </Text>
+      <Text style={{ fontFamily: fonts.medium, fontSize: 15, color: c.muted }}>{message}</Text>
     </View>
   );
 }

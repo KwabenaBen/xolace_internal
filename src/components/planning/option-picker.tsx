@@ -22,8 +22,6 @@ type OptionPickerProps<T extends string> = {
   clearLabel?: string;
   /** "field": a form input. "chip": a compact filter pill. */
   variant?: "field" | "chip";
-  /** "dark": a chip for the always-black Board, whatever the app theme. */
-  tone?: "theme" | "dark";
   isDisabled?: boolean;
 };
 
@@ -39,12 +37,11 @@ export function OptionPicker<T extends string>({
   placeholder,
   clearLabel,
   variant = "field",
-  tone = "theme",
   isDisabled = false,
 }: OptionPickerProps<T>): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
   const insets = useSafeAreaInsets();
-  const [accent, muted] = useThemeColor(["accent", "muted"]);
+  const [accent, accentForeground, muted] = useThemeColor(["accent", "accent-foreground", "muted"]);
   const selected = options.find((o) => o.value === value);
 
   function choose(next: T | null) {
@@ -59,29 +56,20 @@ export function OptionPicker<T extends string>({
         accessibilityLabel={`${label}: ${selected?.label ?? placeholder}`}
         disabled={isDisabled}
         onPress={() => setIsOpen(true)}
+        // A chosen filter is a solid pill in the theme's strongest colour; an empty one is quiet.
         className={`flex-row items-center gap-1 rounded-full border px-3 py-1.5 active:opacity-70 ${
-          tone === "dark"
-            ? selected
-              ? "border-white bg-white"
-              : "border-white/20 bg-white/10"
-            : selected
-              ? "border-accent bg-accent/10"
-              : "border-border bg-surface"
+          selected ? "border-accent bg-accent" : "border-border bg-surface"
         }`}
       >
         <Typography
           type="body-sm"
           weight="medium"
           numberOfLines={1}
-          className={tone === "dark" ? (selected ? "text-black" : "text-white") : undefined}
+          className={selected ? "text-accent-foreground" : undefined}
         >
           {selected?.label ?? placeholder}
         </Typography>
-        <Ionicons
-          name="chevron-down"
-          size={14}
-          color={tone === "dark" ? (selected ? "#000000" : "rgba(255,255,255,0.7)") : muted}
-        />
+        <Ionicons name="chevron-down" size={14} color={selected ? accentForeground : muted} />
       </Pressable>
     ) : (
       <View className="gap-1.5">

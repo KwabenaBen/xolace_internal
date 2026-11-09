@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { Button, Card, Chip, Separator, Spinner, Typography } from "heroui-native";
 import { Fragment, useState, type JSX } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
@@ -10,9 +10,10 @@ import { formatDeadline } from "@convex/lib/dates";
 import { formatInviteCode } from "@convex/lib/inviteCodes";
 
 import { FormError } from "@/components/planning/form-error";
-import { Section } from "@/components/planning/detail";
-import { TaskCard } from "@/components/planning/task-card";
 import { Screen } from "@/components/screen";
+import { SectionTitle } from "@/components/ui/panel";
+import { TaskRow } from "@/components/ui/task-row";
+import { fonts, usePageColors } from "@/components/ui/theme";
 import { ROLE_LABELS } from "@/constants/labels";
 import { typography } from "@/constants/theme";
 import { getErrorMessage } from "@/lib/errors";
@@ -29,6 +30,7 @@ export default function AdminScreen(): JSX.Element {
   const invites = useQuery(api.invites.list);
   const renew = useMutation(api.invites.renew);
   const now = useNow();
+  const c = usePageColors();
   const [renewing, setRenewing] = useState<Id<"invites"> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const featureTitle = new Map((proposals?.features ?? []).map((f) => [f._id, f.title]));
@@ -58,21 +60,33 @@ export default function AdminScreen(): JSX.Element {
       {proposals === undefined ? (
         <Spinner />
       ) : (
-        <Section
-          title="Proposals to review"
-          count={proposals.proposals.length}
-          empty="Nothing waiting. Proposals from the team show up here."
-        >
-          <View className="gap-3">
-            {proposals.proposals.map((task) => (
-              <TaskCard
+        <View style={{ gap: 12 }}>
+          <SectionTitle s={1} title="Proposals to review" count={proposals.proposals.length} />
+          {proposals.proposals.length === 0 ? (
+            <Text
+              style={{
+                fontFamily: fonts.medium,
+                fontSize: 15,
+                color: c.muted,
+                paddingHorizontal: 4,
+              }}
+            >
+              Nothing waiting. Proposals from the team show up here.
+            </Text>
+          ) : (
+            proposals.proposals.map((task) => (
+              <TaskRow
                 key={task._id}
                 task={task}
+                now={now}
                 featureTitle={featureTitle.get(task.featureId)}
+                onPress={() =>
+                  router.push({ pathname: "/tasks/[taskId]", params: { taskId: task._id } })
+                }
               />
-            ))}
-          </View>
-        </Section>
+            ))
+          )}
+        </View>
       )}
 
       <View className="gap-3">

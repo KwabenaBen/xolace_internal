@@ -1,9 +1,7 @@
 import { useQuery } from "convex/react";
-import { Stack, useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import type { JSX } from "react";
-import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View } from "react-native";
 
 import { api } from "@convex/_generated/api";
 
@@ -14,22 +12,27 @@ import {
   proposalGroups,
 } from "@/components/board/board-lists";
 import { plural, type BoardGroup } from "@/components/board/board-stats";
-import { colors, fonts, MAX_BOARD_WIDTH } from "@/components/board/board-theme";
 import { FeatureFeed } from "@/components/board/feature-feed";
+import {
+  DetailPage,
+  PageLoading,
+  PageNotFound,
+  useGoBack,
+  usePageSize,
+} from "@/components/ui/detail-page";
+import { PageHeader } from "@/components/ui/page-header";
 import { useNow } from "@/lib/use-now";
 
 /**
  * The tasks behind one of the Board's quick tiles — due this week, overdue, or proposals
- * waiting — grouped by feature, in the Board's black style.
+ * waiting — grouped by feature, with the same header as the other detail pages.
  */
 export default function BoardListScreen(): JSX.Element {
   const { view } = useLocalSearchParams<{ view: string }>();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const isFocused = useIsFocused();
+  const goBack = useGoBack();
   const now = useNow();
-  const { width: windowWidth } = useWindowDimensions();
-  const width = Math.min(windowWidth, MAX_BOARD_WIDTH);
+  const { s, content } = usePageSize();
   const known = isBoardListView(view);
 
   const board = useQuery(api.tasks.board, known && view !== "waiting" ? {} : "skip");
@@ -46,60 +49,38 @@ export default function BoardListScreen(): JSX.Element {
   const count = groups?.reduce((sum, group) => sum + group.tasks.length, 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: copy?.title ?? "Board" }} />
-      {isFocused ? <StatusBar style="light" /> : null}
-      <ScrollView
-        contentContainerStyle={{
-          paddingTop: 16,
-          paddingBottom: insets.bottom + 32,
-          alignItems: "center",
-        }}
-      >
-        <View style={{ width, paddingHorizontal: 14, gap: 16 }}>
-          {copy === null ? (
-            <Text style={{ fontFamily: fonts.medium, fontSize: 15, color: colors.secondary }}>
-              This list doesn&apos;t exist.
-            </Text>
+    <DetailPage title={copy?.title ?? "Board"} content={content}>
+      {copy === null ? (
+        <PageNotFound s={s} message="This list doesn't exist." onBack={goBack} />
+      ) : (
+        <View style={{ gap: 22 * s }}>
+          <PageHeader
+            s={s}
+            title={copy.title}
+            subtitle={
+              count !== undefined
+                ? `${plural(count, view === "waiting" ? "proposal" : "task")} · ${copy.subtitle}`
+                : copy.subtitle
+            }
+            onBack={goBack}
+          />
+          {groups === undefined ? (
+            <PageLoading />
           ) : (
-            <>
-              <View style={{ gap: 4, paddingHorizontal: 4 }}>
-                <Text
-                  accessibilityRole="header"
-                  style={{
-                    fontFamily: fonts.black,
-                    fontSize: 34,
-                    letterSpacing: -1,
-                    color: colors.white,
-                  }}
-                >
-                  {copy.title}
-                </Text>
-                <Text style={{ fontFamily: fonts.medium, fontSize: 13, color: colors.secondary }}>
-                  {count !== undefined
-                    ? `${plural(count, view === "waiting" ? "proposal" : "task")} · ${copy.subtitle}`
-                    : copy.subtitle}
-                </Text>
-              </View>
-              {groups === undefined ? (
-                <ActivityIndicator color={colors.white} style={{ paddingVertical: 40 }} />
-              ) : (
-                <FeatureFeed
-                  groups={groups}
-                  now={now}
-                  emptyMessage={copy.empty}
-                  onOpenFeature={(featureId) =>
-                    router.push({ pathname: "/features/[featureId]", params: { featureId } })
-                  }
-                  onOpenTask={(taskId) =>
-                    router.push({ pathname: "/tasks/[taskId]", params: { taskId } })
-                  }
-                />
-              )}
-            </>
+            <FeatureFeed
+              groups={groups}
+              now={now}
+              emptyMessage={copy.empty}
+              onOpenFeature={(featureId) =>
+                router.push({ pathname: "/features/[featureId]", params: { featureId } })
+              }
+              onOpenTask={(taskId) =>
+                router.push({ pathname: "/tasks/[taskId]", params: { taskId } })
+              }
+            />
           )}
         </View>
-      </ScrollView>
-    </View>
+      )}
+    </DetailPage>
   );
 }

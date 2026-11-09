@@ -4,11 +4,10 @@ import type { JSX } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { isOverdue, plural } from "@/components/board/board-stats";
-import { colors, fonts } from "@/components/board/board-theme";
-import { StatusPill } from "@/components/board/feature-feed";
-import { Sym } from "@/components/board/sym";
-import { taskSymbols } from "@/components/task/task-symbols";
-import { taskColors } from "@/components/task/task-theme";
+import { ProgressBar } from "@/components/ui/progress-bar";
+import { StatusPill } from "@/components/ui/task-row";
+import { CriteriaList } from "@/components/task/criteria-list";
+import { colors, fonts, usePageColors } from "@/components/ui/theme";
 import { TASK_KIND_LABELS, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/constants/labels";
 
 import type { TeamMember } from "./feature-team";
@@ -17,23 +16,23 @@ function Stat({ s, value, label }: { s: number; value: string; label: string }):
   return (
     <View style={{ flex: 1, gap: 2 }}>
       <Text
-        allowFontScaling={false}
+        maxFontSizeMultiplier={1.3}
         style={{
           fontFamily: fonts.black,
           fontSize: 28 * s,
           letterSpacing: -1,
-          color: taskColors.ink,
+          color: colors.ink,
         }}
       >
         {value}
       </Text>
       <Text
-        allowFontScaling={false}
+        maxFontSizeMultiplier={1.3}
         style={{
           fontFamily: fonts.bold,
           fontSize: 11 * s,
           letterSpacing: 0.8,
-          color: "rgba(17,17,17,0.6)",
+          color: "rgba(17,17,17,0.78)",
         }}
       >
         {label}
@@ -72,27 +71,16 @@ export function PersonSummaryCard({
         <Stat s={s} value={String(progress.verified)} label="VERIFIED" />
         <Stat s={s} value={`${progress.percent}%`} label="PROGRESS" />
       </View>
-      <View
-        style={{
-          height: 8 * s,
-          borderRadius: 999,
-          backgroundColor: "rgba(17,17,17,0.14)",
-          overflow: "hidden",
-        }}
-      >
-        <View
-          style={{
-            width: `${progress.percent}%`,
-            height: "100%",
-            borderRadius: 999,
-            backgroundColor: taskColors.ink,
-          }}
-        />
-      </View>
+      <ProgressBar
+        percent={progress.percent}
+        height={8 * s}
+        track={"rgba(17,17,17,0.14)"}
+        fill={colors.ink}
+      />
       {reviews.length > 0 ? (
         <Text
-          allowFontScaling={false}
-          style={{ fontFamily: fonts.semibold, fontSize: 13 * s, color: "rgba(17,17,17,0.7)" }}
+          maxFontSizeMultiplier={1.3}
+          style={{ fontFamily: fonts.semibold, fontSize: 13 * s, color: "rgba(17,17,17,0.8)" }}
         >
           Also peer-reviews {plural(reviews.length, "code task")} here
         </Text>
@@ -116,6 +104,7 @@ export function PersonTaskCard({
   now: number;
   onPress: () => void;
 }): JSX.Element {
+  const c = usePageColors();
   const late = isOverdue(task, now);
   const verified = task.status === "verified";
   const percent = verified ? 100 : Math.max(0, Math.min(100, Math.round(task.progress)));
@@ -133,9 +122,9 @@ export function PersonTaskCard({
       className="active:opacity-80"
       style={{
         borderRadius: 24 * s,
-        backgroundColor: taskColors.panel,
+        backgroundColor: c.panel,
         borderWidth: 1,
-        borderColor: taskColors.hairline,
+        borderColor: c.hairline,
         padding: 16 * s,
         gap: 12 * s,
       }}
@@ -148,18 +137,18 @@ export function PersonTaskCard({
             fontFamily: fonts.extraBold,
             fontSize: 16,
             lineHeight: 21,
-            color: taskColors.white,
+            color: c.text,
           }}
         >
           {task.title}
         </Text>
         <StatusPill status={task.status} />
       </View>
-      <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: taskColors.secondary }}>
+      <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: c.muted }}>
         <Text
           style={{
             fontFamily: late ? fonts.bold : fonts.medium,
-            color: late ? colors.rose : taskColors.secondary,
+            color: late ? c.danger : c.muted,
           }}
         >
           {due}
@@ -167,27 +156,14 @@ export function PersonTaskCard({
         {` · ${TASK_PRIORITY_LABELS[task.priority]} · ${TASK_KIND_LABELS[task.kind]}`}
       </Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <View
-          style={{
-            flex: 1,
-            height: 6,
-            borderRadius: 999,
-            backgroundColor: colors.panel12,
-            overflow: "hidden",
-          }}
-        >
-          <View
-            style={{
-              width: `${percent}%`,
-              height: "100%",
-              borderRadius: 999,
-              backgroundColor: verified ? colors.green : taskColors.lavender,
-            }}
-          />
-        </View>
-        <Text style={{ fontFamily: fonts.bold, fontSize: 12, color: taskColors.white }}>
-          {percent}%
-        </Text>
+        <ProgressBar
+          style={{ flex: 1 }}
+          percent={percent}
+          height={6}
+          track={c.panelHigh}
+          fill={verified ? colors.green : colors.lavender}
+        />
+        <Text style={{ fontFamily: fonts.bold, fontSize: 12, color: c.text }}>{percent}%</Text>
       </View>
       {task.acceptanceCriteria.length > 0 ? (
         <View style={{ gap: 8 }}>
@@ -196,52 +172,12 @@ export function PersonTaskCard({
               fontFamily: fonts.bold,
               fontSize: 11,
               letterSpacing: 0.8,
-              color: taskColors.secondary,
+              color: c.muted,
             }}
           >
             TO DELIVER
           </Text>
-          {task.acceptanceCriteria.map((criterion, index) => (
-            <View key={index} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
-              <View
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 999,
-                  borderWidth: verified ? 0 : 1.5,
-                  borderColor: "rgba(255,255,255,0.3)",
-                  backgroundColor: verified ? taskColors.lavender : "transparent",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginTop: 1,
-                }}
-              >
-                {verified ? (
-                  <Sym
-                    symbol={taskSymbols.approve}
-                    size={10}
-                    color={taskColors.ink}
-                    weight="bold"
-                  />
-                ) : (
-                  <Text style={{ fontFamily: fonts.bold, fontSize: 9, color: taskColors.white }}>
-                    {index + 1}
-                  </Text>
-                )}
-              </View>
-              <Text
-                style={{
-                  flex: 1,
-                  fontFamily: fonts.medium,
-                  fontSize: 14,
-                  lineHeight: 19,
-                  color: "rgba(255,255,255,0.85)",
-                }}
-              >
-                {criterion}
-              </Text>
-            </View>
-          ))}
+          <CriteriaList criteria={task.acceptanceCriteria} verified={verified} size="small" />
         </View>
       ) : null}
     </Pressable>

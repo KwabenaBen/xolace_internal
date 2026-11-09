@@ -67,7 +67,7 @@ export default function BoardScreen(): JSX.Element {
         }
       : "skip"
   );
-  const proposals = useQuery(api.tasks.proposals);
+  const waiting = useQuery(api.tasks.waitingCount);
   const users = useQuery(api.users.list);
   const features = useQuery(api.features.list);
 
@@ -151,14 +151,14 @@ export default function BoardScreen(): JSX.Element {
             </Text>
           </View>
 
-          {board === undefined || proposals === undefined ? (
+          {board === undefined || waiting === undefined ? (
             <ActivityIndicator color={c.text} style={{ paddingVertical: 80 }} />
           ) : (
             <Bento
               s={s}
               pit={pit}
               stats={computeBoardStats(board, now, user._id)}
-              waiting={proposals.proposals.length}
+              waiting={waiting}
               now={now}
               isAdmin={isAdmin}
               showGuide={guideClosed === false}

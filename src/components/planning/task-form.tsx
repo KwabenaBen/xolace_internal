@@ -23,6 +23,7 @@ import { CriteriaEditor } from "./criteria-editor";
 import { DateField } from "./date-field";
 import { FormError } from "./form-error";
 import { OptionPicker } from "./option-picker";
+import { useUnsavedGuard } from "./use-unsaved-guard";
 
 export type TaskFormValues = {
   featureId: Id<"features"> | null;
@@ -95,12 +96,15 @@ export function TaskForm({
   mode,
   initial,
   lockFeature = false,
+  deadlineLockedReason,
   onSubmit,
 }: {
   mode: TaskFormMode;
   initial: TaskFormValues;
   /** The feature can't be changed (editing, approving, or opened from a feature page). */
   lockFeature?: boolean;
+  /** Set when the deadline can't be changed here; shown under the date (e.g. your own task). */
+  deadlineLockedReason?: string;
   onSubmit: (values: TaskFormValues) => Promise<void>;
 }): JSX.Element {
   const features = useQuery(api.features.list);
@@ -110,6 +114,7 @@ export function TaskForm({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isPlanning = mode !== "propose";
+  const guard = useUnsavedGuard(initial, values);
 
   const feature = features?.find((f) => f._id === values.featureId);
   const openFeatures = (features ?? []).filter(
@@ -153,10 +158,12 @@ export function TaskForm({
     }
     setError(null);
     setIsSubmitting(true);
+    guard.markSaving();
     try {
       await onSubmit(values);
     } catch (e) {
       setError(getErrorMessage(e));
+      guard.markFailed();
     } finally {
       // Also after a save, in case the screen stays open (nothing to go back to).
       setIsSubmitting(false);
@@ -167,12 +174,15 @@ export function TaskForm({
     <Screen
       withHeader
       footer={
-        <Button onPress={submit} isDisabled={isSubmitting}>
-          {isSubmitting ? "Saving…" : SUBMIT_LABELS[mode]}
-        </Button>
+        // The error sits right above the button, where the eye is after tapping it.
+        <View className="gap-3">
+          <FormError message={error} />
+          <Button onPress={submit} isDisabled={isSubmitting}>
+            {isSubmitting ? "Saving…" : SUBMIT_LABELS[mode]}
+          </Button>
+        </View>
       }
     >
-      <FormError message={error} />
       {mode === "propose" ? (
         <Typography type="body-sm" color="muted">
           Proposals go to the admin, who sets the owner, deadline and final acceptance criteria
@@ -262,10 +272,12 @@ export function TaskForm({
             onChange={(date) => set("deadline", date)}
             minimumDate={today}
             maximumDate={feature !== undefined ? toDateOnly(feature.deadline) : undefined}
+            isDisabled={deadlineLockedReason !== undefined}
             hint={
-              feature !== undefined
+              deadlineLockedReason ??
+              (feature !== undefined
                 ? `On or before the feature's deadline (${formatDeadline(feature.deadline)}).`
-                : undefined
+                : undefined)
             }
           />
         </View>

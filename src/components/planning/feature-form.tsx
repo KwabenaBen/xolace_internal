@@ -1,5 +1,6 @@
 import { Button, Description, Input, Label, TextField } from "heroui-native";
 import { useState, type JSX } from "react";
+import { View } from "react-native";
 
 import { toDateOnly } from "@convex/lib/dates";
 
@@ -9,6 +10,7 @@ import { useNow } from "@/lib/use-now";
 
 import { DateField } from "./date-field";
 import { FormError } from "./form-error";
+import { useUnsavedGuard } from "./use-unsaved-guard";
 
 export type FeatureFormValues = {
   title: string;
@@ -40,6 +42,7 @@ export function FeatureForm({
   const today = toDateOnly(useNow());
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const guard = useUnsavedGuard(initial, values);
   const set = (field: keyof FeatureFormValues) => (text: string) =>
     setValues((v) => ({ ...v, [field]: text }));
 
@@ -58,10 +61,12 @@ export function FeatureForm({
     }
     setError(null);
     setIsSubmitting(true);
+    guard.markSaving();
     try {
       await onSubmit(values);
     } catch (e) {
       setError(getErrorMessage(e));
+      guard.markFailed();
     } finally {
       // Also after a save, in case the screen stays open (nothing to go back to).
       setIsSubmitting(false);
@@ -72,12 +77,15 @@ export function FeatureForm({
     <Screen
       withHeader
       footer={
-        <Button onPress={submit} isDisabled={isSubmitting}>
-          {isSubmitting ? "Saving…" : submitLabel}
-        </Button>
+        // The error sits right above the button, where the eye is after tapping it.
+        <View className="gap-3">
+          <FormError message={error} />
+          <Button onPress={submit} isDisabled={isSubmitting}>
+            {isSubmitting ? "Saving…" : submitLabel}
+          </Button>
+        </View>
       }
     >
-      <FormError message={error} />
       <TextField isRequired>
         <Label>Title</Label>
         <Input

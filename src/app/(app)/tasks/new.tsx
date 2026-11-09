@@ -36,7 +36,10 @@ export default function NewTaskScreen(): JSX.Element {
                 acceptanceCriteria: values.acceptanceCriteria,
                 priority: values.priority,
               });
-          router.replace({ pathname: "/tasks/[taskId]", params: { taskId } });
+          // Back to where it was opened (usually the feature page, to add the next task); the new
+          // task is already in that list. Opened from a link, show the task instead.
+          if (router.canGoBack()) router.back();
+          else router.replace({ pathname: "/tasks/[taskId]", params: { taskId } });
         }}
       />
     </>

@@ -19,16 +19,28 @@ export function TaskActions({
   isAdmin,
   isProposal,
   isDeclined,
+  isLocked,
   onEdit,
 }: {
   taskId: Id<"tasks">;
   isAdmin: boolean;
   isProposal: boolean;
   isDeclined: boolean;
+  /** In review, submitted or verified: the plan can't change (the server refuses too). */
+  isLocked: boolean;
   onEdit: () => void;
 }): JSX.Element | null {
+  const c = usePageColors();
   if (!isAdmin || isDeclined) return null;
   if (isProposal) return <ProposalActions taskId={taskId} onApprove={onEdit} />;
+  if (isLocked) {
+    return (
+      <Text style={{ fontFamily: fonts.medium, fontSize: 14, lineHeight: 20, color: c.muted }}>
+        This task is in review, submitted or verified, so its plan is locked. It can change again
+        once it&apos;s sent back to its owner.
+      </Text>
+    );
+  }
   return (
     <PillRow>
       <PillButton label="Edit task" onPress={onEdit} />

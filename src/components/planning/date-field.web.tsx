@@ -12,6 +12,7 @@ export function DateField({
   minimumDate,
   maximumDate,
   hint,
+  isDisabled = false,
 }: DateFieldProps): JSX.Element {
   const [surface, border, foreground] = useThemeColor(["surface", "border", "foreground"]);
 
@@ -26,6 +27,7 @@ export function DateField({
         value={value}
         min={minimumDate}
         max={maximumDate}
+        disabled={isDisabled}
         onChange={(event) => onChange(event.target.value)}
         style={{
           minHeight: 48,
@@ -37,6 +39,7 @@ export function DateField({
           font: "inherit",
           fontSize: 16,
           colorScheme: "light dark",
+          opacity: isDisabled ? 0.6 : 1,
         }}
       />
       {hint !== undefined ? (

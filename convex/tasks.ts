@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
-import type { Doc, Id } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
+import { mutation, query, type QueryCtx } from "./_generated/server";
 import { diffFields, logActivity } from "./lib/activity";
 import { requireAdmin, requireUser } from "./lib/auth";
 import { appError } from "./lib/errors";
@@ -15,7 +15,7 @@ import {
   validateTaskPlan,
 } from "./lib/tasks";
 import {
-  LIVE_TASK_STATUSES,
+  isPlanLocked,
   liveTaskStatusValidator,
   taskKindValidator,
   taskPriorityValidator,
@@ -35,10 +35,27 @@ function isLive(task: Doc<"tasks">): boolean {
   return task.status !== "proposed" && task.status !== "declined";
 }
 
+/** Feature stages whose work belongs on the Board; shipped features drop off it. */
+const ACTIVE_FEATURE_STATUSES = ["planned", "in_progress", "internal_testing"] as const;
+
+/** Every feature that hasn't shipped, soonest deadline first. */
+async function loadActiveFeatures(ctx: QueryCtx): Promise<Doc<"features">[]> {
+  const lists = await Promise.all(
+    ACTIVE_FEATURE_STATUSES.map((status) =>
+      ctx.db
+        .query("features")
+        .withIndex("by_status_and_deadline", (q) => q.eq("status", status))
+        .take(200)
+    )
+  );
+  return lists.flat().sort((a, b) => a.deadline - b.deadline);
+}
+
 /**
- * The shared board: live tasks grouped by feature (soonest feature deadline first), with
- * optional filters. Without an owner or status filter, features with no tasks are included,
- * so a freshly planned feature still shows up.
+ * The shared board: live tasks grouped by feature, soonest feature deadline first. By default
+ * only features that haven't shipped (so verified work from shipped features doesn't pile up
+ * and push newer tasks past the read limits); pick a feature to see it whatever its stage.
+ * Tasks are read feature by feature, so each feature's list is complete.
  */
 export const board = query({
   args: {
@@ -52,63 +69,46 @@ export const board = query({
   handler: async (ctx, { ownerId, featureId, status }) => {
     await requireUser(ctx);
 
-    // Narrow with the most selective index, then apply the remaining filters in memory.
-    let tasks: Doc<"tasks">[];
-    if (ownerId !== undefined) {
-      tasks = await ctx.db
-        .query("tasks")
-        .withIndex("by_ownerId_and_status", (q) =>
-          status === undefined
-            ? q.eq("ownerId", ownerId)
-            : q.eq("ownerId", ownerId).eq("status", status)
-        )
-        .take(500);
-    } else if (featureId !== undefined) {
-      tasks = await ctx.db
-        .query("tasks")
-        .withIndex("by_featureId_and_status", (q) =>
-          status === undefined
-            ? q.eq("featureId", featureId)
-            : q.eq("featureId", featureId).eq("status", status)
-        )
-        .take(500);
-    } else {
-      const statuses = status === undefined ? LIVE_TASK_STATUSES : [status];
-      tasks = [];
-      for (const s of statuses) {
-        tasks.push(
-          ...(await ctx.db
-            .query("tasks")
-            .withIndex("by_status_and_deadline", (q) => q.eq("status", s))
-            .take(500))
-        );
-      }
-    }
-    tasks = tasks.filter(
-      (t) =>
-        isLive(t) &&
-        (featureId === undefined || t.featureId === featureId) &&
-        (status === undefined || t.status === status)
-    );
-
-    const byFeature = new Map<Id<"features">, Doc<"tasks">[]>();
-    for (const task of tasks) {
-      byFeature.set(task.featureId, [...(byFeature.get(task.featureId) ?? []), task]);
-    }
-
-    const showEmptyFeatures = ownerId === undefined && status === undefined;
     const features =
       featureId !== undefined
         ? [await ctx.db.get("features", featureId)].filter((f) => f !== null)
-        : await ctx.db.query("features").withIndex("by_deadline").take(500);
+        : await loadActiveFeatures(ctx);
 
+    const showEmptyFeatures = ownerId === undefined && status === undefined;
     const directory = await loadUserDirectory(ctx);
-    return features
-      .filter((f) => showEmptyFeatures || byFeature.has(f._id))
-      .map((f) => ({
-        feature: toFeatureSummary(f),
-        tasks: (byFeature.get(f._id) ?? []).sort(compareTasks).map((t) => toTaskView(t, directory)),
-      }));
+    const groups = [];
+    for (const feature of features) {
+      const tasks = (
+        await ctx.db
+          .query("tasks")
+          .withIndex("by_featureId_and_status", (q) =>
+            status === undefined
+              ? q.eq("featureId", feature._id)
+              : q.eq("featureId", feature._id).eq("status", status)
+          )
+          .take(500)
+      ).filter((t) => isLive(t) && (ownerId === undefined || t.ownerId === ownerId));
+      if (tasks.length === 0 && !showEmptyFeatures) continue;
+      groups.push({
+        feature: toFeatureSummary(feature),
+        tasks: tasks.sort(compareTasks).map((t) => toTaskView(t, directory)),
+      });
+    }
+    return groups;
+  },
+});
+
+/** How many proposals are waiting for an admin (the Board's waiting tile). */
+export const waitingCount = query({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    await requireUser(ctx);
+    const pending = await ctx.db
+      .query("tasks")
+      .withIndex("by_status_and_deadline", (q) => q.eq("status", "proposed"))
+      .take(500);
+    return pending.length;
   },
 });
 
@@ -227,8 +227,21 @@ export const update = mutation({
     if (!isLive(task)) {
       throw appError("INVALID_ARGUMENT", "Proposals are approved or declined, not edited.");
     }
+    if (isPlanLocked(task.status)) {
+      throw appError(
+        "INVALID_ARGUMENT",
+        "This task is in review, submitted or verified, so its plan is locked. It can change again once it's sent back to its owner."
+      );
+    }
     const feature = await requireFeature(ctx, task.featureId);
     const plan = await validateTaskPlan(ctx, feature, input, Date.now(), task.deadline);
+    // Nobody moves their own deadline: that's what extension requests (Phase 3) are for.
+    if (task.ownerId === admin._id && plan.deadline !== task.deadline) {
+      throw appError(
+        "FORBIDDEN",
+        "You can't move the deadline of a task you own. Another admin can, or request an extension."
+      );
+    }
 
     const changes = diffFields(task, plan);
     if (changes === null) return null;

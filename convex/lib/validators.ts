@@ -52,6 +52,21 @@ export const liveTaskStatusValidator = v.union(
 );
 export type LiveTaskStatus = Infer<typeof liveTaskStatusValidator>;
 
+/**
+ * Once a task is with its peer reviewer or verifier, or done, its plan (owner, reviewer,
+ * deadline, criteria…) is fixed, so a review is never judged against a moving target. Shared
+ * with the app, which hides Edit task on these.
+ */
+export const PLAN_LOCKED_STATUSES = [
+  "in_peer_review",
+  "submitted",
+  "verified",
+] as const satisfies readonly TaskStatus[];
+
+export function isPlanLocked(status: TaskStatus): boolean {
+  return (PLAN_LOCKED_STATUSES as readonly TaskStatus[]).includes(status);
+}
+
 /** What kind of work a task is. Code tasks need a peer reviewer. */
 export const taskKindValidator = v.union(
   v.literal("code"),

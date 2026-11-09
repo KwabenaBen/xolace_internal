@@ -340,3 +340,153 @@ describe("links with bad ids", () => {
     expect(await asUser.query(api.features.get, { featureId: userId })).toBeNull();
   });
 });
+
+describe("edit rules (audit batch 3)", () => {
+  function withoutFeature<T extends { featureId: unknown }>(plan: T): Omit<T, "featureId"> {
+    const { featureId: _omit, ...rest } = plan;
+    return rest;
+  }
+
+  test("a task's plan locks once it's in peer review, submitted or verified", async () => {
+    const { t, admin, ceo, cto } = await setup();
+    const featureId = await createFeature(t, admin.asUser);
+    const plan = codeTask(featureId, ceo.userId, cto.userId);
+    const taskId = await admin.asUser.mutation(api.tasks.create, plan);
+    const edit = { taskId, ...withoutFeature(plan), priority: "urgent" as const };
+
+    for (const status of ["in_peer_review", "submitted", "verified"] as const) {
+      await t.run(async (ctx) => ctx.db.patch("tasks", taskId, { status }));
+      await expectAppError(admin.asUser.mutation(api.tasks.update, edit), "INVALID_ARGUMENT");
+    }
+    await t.run(async (ctx) => ctx.db.patch("tasks", taskId, { status: "changes_requested" }));
+    await admin.asUser.mutation(api.tasks.update, edit);
+  });
+
+  test("an admin can't move the deadline of a task they own; another admin can", async () => {
+    const { t, admin } = await setup();
+    const other = await insertUser(t, { email: "ceo2@cadence.test", role: "admin", title: "CEO" });
+    const featureId = await createFeature(t, admin.asUser);
+    const plan = { ...codeTask(featureId, admin.userId, other.userId), kind: "design" as TaskKind };
+    const taskId = await admin.asUser.mutation(api.tasks.create, plan);
+    const later = { taskId, ...withoutFeature(plan), deadline: inDays(20) };
+
+    await expectAppError(admin.asUser.mutation(api.tasks.update, later), "FORBIDDEN");
+    // Everything else about their own task can still change.
+    await admin.asUser.mutation(api.tasks.update, {
+      taskId,
+      ...withoutFeature(plan),
+      priority: "low",
+    });
+    expect((await admin.asUser.query(api.tasks.get, { taskId }))?.task.priority).toBe("low");
+
+    await other.asUser.mutation(api.tasks.update, later);
+    const view = await admin.asUser.query(api.tasks.get, { taskId });
+    expect(view?.task.deadline).not.toBe(view?.task.originalDeadline);
+  });
+
+  test("edits keep the deadline on or before the feature's, and not in the past", async () => {
+    const { t, admin, ceo, cto } = await setup();
+    const featureId = await createFeature(t, admin.asUser, 30);
+    const plan = codeTask(featureId, ceo.userId, cto.userId);
+    const taskId = await admin.asUser.mutation(api.tasks.create, plan);
+    const edit = { taskId, ...withoutFeature(plan) };
+
+    await expectAppError(
+      admin.asUser.mutation(api.tasks.update, { ...edit, deadline: inDays(40) }),
+      "INVALID_ARGUMENT"
+    );
+    await expectAppError(
+      admin.asUser.mutation(api.tasks.update, { ...edit, deadline: inDays(-2) }),
+      "INVALID_ARGUMENT"
+    );
+  });
+
+  test("only proposals are approved or declined, and proposals aren't edited", async () => {
+    const { t, admin, ceo, cto } = await setup();
+    const featureId = await createFeature(t, admin.asUser);
+    const plan = codeTask(featureId, ceo.userId, cto.userId);
+    const liveId = await admin.asUser.mutation(api.tasks.create, plan);
+    const proposalId = await ceo.asUser.mutation(api.tasks.propose, {
+      featureId,
+      title: "Dark mode",
+      description: "Follow the phone's setting.",
+      kind: "design",
+      acceptanceCriteria: [],
+      priority: "low",
+    });
+
+    await expectAppError(
+      admin.asUser.mutation(api.tasks.approveProposal, { taskId: liveId, ...withoutFeature(plan) }),
+      "INVALID_ARGUMENT"
+    );
+    await expectAppError(
+      admin.asUser.mutation(api.tasks.declineProposal, { taskId: liveId, reason: "No" }),
+      "INVALID_ARGUMENT"
+    );
+    await expectAppError(
+      admin.asUser.mutation(api.tasks.update, { taskId: proposalId, ...withoutFeature(plan) }),
+      "INVALID_ARGUMENT"
+    );
+    await expectAppError(
+      cto.asUser.mutation(api.tasks.declineProposal, { taskId: proposalId, reason: "No" }),
+      "FORBIDDEN"
+    );
+  });
+
+  test("a shipped feature takes no new tasks or proposals", async () => {
+    const { t, admin, ceo, cto } = await setup();
+    const featureId = await createFeature(t, admin.asUser);
+    await t.run(async (ctx) => ctx.db.patch("features", featureId, { status: "shipped" }));
+
+    await expectAppError(
+      admin.asUser.mutation(api.tasks.create, codeTask(featureId, ceo.userId, cto.userId)),
+      "INVALID_ARGUMENT"
+    );
+    await expectAppError(
+      ceo.asUser.mutation(api.tasks.propose, {
+        featureId,
+        title: "Late idea",
+        description: "Too late for this one.",
+        kind: "other",
+        acceptanceCriteria: [],
+        priority: "low",
+      }),
+      "INVALID_ARGUMENT"
+    );
+  });
+
+  test("the board leaves shipped features out unless one is picked; the waiting count", async () => {
+    const { t, admin, ceo, cto } = await setup();
+    const liveFeature = await createFeature(t, admin.asUser, 20);
+    const doneFeature = await createFeature(t, admin.asUser, 30);
+    await admin.asUser.mutation(api.tasks.create, codeTask(doneFeature, ceo.userId, cto.userId));
+    await t.run(async (ctx) => ctx.db.patch("features", doneFeature, { status: "shipped" }));
+    await ceo.asUser.mutation(api.tasks.propose, {
+      featureId: liveFeature,
+      title: "An idea",
+      description: "Worth a look.",
+      kind: "other",
+      acceptanceCriteria: [],
+      priority: "low",
+    });
+
+    const board = await ceo.asUser.query(api.tasks.board, {});
+    expect(board.map((g) => g.feature._id)).toEqual([liveFeature]);
+    const picked = await ceo.asUser.query(api.tasks.board, { featureId: doneFeature });
+    expect(picked[0].tasks).toHaveLength(1);
+    expect(await ceo.asUser.query(api.tasks.waitingCount, {})).toBe(1);
+  });
+
+  test("a deactivated member can't read the board or a task", async () => {
+    const { t, admin, ceo, cto } = await setup();
+    const featureId = await createFeature(t, admin.asUser);
+    const taskId = await admin.asUser.mutation(
+      api.tasks.create,
+      codeTask(featureId, ceo.userId, cto.userId)
+    );
+    await t.run(async (ctx) => ctx.db.patch("users", cto.userId, { isActive: false }));
+
+    await expectAppError(cto.asUser.query(api.tasks.board, {}), "ACCOUNT_INACTIVE");
+    await expectAppError(cto.asUser.query(api.tasks.get, { taskId }), "ACCOUNT_INACTIVE");
+  });
+});

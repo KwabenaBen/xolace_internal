@@ -5,6 +5,7 @@ import { View } from "react-native";
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { isPlanLocked } from "@convex/lib/validators";
 
 import type { UserSummary } from "@convex/lib/views";
 
@@ -175,6 +176,7 @@ export default function TaskScreen(): JSX.Element {
           isAdmin={isAdmin}
           isProposal={isProposal}
           isDeclined={isDeclined}
+          isLocked={isPlanLocked(task.status)}
           onEdit={edit}
         />
       </View>

@@ -50,8 +50,9 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          dot-field.web.tsx = canvas, math in dot-formations.ts), DotWordmark,
                          AuthTextField, AuthFormScreen
   planning/              Forms: OptionPicker (modal select), ChoiceChips, CriteriaEditor,
-                         DateField (.web.tsx = browser date input), FeatureForm, TaskForm,
-                         AdminOnly, FormError, NotFound
+                         DateField (iOS: calendar sheet with Done; .web.tsx = browser date input),
+                         FeatureForm, TaskForm, useUnsavedGuard ("Discard changes?"),
+                         HeaderCancel, AdminOnly, FormError, NotFound
   board/                 The Board's bento (after Native Cook's "Paddock Widget Bento"):
                          board-theme.ts (sizes in points on a 402-wide screen, ×s), pit-stop.ts
                          (the fling-out/slam-back motion, worklets), bento.tsx, bento-tile.tsx,
@@ -76,7 +77,8 @@ convex/                  Backend (deployed by `bunx convex dev`)
   users.ts invites.ts settings.ts   Public functions (invites: list, create, renew (new code),
                          revoke; internal newCode for the CLI)
   features.ts            list, get, create, update (admin)
-  tasks.ts               board (filters), get, mine, proposals, create, update (admin),
+  tasks.ts               board (filters; unshipped features unless one is picked), waitingCount,
+                         get, mine, proposals, create, update (admin),
                          propose (anyone), approveProposal, declineProposal (admin)
   seed.ts                Internal seed mutation (CLI only); prints each new invite's code
   demo.ts                Dev-only demo data: demo:seed / demo:clear (CLI only; refuse to run
@@ -134,6 +136,9 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   kept, never on the board). All task-plan rules live in `validateTaskPlan` (`convex/lib/tasks.ts`):
   active owner/reviewer, ≥1 acceptance criterion, deadline not past and ≤ the feature's. A
   feature's deadline can't move before its latest task deadline. Shipped features take no new work.
+  `tasks.update` also refuses: a plan change while the task is in peer review, submitted or
+  verified (`isPlanLocked`, `convex/lib/validators.ts`, shared with the app), and an admin moving
+  the deadline of a task they own (that's for extension requests).
 
 **App**
 
@@ -166,6 +171,9 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   them wrong for files added while it runs** — `bun run typegen` (or a dev-server restart) fixes
   them, and `bun run typecheck` runs it first.
 - Selects use `OptionPicker` (RN `Modal`), not HeroUI's Select, so they work on web too.
+- **Forms** (modals): `HeaderCancel` top left; `useUnsavedGuard(initial, values)` asks before
+  discarding changes (Expo Router's `usePreventRemove`; call `markSaving()` before saving);
+  errors show above the save button.
 - **The Board**: Montserrat stickers on the theme's page (`src/components/board/`). Bento tile
   sizes are reference points
   multiplied by `s = width / 402` (capped at 520 wide). Read Reanimated shared values with

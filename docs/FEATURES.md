@@ -204,7 +204,8 @@ reopened, not when switching apps or tabs. With Reduce Motion on, it never plays
 
 ### The features section
 
-Below the tiles is every feature as a dark card, with its tasks listed underneath.
+Below the tiles is every feature that hasn't shipped, as a card with its tasks listed underneath.
+A shipped feature leaves the Board; pick it in the Feature filter to see it again.
 
 - **The card header** shows the feature's name, its stage (Planned, In progress, Internal
   testing or Shipped), its deadline and how many tasks it has. Tap it to open the feature page.
@@ -286,8 +287,9 @@ From top to bottom:
   tasks (blue) and whoever proposed it (pink), each with initials, name and title. Someone who
   has left is tagged "Deactivated". Tap the owner or reviewer to see their work on the feature.
 - **Acceptance criteria** on a dark card, numbered; they turn into ticks once the task is verified.
-- **Buttons (admins only).** **Edit task**. Members have no buttons yet; updating your own task
-  arrives in Phase 3.
+- **Buttons (admins only).** **Edit task**, except while the task is in review, submitted or
+  verified, when a note says its plan is locked. Members have no buttons yet; updating your own
+  task arrives in Phase 3.
 
 On a proposal, a lavender note says it's waiting for an admin (for the admin: waiting for your
 review), and the admin gets **Review & approve** and **Decline**. **Decline** opens a box for the
@@ -308,9 +310,19 @@ owner, peer reviewer for code tasks, and a deadline between today and the featur
 new task starts as **To do**.
 
 - Editing uses the same form. An overdue task can still be edited if its deadline is left as it is.
+- **Nobody moves their own deadline.** An admin who owns a task sees its deadline greyed out;
+  another admin can move it (and from Phase 3, an extension request).
+- **Locked in review.** Once a task is In peer review, Submitted or Verified, its plan can't be
+  edited, so a review is never judged against something that changed. It unlocks when the task
+  is sent back to its owner.
 - A feature's deadline can't move earlier than one of its tasks' deadlines; move the task first.
-- On iPhone the date is picked with the system date picker; on the web, with the browser's date
-  picker.
+- On iPhone, tapping the date opens the calendar in a sheet; nothing changes until **Done**. On
+  the web, the browser's date picker.
+- Every form has **Cancel** at the top. Closing a form with changes (Cancel, back, or swiping it
+  down) asks "Discard changes?" first. A problem with what was entered shows just above the save
+  button.
+- After **Add task** (or **Propose a task**) the form closes back to where it was opened, usually
+  the feature page, ready for the next task.
 
 ### Proposals
 

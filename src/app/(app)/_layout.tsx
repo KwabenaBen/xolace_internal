@@ -5,6 +5,7 @@ import type { JSX } from "react";
 import { fonts } from "@/components/ui/theme";
 import { AccountUnavailable } from "@/components/account-unavailable";
 import { ErrorScreen } from "@/components/error-screen";
+import { HeaderCancel } from "@/components/planning/header-cancel";
 import { LoadingScreen } from "@/components/loading-screen";
 import { useCurrentUser } from "@/lib/use-current-user";
 
@@ -29,6 +30,8 @@ export default function AppLayout(): JSX.Element {
 
   // Pages that draw their own header (back button, then the title) on the theme's page colour.
   const ownHeader = { headerShown: false, contentStyle: { backgroundColor: background } };
+  // Form modals: Cancel at the top left (it asks first if there are unsaved changes).
+  const form = { presentation: "modal" as const, headerLeft: () => <HeaderCancel /> };
 
   if (user === undefined) return <LoadingScreen />;
   if (user === null || !user.isActive) return <AccountUnavailable user={user} />;
@@ -57,16 +60,10 @@ export default function AppLayout(): JSX.Element {
         options={{ title: "Person", ...ownHeader }}
       />
       <Stack.Screen name="tasks/[taskId]/index" options={{ title: "Task", ...ownHeader }} />
-      <Stack.Screen name="features/new" options={{ title: "New feature", presentation: "modal" }} />
-      <Stack.Screen
-        name="features/[featureId]/edit"
-        options={{ title: "Edit feature", presentation: "modal" }}
-      />
-      <Stack.Screen name="tasks/new" options={{ title: "New task", presentation: "modal" }} />
-      <Stack.Screen
-        name="tasks/[taskId]/edit"
-        options={{ title: "Edit task", presentation: "modal" }}
-      />
+      <Stack.Screen name="features/new" options={{ title: "New feature", ...form }} />
+      <Stack.Screen name="features/[featureId]/edit" options={{ title: "Edit feature", ...form }} />
+      <Stack.Screen name="tasks/new" options={{ title: "New task", ...form }} />
+      <Stack.Screen name="tasks/[taskId]/edit" options={{ title: "Edit task", ...form }} />
     </Stack>
   );
 }

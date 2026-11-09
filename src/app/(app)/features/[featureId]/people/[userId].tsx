@@ -24,7 +24,7 @@ import { useNow } from "@/lib/use-now";
 /**
  * One person's work on one feature (from the feature page's Who's on it): their tasks there with
  * status, deadline, progress and what each must deliver, and the code tasks they review. Daily
- * logs (Phase 4) and submitted proof (Phase 5) join this page when those phases are built.
+ * logs (Phase 5) and submitted proof (Phase 6) join this page when those phases are built.
  */
 export default function FeaturePersonScreen(): JSX.Element {
   const { featureId, userId } = useLocalSearchParams<{
@@ -133,8 +133,8 @@ export default function FeaturePersonScreen(): JSX.Element {
               color: c.muted,
             }}
           >
-            What {user.name.split(" ")[0]} logs each day (Phase 4) and the proof submitted with each
-            task (Phase 5) will show here.
+            What {user.name.split(" ")[0]} logs each day (Phase 5) and the proof submitted with each
+            task (Phase 6) will show here.
           </Text>
         </Panel>
       </View>

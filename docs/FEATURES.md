@@ -26,7 +26,7 @@ Settings; from then on that choice sticks on that phone; the coloured tiles, sta
 and cards keep their colours in both.
 
 Built so far: sign-in and roles (Phase 1), and features, tasks, proposals and the Board
-(Phase 2). Progress updates, daily logs, reviews and notifications come in Phases 3 to 6 (see
+(Phase 2). Progress updates, daily logs, reviews and notifications come in Phases 4 to 7 (see
 [Coming next](#coming-next)).
 
 ## Key ideas
@@ -67,7 +67,7 @@ flowchart LR
 ```
 
 A rejected task loops back to its owner with a reason. Today Cadence covers planning and
-proposals; status updates arrive in Phase 3, and peer review and verification in Phase 5.
+proposals; status updates arrive in Phase 4, and peer review and verification in Phase 6.
 
 ### Step by step
 
@@ -90,27 +90,27 @@ rest arrive in the phase shown.
 4. **Everyone sees everything (built).** The Board, its tile pages, feature pages, task pages,
    My Tasks and the Admin tab all show the same live data; a change appears on every device
    within seconds.
-5. **Do the work (Phase 3).** The owner moves their task to **In progress** or **Blocked**, sets
+5. **Do the work (Phase 4).** The owner moves their task to **In progress** or **Blocked**, sets
    a progress % and comments. Once a deadline passes without verification, the task is flagged
    **overdue** automatically. The owner can ask for a new deadline with a reason and a type; the
    admin decides. An extension counts as late if it was asked for within 24 hours of the
    deadline or isn't a meeting-agreed scope change. Every change goes into the activity log.
-6. **Daily logs (Phase 4).** Each weekday, everyone writes a short log: what I did, what's next,
+6. **Daily logs (Phase 5).** Each weekday, everyone writes a short log: what I did, what's next,
    blockers, and which tasks it touched. Missed weekdays are recorded. Weekends get an optional
    one-liner that is never counted as missed.
-7. **Peer review (Phase 5, code tasks only).** The owner asks for review (**In peer review**);
+7. **Peer review (Phase 6, code tasks only).** The owner asks for review (**In peer review**);
    the reviewer approves it or sends it back with comments. The CTO reviews the CEO's code and
    the CEO reviews the CTO's.
-8. **Submit (Phase 5).** The owner submits with a note and optional proof (a link, screenshot or
+8. **Submit (Phase 6).** The owner submits with a note and optional proof (a link, screenshot or
    PR). The task becomes **Submitted**; the owner's part is done.
-9. **Verify (Phase 5).** The admin checks each acceptance criterion. The task becomes
+9. **Verify (Phase 6).** The admin checks each acceptance criterion. The task becomes
    **Verified**, or goes to **Changes requested** with a reason and back to step 5. The CEO
    verifies the admin's own tasks, so nobody approves their own work. Only Verified counts as
    done.
-10. **Ship the feature (Phase 5).** When every task in a feature is verified, the feature moves to
+10. **Ship the feature (Phase 6).** When every task in a feature is verified, the feature moves to
     **Internal testing**; the admin marks it **Shipped** once it's live. A shipped feature takes
     no new work.
-11. **Notifications and release (Phase 6).** Instant pushes only for: a task assigned to you, a
+11. **Notifications and release (Phase 7).** Instant pushes only for: a task assigned to you, a
     review or verification request, a verified or changes-requested decision, and an extension or
     proposal decision. An 8am GMT digest lists your tasks due within 48 hours, your overdue ones,
     reviews waiting on you and whether yesterday's log is missing; an 8pm reminder comes if
@@ -261,7 +261,7 @@ to see what they're doing for that feature:
   and the acceptance criteria they have to deliver, ticked once the task is verified. Tap one to
   open it.
 - **Reviewing**: the code tasks there they peer-review.
-- What they log each day (Phase 4) and the proof they submit (Phase 5) will be added to this page
+- What they log each day (Phase 5) and the proof they submit (Phase 6) will be added to this page
   when those phases are built.
 
 ### The task page
@@ -290,7 +290,7 @@ From top to bottom:
 - **Acceptance criteria** on a dark card, numbered; they turn into ticks once the task is verified.
 - **Buttons (admins only).** **Edit task**, except while the task is in review, submitted or
   verified, when a note says its plan is locked. Members have no buttons yet; updating your own
-  task arrives in Phase 3.
+  task arrives in Phase 4.
 
 On a proposal, a lavender note says it's waiting for an admin (for the admin: waiting for your
 review), and the admin gets **Review & approve** and **Decline**. **Decline** opens a box for the
@@ -312,7 +312,7 @@ new task starts as **To do**.
 
 - Editing uses the same form. An overdue task can still be edited if its deadline is left as it is.
 - **Nobody moves their own deadline.** An admin who owns a task sees its deadline greyed out;
-  another admin can move it (and from Phase 3, an extension request).
+  another admin can move it (and from Phase 4, an extension request).
 - **Locked in review.** Once a task is In peer review, Submitted or Verified, its plan can't be
   edited, so a review is never judged against something that changed. It unlocks when the task
   is sent back to its owner.
@@ -343,7 +343,7 @@ Besides the Board there are four tabs; the Admin tab appears only for admins.
 | Tab                 | What it's for             | What's on it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | My Tasks            | Your own work at a glance | **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button.                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Logs                | Daily work logs           | A placeholder for now; the log form arrives in Phase 4.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Logs                | Daily work logs           | A placeholder for now; the log form arrives in Phase 5.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Settings            | You and the team          | The **Dark mode** switch on a clay scene of a house on a hill: turning it on plays a sunset (the sun goes down, lights come on, the icons light up one by one) and switches the whole app to black; off brings the day and the off-white back. You can also drag across the sky to move the sun. Your choice is kept on this phone. Then five rows: Notifications (the morning digest time), Daily log reminder (its time), People (how many), Team rules (who verifies the admin's tasks) and **Account & security**, which opens your name, title, role, email and time zone, and **Sign out**. People and Team rules get their own pages next. |
 | Admin (admins only) | Running the team          | **Proposals to review**, a **New feature** button and the list of invites, each marked Pending or Joined. A pending invite shows its code (press and hold to copy it), when it expires, and **New code** for a lost or expired one; the old code stops working.                                                                                                                                                                                                                                                                                                                                                                                   |
 
@@ -364,7 +364,7 @@ hiding a button is never the only protection.
 
 - More than one admin is allowed; the last active admin can't be demoted or deactivated.
 - Deactivated people can't be given work.
-- From Phase 3, members also update status and progress on their own tasks, request deadline
+- From Phase 4, members also update status and progress on their own tasks, request deadline
   extensions and peer-review code.
 
 ## Behind the scenes

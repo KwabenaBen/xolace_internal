@@ -7,7 +7,7 @@ export default function LogsScreen(): JSX.Element {
     <PlaceholderScreen
       title="Logs"
       subtitle="Daily work logs from the team."
-      comingIn="Phase 4 — Daily logs"
+      comingIn="Phase 5 — Daily logs"
       description="Weekday logs (what I did, what's next, blockers), optional weekend one-liners and each person's history."
     />
   );

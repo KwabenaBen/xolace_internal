@@ -68,7 +68,7 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          Cook's "Holo Cash Card"; .web.tsx = still SVG; holo-shared.ts),
                          countdown-card.tsx + odometer.tsx (rolling digits), people-cards.tsx,
                          task-panels.tsx, criteria-list.tsx, task-actions.tsx,
-                         week-strip.tsx (unused; parked for Phase 4's daily logs),
+                         week-strip.tsx (unused; parked for Phase 5's daily logs),
                          task-dates.ts (countdown maths), task-theme.ts (holo words),
                          task-symbols.ts
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)

@@ -13,7 +13,7 @@ const GAP = 6;
  * The deadline's week as the reference's row of day pills: the deadline day filled lavender,
  * today marked with a dot, days already gone dimmed.
  *
- * Not on any page for now: on the task page it only repeated the deadline. Kept for Phase 4
+ * Not on any page for now: on the task page it only repeated the deadline. Kept for Phase 5
  * (daily logs), where the pills can mark the days someone logged work.
  */
 export function WeekStrip({

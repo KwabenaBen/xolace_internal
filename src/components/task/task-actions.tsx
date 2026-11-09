@@ -11,7 +11,7 @@ import { getErrorMessage } from "@/lib/errors";
 
 /**
  * The admin's buttons, as the sign-in screens' big pills: edit a live task, or approve (opens the
- * plan form) or decline a proposal, with a reason. Members get none (until Phase 3's status
+ * plan form) or decline a proposal, with a reason. Members get none (until Phase 4's status
  * updates), so this renders nothing for them.
  */
 export function TaskActions({

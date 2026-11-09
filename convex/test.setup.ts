@@ -32,10 +32,36 @@ export async function setupAuthEnv(): Promise<void> {
   process.env.AUTH_LOG_LEVEL = "ERROR";
 }
 
-export function signUp(t: TestConvex, params: { email: string; password?: string; name?: string }) {
-  return t.action(api.auth.signIn, {
+/** The code of this email's pending invite, as the admin would send it. */
+export async function inviteCodeFor(t: TestConvex, email: string): Promise<string | undefined> {
+  const normalized = email.trim().toLowerCase();
+  return await t.run(async (ctx) => {
+    const invites = await ctx.db
+      .query("invites")
+      .withIndex("by_email", (q) => q.eq("email", normalized))
+      .collect();
+    return invites.find((invite) => invite.usedAt === undefined)?.code;
+  });
+}
+
+/**
+ * Signs up through Convex Auth. Without an `inviteCode` it uses the code of the email's pending
+ * invite, or a code that matches nothing when there is no invite.
+ */
+export async function signUp(
+  t: TestConvex,
+  params: { email: string; password?: string; name?: string; inviteCode?: string }
+) {
+  const inviteCode = params.inviteCode ?? (await inviteCodeFor(t, params.email)) ?? "NOINVITE";
+  return await t.action(api.auth.signIn, {
     provider: "password",
-    params: { password: "correct-horse-battery", name: "Test User", ...params, flow: "signUp" },
+    params: {
+      password: "correct-horse-battery",
+      name: "Test User",
+      ...params,
+      inviteCode,
+      flow: "signUp",
+    },
   });
 }
 
@@ -79,5 +105,7 @@ export async function expectAppError(promise: Promise<unknown>, code: AppErrorCo
     (e: unknown) => e
   );
   expect(error, `expected a ${code} error`).not.toBeNull();
-  expect(appErrorData(error)?.code).toBe(code);
+  const data = appErrorData(error);
+  expect(data?.code).toBe(code);
+  return data;
 }

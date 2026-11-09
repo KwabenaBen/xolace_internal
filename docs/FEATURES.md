@@ -157,9 +157,13 @@ Cadence is invite-only: only an email address the admin has invited can create a
   Motion on, the word simply shows.
 - **Sign in.** Email and password. Wrong details show "That email and password don't match an
   account."
-- **Join Cadence** (I have an invite). Your name, the email your invite was sent to, and a
-  password of at least 8 characters. You get the role and title from your invite. Any other
-  email is turned away with "This email hasn't been invited to Cadence."
+- **Join Cadence** (I have an invite). Your name, the email your invite was sent to, the
+  **invite code** that came with it (e.g. K7PQ-3MX9; capitals, spaces and the dash don't
+  matter) and a password of at least 8 characters. You get the role and title from your invite.
+  Codes work once and expire after 14 days. Anything that doesn't match (an email with no
+  invite, a wrong or expired code, an email that already has an account) gets the same reply:
+  "We couldn't create your account. Check your email and invite code, or ask an admin for a new
+  code." That way nobody can find out who has been invited by trying addresses.
 - **Passwords.** There is no default password. Everyone picks their own, and it is stored
   scrambled, so nobody, admins and developers included, can read it. A forgotten-password reset
   is not built yet.
@@ -320,12 +324,12 @@ new task starts as **To do**.
 
 Besides the Board there are four tabs; the Admin tab appears only for admins.
 
-| Tab                 | What it's for             | What's on it                                                                                                                                                         |
-| ------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| My Tasks            | Your own work at a glance | **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button. |
-| Logs                | Daily work logs           | A placeholder for now; the log form arrives in Phase 4.                                                                                                              |
-| Profile             | Your account              | Your name, title, role badge, email and time zone, and **Sign out**.                                                                                                 |
-| Admin (admins only) | Running the team          | **Proposals to review**, a **New feature** button and the list of invites, each marked Pending or Joined.                                                            |
+| Tab                 | What it's for             | What's on it                                                                                                                                                                                                                                                    |
+| ------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| My Tasks            | Your own work at a glance | **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button.                                                                                            |
+| Logs                | Daily work logs           | A placeholder for now; the log form arrives in Phase 4.                                                                                                                                                                                                         |
+| Profile             | Your account              | Your name, title, role badge, email and time zone, and **Sign out**.                                                                                                                                                                                            |
+| Admin (admins only) | Running the team          | **Proposals to review**, a **New feature** button and the list of invites, each marked Pending or Joined. A pending invite shows its code (press and hold to copy it), when it expires, and **New code** for a lost or expired one; the old code stops working. |
 
 ## Who can do what
 
@@ -352,7 +356,9 @@ hiding a button is never the only protection.
 A few things work without a screen of their own.
 
 - **Invites.** The four cofounders were invited when Cadence was set up. Each invite carries a
-  role and a title, and works once.
+  role, a title and a one-time code, works once and expires after 14 days. The first codes come
+  from the command that sets up the invites (or `invites:newCode`), because nobody can see the
+  Admin tab before the first admin has joined.
 - **Team settings.** Team rules are stored as settings, not written into the app, so they can
   change without a new release: the admin task reviewer (the CEO, who verifies tasks the admin
   owns), the morning digest time (08:00), the daily log reminder (20:00), the team time zone
@@ -364,10 +370,15 @@ A few things work without a screen of their own.
   nobody needs to refresh.
 - **Offline banner.** Cadence works online only. When the connection drops, an amber bar says
   "You're offline. Changes won't save until you reconnect."
+- **Something went wrong.** If a screen fails to load (a broken link, a lost connection, a
+  permission that changed), a black screen explains what happened, with **Try again** and **Back
+  to the Board**, instead of a blank page. A link to a task or feature that doesn't exist shows
+  "doesn't exist" with a back button.
 - **Demo data (development only).** The development copy can be filled with sample features and
   tasks (titles start with "Demo:", sample people are marked "(demo)") to try the Board, and
-  emptied again with one command (`bunx convex run demo:seed` / `demo:clear`). Never used on the
-  live app.
+  emptied again with one command (`bunx convex run demo:seed` / `demo:clear`). Both commands only
+  work where demo data has been switched on, so they can't touch the live app. Clearing removes
+  only what the demo created and never the activity log.
 
 ## Coming next
 

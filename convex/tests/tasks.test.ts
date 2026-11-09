@@ -326,3 +326,17 @@ describe("the board", () => {
     expect(blocked).toHaveLength(0);
   });
 });
+
+describe("links with bad ids", () => {
+  test("a malformed or wrong-table id returns null instead of throwing", async () => {
+    const t = createTestConvex();
+    const { asUser } = await insertUser(t, { email: "ceo@cadence.test", role: "member" });
+    const { userId } = await insertUser(t, { email: "cto@cadence.test", role: "member" });
+
+    expect(await asUser.query(api.tasks.get, { taskId: "not-an-id" })).toBeNull();
+    expect(await asUser.query(api.features.get, { featureId: "abc" })).toBeNull();
+    // A real id from another table.
+    expect(await asUser.query(api.tasks.get, { taskId: userId })).toBeNull();
+    expect(await asUser.query(api.features.get, { featureId: userId })).toBeNull();
+  });
+});

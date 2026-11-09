@@ -3,7 +3,7 @@ import { Pressable, View } from "react-native";
 import type { SharedValue } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
-import { formatDeadline } from "@convex/lib/dates";
+import { formatDeadline, relativeDay } from "@convex/lib/dates";
 
 import { BentoTile } from "./bento-tile";
 import { colors, fonts, radius, size, space, type } from "./board-theme";
@@ -14,7 +14,6 @@ import { Sym, symbols, Txt, type SymbolSpec } from "./sym";
 
 /** Montserrat's ascender per point of size: a line's top is `baseline - ASCENT * size`. */
 const ASCENT = 0.968;
-const DAY = 24 * 60 * 60 * 1000;
 
 type BentoProps = {
   s: number;
@@ -144,14 +143,6 @@ function TileLabel({
       />
     </>
   );
-}
-
-function daysAway(deadline: number, now: number): string {
-  const days = Math.ceil((deadline - now) / DAY);
-  if (days < 0) return plural(-days, "day") + " late";
-  if (days === 0) return "today";
-  if (days === 1) return "tomorrow";
-  return `in ${days} days`;
 }
 
 /** The dashboard at the top of the Board, laid out as the reference's bento. */
@@ -422,7 +413,7 @@ function NextUpTile({
   const label =
     next === null
       ? "Next up: no features planned"
-      : `Next up: feature ${next.feature.title}, due ${formatDeadline(next.feature.deadline, now)}, ${daysAway(next.feature.deadline, now)}. ${
+      : `Next up: feature ${next.feature.title}, due ${formatDeadline(next.feature.deadline, now)}, ${relativeDay(next.feature.deadline, now)}. ${
           next.progress.total === 0
             ? "No tasks yet."
             : `${next.progress.verified} of ${plural(next.progress.total, "task")} verified, ${next.progress.percent} percent done.`
@@ -599,7 +590,7 @@ function NextUpTile({
               color: next.feature.deadline < now ? colors.red : colors.ink55Black,
             }}
           >
-            {daysAway(next.feature.deadline, now)}
+            {relativeDay(next.feature.deadline, now)}
           </Txt>
         </View>
       ) : null}

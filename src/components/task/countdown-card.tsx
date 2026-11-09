@@ -9,18 +9,13 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { longDay, sameDayGmt, shortDay } from "@convex/lib/dates";
+
 import { fonts } from "@/components/board/board-theme";
 import { useNow } from "@/lib/use-now";
 
 import { OdometerDigit } from "./odometer";
-import {
-  countdown,
-  longDay,
-  sameDayGmt,
-  shortDay,
-  spokenCountdown,
-  type Countdown,
-} from "./task-dates";
+import { countdown, spokenCountdown, type Countdown } from "./task-dates";
 import { taskColors } from "./task-theme";
 
 type Tone = { fill: string; ink: string; soft: string; track: string };
@@ -68,8 +63,8 @@ export type CountdownCardProps = {
   progress: number;
   /** Replaces "Progress" beside the bar, e.g. "2 of 5 tasks verified". */
   progressNote?: string;
-  /** Added after the due date, e.g. "feature due Thu 12 Nov". */
-  dueNote?: string;
+  /** Another deadline to show after this one, e.g. the feature's: "feature due Thu 12 Nov". */
+  alsoDue?: { label: string; at: number };
   /** Shown when there's no deadline yet (a proposal). */
   noDeadlineNote?: string;
 };
@@ -91,7 +86,7 @@ export function CountdownCard({
   urgent = false,
   progress,
   progressNote,
-  dueNote,
+  alsoDue,
   noDeadlineNote = "Not set yet",
 }: CountdownCardProps): JSX.Element {
   const now = useNow(1000);
@@ -123,7 +118,7 @@ export function CountdownCard({
   if (finished !== undefined) {
     label = `${who} ${finished.verb.toUpperCase()}`;
     dueLine =
-      finished.at !== undefined ? `${finished.verb} ${shortDay(finished.at)}` : finished.verb;
+      finished.at !== undefined ? `${finished.verb} ${shortDay(finished.at, now)}` : finished.verb;
     spoken = `${subject} ${finished.verb.toLowerCase()}${
       finished.at !== undefined ? ` on ${longDay(finished.at)}` : ""
     }.`;
@@ -132,10 +127,14 @@ export function CountdownCard({
     dueLine = noDeadlineNote;
     spoken = `${subject} deadline: ${noDeadlineNote}.`;
   } else {
+    const dueNote =
+      alsoDue !== undefined ? `${alsoDue.label} due ${shortDay(alsoDue.at, now)}` : undefined;
     label = `${who} ${clock.late ? "LATE BY" : "DUE IN"}`;
     dueLine = [
-      `${clock.late ? "Was due" : "Due"} ${shortDay(deadline)}`,
-      moved && originalDeadline !== undefined ? `originally ${shortDay(originalDeadline)}` : null,
+      `${clock.late ? "Was due" : "Due"} ${shortDay(deadline, now)}`,
+      moved && originalDeadline !== undefined
+        ? `originally ${shortDay(originalDeadline, now)}`
+        : null,
       dueNote ?? null,
     ]
       .filter((part) => part !== null)

@@ -112,16 +112,20 @@ export const board = query({
   },
 });
 
-/** One task with its feature. Null if it doesn't exist. */
+/**
+ * One task and its feature. Takes the id as a plain string because it usually comes from a URL:
+ * a malformed or wrong-table id returns null (the app shows "not found") instead of throwing.
+ */
 export const get = query({
-  args: { taskId: v.id("tasks") },
+  args: { taskId: v.string() },
   returns: v.union(
     v.null(),
     v.object({ task: taskViewValidator, feature: schema.doc("features") })
   ),
-  handler: async (ctx, { taskId }) => {
+  handler: async (ctx, args) => {
     await requireUser(ctx);
-    const task = await ctx.db.get("tasks", taskId);
+    const taskId = ctx.db.normalizeId("tasks", args.taskId);
+    const task = taskId === null ? null : await ctx.db.get("tasks", taskId);
     if (task === null) return null;
     const feature = await requireFeature(ctx, task.featureId);
     const directory = await loadUserDirectory(ctx);

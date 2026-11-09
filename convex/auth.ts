@@ -9,12 +9,14 @@ import {
   isValidEmail,
   normalizeEmail,
 } from "./lib/accounts";
-import { MIN_PASSWORD_LENGTH } from "./lib/constants";
+import { INVITE_REJECTED_MESSAGE, MIN_PASSWORD_LENGTH } from "./lib/constants";
 import { appError } from "./lib/errors";
+import { normalizeInviteCode } from "./lib/inviteCodes";
 
 /**
  * Email + password auth, invite-only.
- * - Sign-up: `createOrUpdateUser` only creates a user for an email with an unused invite.
+ * - Sign-up: `createOrUpdateUser` only creates a user for an email with an unused, unexpired
+ *   invite and its one-time code (convex/lib/accounts.ts). Every refusal reads the same.
  * - Sign-in: `beforeSessionCreation` rejects deactivated users.
  * Errors are ConvexErrors so the app can show their message.
  */
@@ -31,7 +33,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         if (params.flow === "signUp") {
           const name = typeof params.name === "string" ? params.name.trim() : "";
           if (name.length === 0) throw appError("INVALID_ARGUMENT", "Enter your name.");
-          return { email, name };
+          const inviteCode = normalizeInviteCode(params.inviteCode);
+          if (inviteCode.length === 0) {
+            throw appError("INVALID_ARGUMENT", "Enter the invite code from your invite.");
+          }
+          // Checked against the invite in createOrUpdateUser; never stored on the user.
+          return { email, name, inviteCode };
         }
         return { email };
       },
@@ -51,10 +58,11 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       if (args.existingUserId !== null) return args.existingUserId;
       const email = normalizeEmail(args.profile.email);
       const name = typeof args.profile.name === "string" ? args.profile.name : "";
+      const inviteCode = typeof args.profile.inviteCode === "string" ? args.profile.inviteCode : "";
       if (args.type !== "credentials" || !isValidEmail(email) || name.length === 0) {
-        throw appError("NOT_INVITED", "Sign-up is invite-only.");
+        throw appError("NOT_INVITED", INVITE_REJECTED_MESSAGE);
       }
-      return await createUserFromInvite(ctx, { email, name });
+      return await createUserFromInvite(ctx, { email, name, inviteCode });
     },
     // Runs before every new session (sign-up and sign-in), not on token refresh.
     async beforeSessionCreation(ctx: MutationCtx, { userId }) {

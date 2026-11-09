@@ -19,7 +19,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@auth/core": "0.41.1",
+    "@auth/core": "0.41.3",
     "@convex-dev/auth": "0.0.96",
     "@expo/metro-runtime": "~58.0.17",
     "@expo/ui": "~58.0.27",

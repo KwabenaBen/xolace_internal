@@ -62,6 +62,8 @@ export function FeatureForm({
       await onSubmit(values);
     } catch (e) {
       setError(getErrorMessage(e));
+    } finally {
+      // Also after a save, in case the screen stays open (nothing to go back to).
       setIsSubmitting(false);
     }
   }

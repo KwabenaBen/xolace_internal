@@ -1,9 +1,11 @@
 import type { JSX } from "react";
 import { Text, View } from "react-native";
 
+import { longDay, sameDayGmt, startOfDayGmt } from "@convex/lib/dates";
+
 import { fonts } from "@/components/board/board-theme";
 
-import { longDay, sameDayGmt, startOfDayGmt, weekLabel, weekOf } from "./task-dates";
+import { weekLabel, weekOf } from "./task-dates";
 import { taskColors } from "./task-theme";
 
 const GAP = 6;

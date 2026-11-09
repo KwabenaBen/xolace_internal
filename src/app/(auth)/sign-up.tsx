@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useState, type JSX } from "react";
 import { Pressable, Text } from "react-native";
 
-import { MIN_PASSWORD_LENGTH } from "@convex/lib/constants";
+import { INVITE_DAYS, INVITE_REJECTED_MESSAGE, MIN_PASSWORD_LENGTH } from "@convex/lib/constants";
 
 import { AuthFormScreen } from "@/components/auth/auth-form-screen";
 import { AuthTextField } from "@/components/auth/auth-text-field";
@@ -15,6 +15,7 @@ export default function SignUpScreen(): JSX.Element {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,6 +25,10 @@ export default function SignUpScreen(): JSX.Element {
       setError("Enter your name and the email your invite was sent to.");
       return;
     }
+    if (inviteCode.trim().length === 0) {
+      setError("Enter the invite code from your invite.");
+      return;
+    }
     if (password.length < MIN_PASSWORD_LENGTH) {
       setError(`Use at least ${MIN_PASSWORD_LENGTH} characters for your password.`);
       return;
@@ -31,15 +36,12 @@ export default function SignUpScreen(): JSX.Element {
     setError(null);
     setIsSubmitting(true);
     try {
-      // The server only creates the account if this email has an unused invite.
-      await signIn("password", { name, email, password, flow: "signUp" });
+      // The server only creates the account for an unused, unexpired invite and its code.
+      await signIn("password", { name, email, inviteCode, password, flow: "signUp" });
     } catch (e) {
-      setError(
-        getErrorMessage(
-          e,
-          "We couldn't create your account. If you already have one, sign in instead."
-        )
-      );
+      // Every refusal reads the same (including "already registered", which Convex Auth reports
+      // itself), so sign-up never reveals who is invited.
+      setError(getErrorMessage(e, INVITE_REJECTED_MESSAGE));
     } finally {
       setIsSubmitting(false);
     }
@@ -48,7 +50,7 @@ export default function SignUpScreen(): JSX.Element {
   return (
     <AuthFormScreen
       title="Join Cadence"
-      subtitle="Use the email address your invite was sent to."
+      subtitle="Use the email your invite was sent to, and the code that came with it."
       error={error}
       footer={
         <Pressable
@@ -81,6 +83,18 @@ export default function SignUpScreen(): JSX.Element {
         autoCorrect={false}
         keyboardType="email-address"
         textContentType="emailAddress"
+        returnKeyType="next"
+      />
+      <AuthTextField
+        label="Invite code"
+        value={inviteCode}
+        onChangeText={setInviteCode}
+        placeholder="ABCD-EFGH"
+        hint={`From the admin who invited you. Codes expire after ${INVITE_DAYS} days.`}
+        autoCapitalize="characters"
+        autoComplete="one-time-code"
+        autoCorrect={false}
+        textContentType="oneTimeCode"
         returnKeyType="next"
       />
       <AuthTextField

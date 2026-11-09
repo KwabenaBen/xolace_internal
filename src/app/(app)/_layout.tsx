@@ -1,11 +1,23 @@
-import { Stack } from "expo-router";
+import { Stack, type ErrorBoundaryProps } from "expo-router";
 import { useThemeColor } from "heroui-native";
 import type { JSX } from "react";
 
 import { AccountUnavailable } from "@/components/account-unavailable";
 import { colors as boardColors, fonts as boardFonts } from "@/components/board/board-theme";
+import { ErrorScreen } from "@/components/error-screen";
 import { LoadingScreen } from "@/components/loading-screen";
 import { useCurrentUser } from "@/lib/use-current-user";
+
+/**
+ * The tabs always sit under every pushed page and modal, even when the app opens straight onto
+ * one (a web refresh or a link), so back and "done" always have somewhere to go.
+ */
+export const unstable_settings = { anchor: "(tabs)" };
+
+/** A screen that throws shows this instead of a blank page: Try again, or back to the Board. */
+export function ErrorBoundary(props: ErrorBoundaryProps): JSX.Element {
+  return <ErrorScreen {...props} />;
+}
 
 const BLACK_PAGE = {
   headerShown: false,

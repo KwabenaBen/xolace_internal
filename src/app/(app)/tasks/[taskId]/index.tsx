@@ -19,7 +19,6 @@ import {
 import { HoloCard } from "@/components/task/holo-card";
 import { PeopleCards, type PersonCard } from "@/components/task/people-cards";
 import { TaskActions } from "@/components/task/task-actions";
-import { shortDay } from "@/components/task/task-dates";
 import { PageHeader } from "@/components/task/task-header";
 import { CriteriaCard, DescriptionCard, TaskBanner } from "@/components/task/task-panels";
 import { STATUS_WORDS, taskColors } from "@/components/task/task-theme";
@@ -154,7 +153,7 @@ export default function TaskScreen(): JSX.Element {
             }}
             urgent={task.priority === "urgent"}
             progress={task.progress}
-            dueNote={`feature due ${shortDay(feature.deadline)}`}
+            alsoDue={{ label: "feature", at: feature.deadline }}
             noDeadlineNote="Set when an admin approves it"
           />
         ) : null}

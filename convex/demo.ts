@@ -1,21 +1,25 @@
 import { v } from "convex/values";
 
 import type { Doc, Id } from "./_generated/dataModel";
-import { internalMutation, type MutationCtx } from "./_generated/server";
-import { endOfDayGmt, toDateOnly } from "./lib/dates";
+import { env, internalMutation, type MutationCtx } from "./_generated/server";
+import { DAY_MS, endOfDayGmt, toDateOnly } from "./lib/dates";
+import { appError } from "./lib/errors";
 import type { FeatureStatus, TaskKind, TaskPriority, TaskStatus } from "./lib/validators";
 
 /**
- * Demo data for the dev deployment, so the Board has something to show. CLI only, never prod:
+ * Demo data for the dev deployment, so the Board has something to show. CLI only, never prod.
+ * Both commands refuse to run unless the deployment has CADENCE_DEMO=on (set it on dev only:
+ * `bunx convex env set CADENCE_DEMO on`), so a slip of `--prod` does nothing.
  *   bunx convex run demo:seed     adds demo people, features ("Demo: …"), tasks and proposals
- *   bunx convex run demo:clear    removes everything the seed added
+ *   bunx convex run demo:clear    removes the demo people, and the demo features with their tasks
+ * A demo feature is one whose title starts with "Demo: " AND that a demo person created, so a
+ * real feature is never removed. The activity log is never touched.
  * Demo people have emails ending in DEMO_EMAIL_DOMAIN and no login. Tasks are spread across them
  * and the existing (real) users, so real accounts see demo work in My Tasks too.
  */
 
 const DEMO_TITLE_PREFIX = "Demo: ";
 const DEMO_EMAIL_DOMAIN = "@demo.cadence.test";
-const DAY = 24 * 60 * 60 * 1000;
 
 const DEMO_PEOPLE = [
   { key: "kofi", name: "Kofi Mensah", title: "CTO (demo)", role: "member" },
@@ -200,12 +204,24 @@ const DEMO_FEATURES: DemoFeature[] = [
 ];
 
 function deadlineIn(days: number, now: number): number {
-  return endOfDayGmt(toDateOnly(now + days * DAY)) ?? now;
+  return endOfDayGmt(toDateOnly(now + days * DAY_MS)) ?? now;
+}
+
+function requireDemoDeployment(): void {
+  if (env.CADENCE_DEMO !== "on") {
+    throw appError(
+      "FORBIDDEN",
+      "Demo data is off on this deployment. On a dev deployment only: bunx convex env set CADENCE_DEMO on"
+    );
+  }
 }
 
 async function findDemoFeatures(ctx: MutationCtx): Promise<Doc<"features">[]> {
+  const demoPeople = new Set((await findDemoUsers(ctx)).map((u) => u._id));
   const features = await ctx.db.query("features").take(500);
-  return features.filter((f) => f.title.startsWith(DEMO_TITLE_PREFIX));
+  return features.filter(
+    (f) => f.title.startsWith(DEMO_TITLE_PREFIX) && demoPeople.has(f.createdBy)
+  );
 }
 
 async function findDemoUsers(ctx: MutationCtx): Promise<Doc<"users">[]> {
@@ -217,6 +233,7 @@ export const seed = internalMutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => {
+    requireDemoDeployment();
     if ((await findDemoFeatures(ctx)).length > 0) {
       return "Demo data is already there. Run demo:clear first to reseed.";
     }
@@ -276,8 +293,8 @@ export const seed = internalMutation({
           status: task.status,
           progress: task.progress,
           countsAsLate: false,
-          submittedAt: submitted ? deadline - 2 * DAY : undefined,
-          verifiedAt: done ? deadline - DAY : undefined,
+          submittedAt: submitted ? deadline - 2 * DAY_MS : undefined,
+          verifiedAt: done ? deadline - DAY_MS : undefined,
         });
         taskCount++;
       }
@@ -307,8 +324,8 @@ export const clear = internalMutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => {
+    requireDemoDeployment();
     const features = await findDemoFeatures(ctx);
-    const removedIds = new Set<string>();
     for (const feature of features) {
       const tasks = await ctx.db
         .query("tasks")
@@ -316,25 +333,14 @@ export const clear = internalMutation({
         .take(500);
       for (const task of tasks) {
         await ctx.db.delete("tasks", task._id);
-        removedIds.add(task._id);
       }
       await ctx.db.delete("features", feature._id);
-      removedIds.add(feature._id);
     }
     const users = await findDemoUsers(ctx);
     for (const user of users) {
       await ctx.db.delete("users", user._id);
-      removedIds.add(user._id);
     }
-    // Any activity recorded while people played with the demo data.
-    const activity = await ctx.db.query("activity").take(5000);
-    let activityCount = 0;
-    for (const entry of activity) {
-      if (removedIds.has(entry.entityId)) {
-        await ctx.db.delete("activity", entry._id);
-        activityCount++;
-      }
-    }
-    return `Removed ${features.length} demo features (with their tasks), ${users.length} demo people and ${activityCount} activity entries.`;
+    // The activity log is the audit trail: it is never deleted, demo entries included.
+    return `Removed ${features.length} demo features (with their tasks) and ${users.length} demo people.`;
   },
 });

@@ -1,56 +1,11 @@
+import { DAY_MS, MONTH_NAMES, startOfDayGmt } from "@convex/lib/dates";
+
 /**
- * Calendar helpers for the task page. Deadlines are the end of a GMT day (convex/lib/dates.ts),
- * so every date here is read in UTC (= GMT, Ghana time).
+ * The countdown's and the (parked) week strip's maths. Every calendar helper (GMT days, "Fri 14
+ * Nov", "in 3 days") lives in convex/lib/dates.ts, shared with the server; don't add more here.
  */
 
-const DAY = 24 * 60 * 60 * 1000;
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const WEEKDAYS_LONG = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const MONTHS_LONG = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-/** "Fri 14 Nov". */
-export function shortDay(ms: number): string {
-  const d = new Date(ms);
-  return `${WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
-}
-
-/** "Friday 14 November", for screen readers. */
-export function longDay(ms: number): string {
-  const d = new Date(ms);
-  return `${WEEKDAYS_LONG[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS_LONG[d.getUTCMonth()]}`;
-}
-
-/** Midnight GMT at the start of `ms`'s day. */
-export function startOfDayGmt(ms: number): number {
-  return Math.floor(ms / DAY) * DAY;
-}
-
-/** True when both times fall on the same GMT day. */
-export function sameDayGmt(a: number, b: number): boolean {
-  return startOfDayGmt(a) === startOfDayGmt(b);
-}
+const DAY_LETTERS = "SMTWTFS"; // Sunday first, as getUTCDay counts
 
 export type WeekDay = { start: number; letter: string; date: number };
 
@@ -58,14 +13,11 @@ export type WeekDay = { start: number; letter: string; date: number };
 export function weekOf(ms: number): WeekDay[] {
   const today = startOfDayGmt(ms);
   const fromMonday = (new Date(today).getUTCDay() + 6) % 7;
-  const monday = today - fromMonday * DAY;
+  const monday = today - fromMonday * DAY_MS;
   return Array.from({ length: 7 }, (_, i) => {
-    const start = monday + i * DAY;
-    return {
-      start,
-      letter: WEEKDAYS[new Date(start).getUTCDay()].slice(0, 1),
-      date: new Date(start).getUTCDate(),
-    };
+    const start = monday + i * DAY_MS;
+    const date = new Date(start);
+    return { start, letter: DAY_LETTERS[date.getUTCDay()], date: date.getUTCDate() };
   });
 }
 
@@ -74,10 +26,10 @@ export function weekLabel(week: WeekDay[]): string {
   const first = new Date(week[0].start);
   const last = new Date(week[week.length - 1].start);
   if (first.getUTCMonth() === last.getUTCMonth()) {
-    return `${MONTHS_LONG[first.getUTCMonth()]} ${first.getUTCFullYear()}`;
+    return `${MONTH_NAMES.long[first.getUTCMonth()]} ${first.getUTCFullYear()}`;
   }
   const year = first.getUTCFullYear() === last.getUTCFullYear() ? "" : ` ${first.getUTCFullYear()}`;
-  return `${MONTHS[first.getUTCMonth()]}${year} – ${MONTHS[last.getUTCMonth()]} ${last.getUTCFullYear()}`;
+  return `${MONTH_NAMES.short[first.getUTCMonth()]}${year} – ${MONTH_NAMES.short[last.getUTCMonth()]} ${last.getUTCFullYear()}`;
 }
 
 export type Countdown = {

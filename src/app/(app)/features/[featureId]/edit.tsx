@@ -34,7 +34,9 @@ export default function EditFeatureScreen(): JSX.Element {
         submitLabel="Save changes"
         onSubmit={async (values) => {
           await updateFeature({ featureId, ...values });
-          router.back();
+          // Opened straight from a link or a web refresh, there may be nothing to go back to.
+          if (router.canGoBack()) router.back();
+          else router.replace({ pathname: "/features/[featureId]", params: { featureId } });
         }}
       />
     </AdminOnly>

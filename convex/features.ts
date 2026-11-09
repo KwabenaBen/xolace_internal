@@ -56,9 +56,12 @@ export const list = query({
   },
 });
 
-/** One feature with its live tasks and its pending proposals. Null if it doesn't exist. */
+/**
+ * One feature with its tasks and proposals. Takes the id as a plain string because it usually
+ * comes from a URL: a malformed or wrong-table id returns null instead of throwing.
+ */
 export const get = query({
-  args: { featureId: v.id("features") },
+  args: { featureId: v.string() },
   returns: v.union(
     v.null(),
     v.object({
@@ -68,15 +71,16 @@ export const get = query({
       proposals: v.array(taskViewValidator),
     })
   ),
-  handler: async (ctx, { featureId }) => {
+  handler: async (ctx, args) => {
     await requireUser(ctx);
-    const feature = await ctx.db.get("features", featureId);
+    const featureId = ctx.db.normalizeId("features", args.featureId);
+    const feature = featureId === null ? null : await ctx.db.get("features", featureId);
     if (feature === null) return null;
 
     const directory = await loadUserDirectory(ctx);
     const all = await ctx.db
       .query("tasks")
-      .withIndex("by_featureId_and_status", (q) => q.eq("featureId", featureId))
+      .withIndex("by_featureId_and_status", (q) => q.eq("featureId", feature._id))
       .take(500);
     const live = all.filter((t) => t.status !== "proposed" && t.status !== "declined");
     const proposals = all.filter((t) => t.status === "proposed");

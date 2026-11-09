@@ -1,26 +1,49 @@
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { Button, Card, Chip, Separator, Spinner, Typography } from "heroui-native";
-import { Fragment, type JSX } from "react";
+import { Fragment, useState, type JSX } from "react";
 import { View } from "react-native";
 
 import { api } from "@convex/_generated/api";
+import type { Doc, Id } from "@convex/_generated/dataModel";
+import { formatDeadline } from "@convex/lib/dates";
+import { formatInviteCode } from "@convex/lib/inviteCodes";
 
+import { FormError } from "@/components/planning/form-error";
 import { Section } from "@/components/planning/detail";
 import { TaskCard } from "@/components/planning/task-card";
 import { Screen } from "@/components/screen";
 import { ROLE_LABELS } from "@/constants/labels";
 import { typography } from "@/constants/theme";
+import { getErrorMessage } from "@/lib/errors";
+import { useNow } from "@/lib/use-now";
 
 /**
  * Admin-only. The tab is hidden from members, and `invites.list` itself throws for
- * non-admins. User management arrives in a later phase.
+ * non-admins. Pending invites show their one-time code to send to the person (long-press to
+ * copy) and a New code button for lost or expired ones. User management arrives in a later phase.
  */
 export default function AdminScreen(): JSX.Element {
   const router = useRouter();
   const proposals = useQuery(api.tasks.proposals);
   const invites = useQuery(api.invites.list);
+  const renew = useMutation(api.invites.renew);
+  const now = useNow();
+  const [renewing, setRenewing] = useState<Id<"invites"> | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const featureTitle = new Map((proposals?.features ?? []).map((f) => [f._id, f.title]));
+
+  async function newCode(inviteId: Id<"invites">) {
+    setError(null);
+    setRenewing(inviteId);
+    try {
+      await renew({ inviteId });
+    } catch (e) {
+      setError(getErrorMessage(e));
+    } finally {
+      setRenewing(null);
+    }
+  }
 
   return (
     <Screen
@@ -54,6 +77,7 @@ export default function AdminScreen(): JSX.Element {
 
       <View className="gap-3">
         <Typography.Heading type={typography.sectionTitle}>Invites</Typography.Heading>
+        <FormError message={error} />
         <Card>
           <Card.Body className="gap-3">
             {invites === undefined ? (
@@ -66,23 +90,12 @@ export default function AdminScreen(): JSX.Element {
               invites.map((invite, index) => (
                 <Fragment key={invite._id}>
                   {index > 0 ? <Separator /> : null}
-                  <View className="flex-row items-center justify-between gap-3">
-                    <View className="flex-1 gap-0.5">
-                      <Typography type={typography.body} numberOfLines={1}>
-                        {invite.email}
-                      </Typography>
-                      <Typography type={typography.caption} color="muted">
-                        {invite.title} · {ROLE_LABELS[invite.role]}
-                      </Typography>
-                    </View>
-                    <Chip
-                      size="sm"
-                      variant="soft"
-                      color={invite.usedAt === undefined ? "warning" : "success"}
-                    >
-                      {invite.usedAt === undefined ? "Pending" : "Joined"}
-                    </Chip>
-                  </View>
+                  <InviteRow
+                    invite={invite}
+                    now={now}
+                    isRenewing={renewing === invite._id}
+                    onNewCode={() => newCode(invite._id)}
+                  />
                 </Fragment>
               ))
             )}
@@ -90,5 +103,72 @@ export default function AdminScreen(): JSX.Element {
         </Card>
       </View>
     </Screen>
+  );
+}
+
+function InviteRow({
+  invite,
+  now,
+  isRenewing,
+  onNewCode,
+}: {
+  invite: Doc<"invites">;
+  now: number;
+  isRenewing: boolean;
+  onNewCode: () => void;
+}): JSX.Element {
+  const joined = invite.usedAt !== undefined;
+  const expired = invite.expiresAt !== undefined && invite.expiresAt < now;
+  const hasCode = invite.code !== undefined && !expired;
+
+  let codeLine: string | null = null;
+  if (!joined) {
+    if (invite.code === undefined) codeLine = "No code yet. Tap New code, then send it to them.";
+    else if (expired) codeLine = "Code expired. Tap New code, then send it to them.";
+    else if (invite.expiresAt !== undefined) {
+      codeLine = `Expires ${formatDeadline(invite.expiresAt, now)}`;
+    }
+  }
+
+  return (
+    <View className="gap-2">
+      <View className="flex-row items-center justify-between gap-3">
+        <View className="flex-1 gap-0.5">
+          <Typography type={typography.body} numberOfLines={1}>
+            {invite.email}
+          </Typography>
+          <Typography type={typography.caption} color="muted">
+            {invite.title} · {ROLE_LABELS[invite.role]}
+          </Typography>
+        </View>
+        <Chip size="sm" variant="soft" color={joined ? "success" : "warning"}>
+          {joined ? "Joined" : "Pending"}
+        </Chip>
+      </View>
+      {!joined ? (
+        <View className="flex-row items-center justify-between gap-3">
+          <View className="flex-1 gap-0.5">
+            {hasCode && invite.code !== undefined ? (
+              <Typography
+                type={typography.body}
+                weight="semibold"
+                selectable
+                accessibilityLabel={`Invite code ${invite.code.split("").join(" ")}`}
+              >
+                {formatInviteCode(invite.code)}
+              </Typography>
+            ) : null}
+            {codeLine !== null ? (
+              <Typography type={typography.caption} color="muted">
+                {codeLine}
+              </Typography>
+            ) : null}
+          </View>
+          <Button size="sm" variant="secondary" onPress={onNewCode} isDisabled={isRenewing}>
+            {isRenewing ? "Making…" : "New code"}
+          </Button>
+        </View>
+      ) : null}
+    </View>
   );
 }

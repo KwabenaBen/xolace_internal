@@ -161,6 +161,11 @@ export default defineSchema({
     role: roleValidator,
     title: v.string(),
     invitedBy: v.optional(v.id("users")), // unset for invites created by the seed
+    // One-time sign-up code (convex/lib/inviteCodes.ts), cleared once used. Sign-up needs the
+    // email AND this code, before `expiresAt`. Invites from before codes existed have neither
+    // and can't be used until an admin issues a code.
+    code: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
     usedAt: v.optional(v.number()),
     usedBy: v.optional(v.id("users")),
   }).index("by_email", ["email"]),

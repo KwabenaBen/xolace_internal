@@ -35,7 +35,8 @@ src/app/                 Expo Router routes
   (app)/tasks/           new (modal: admin creates / member proposes), [taskId]/index (page),
                          [taskId]/edit (modal: edit a live task, or approve a proposal)
   (app)/board/[view].tsx The Board's tile pages: due-this-week, overdue, waiting (black style)
-src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ...)
+src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ErrorScreen (the signed-in
+                         area's error boundary), ...)
   auth/                  Signed-out UI: DotField (dots that spell "cadence"; dot-field.tsx = Skia,
                          dot-field.web.tsx = canvas, math in dot-formations.ts), DotWordmark,
                          PillButton, AuthTextField, AuthFormScreen
@@ -61,16 +62,22 @@ src/lib/                 Convex client, auth token storage, error messages, hook
                          per-device yes/no settings, ...)
 convex/                  Backend (deployed by `bunx convex dev`)
   schema.ts              All tables + indexes
-  auth.ts                Convex Auth: Password provider, invite gate, inactive gate
-  users.ts invites.ts settings.ts   Public functions
+  convex.config.ts       App config: typed deployment env vars (CADENCE_DEMO), read via `env`
+  auth.ts                Convex Auth: Password provider, invite gate (email + one-time code),
+                         inactive gate
+  users.ts invites.ts settings.ts   Public functions (invites: list, create, renew (new code),
+                         revoke; internal newCode for the CLI)
   features.ts            list, get, create, update (admin)
   tasks.ts               board (filters), get, mine, proposals, create, update (admin),
                          propose (anyone), approveProposal, declineProposal (admin)
-  seed.ts                Internal seed mutation (CLI only)
-  demo.ts                Dev-only demo data: demo:seed / demo:clear (CLI only)
+  seed.ts                Internal seed mutation (CLI only); prints each new invite's code
+  demo.ts                Dev-only demo data: demo:seed / demo:clear (CLI only; refuse to run
+                         unless the deployment has CADENCE_DEMO=on)
   lib/                   Server helpers: auth (permissions), accounts, settings, activity,
-                         validators (enums), errors, constants, dates (deadline dates, shared
-                         with the app), tasks (task rules), views (shapes sent to the app)
+                         validators (enums), errors, constants, dates (EVERY date helper:
+                         GMT days, "Fri 14 Nov", "in 3 days"; shared with the app),
+                         inviteCodes (shared with the app), tasks (task rules), views (shapes
+                         sent to the app)
   tests/                 Vitest + convex-test
   test.setup.ts          Test helpers (never deployed: two dots in the name)
 assets/fonts/            Montserrat (5 weights) and Anton (the holo card's wordmark), SIL OFL —
@@ -101,9 +108,18 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   Deadlines, reviews, verifications and logs are never deleted.
 - **Time:** points in time are ms timestamps; calendar dates are `"YYYY-MM-DD"` (GMT). A deadline
   picked as a date is stored as the end of that day in GMT. No `Date.now()` inside queries.
+  Count days by GMT calendar day (`calendarDaysBetween`, `relativeDay` in `convex/lib/dates.ts`),
+  never by dividing a time difference by 24 hours.
 - **Queries:** use indexes (`by_a_and_b` naming), bounded reads (`.take(n)`/pagination), and the
   table-name forms `ctx.db.get("table", id)` / `patch` / `delete`.
 - Emails are stored trimmed + lower-case (`normalizeEmail`).
+- **Sign-up** needs the invited email **and** its one-time code (`convex/lib/inviteCodes.ts`),
+  before the invite's `expiresAt` (`INVITE_DAYS`). Every refusal — no invite, wrong or expired
+  code, already registered — shows the same `INVITE_REJECTED_MESSAGE`, so sign-up never reveals
+  who is invited. Codes are cleared once used and never written to the activity log. The repos
+  are public: never commit secrets, real emails or deployment names/URLs.
+- **Ids from URLs:** queries that take an id from a route (`tasks.get`, `features.get`) accept
+  `v.string()` and use `ctx.db.normalizeId`, returning null for a bad id instead of throwing.
 - **Tasks:** `kind` (code/design/content/operations/other); code tasks need a peer reviewer who
   isn't the owner. Proposals (`status: "proposed"`) have no owner/deadline until an admin approves
   them (→ `"todo"`, `originalDeadline` set) or declines them (→ `"declined"` + `declineReason`,
@@ -126,6 +142,10 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   `prefers-reduced-motion` on web).
 - Don't call `Date.now()` during render (React Compiler lint rule): use `useNow()`
   (`src/lib/use-now.ts`), which also re-renders each minute so "Overdue" labels stay current.
+- **Errors:** `src/app/(app)/_layout.tsx` exports an `ErrorBoundary` (black "Something went
+  wrong" with Try again / Back to the Board) and anchors the stack on `(tabs)`, so pages opened
+  straight from a link or a web refresh still have somewhere to go back to. After a save, forms
+  go back if they can, else replace with the page they edited.
 - Navigate with typed hrefs, e.g. `router.push({ pathname: "/tasks/[taskId]", params: { taskId } })`.
   Route types live in `.expo/types/router.d.ts`; **on Windows the dev server's watcher writes
   them wrong for files added while it runs** — `bun run typegen` (or a dev-server restart) fixes
@@ -160,11 +180,16 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
    ```
    bunx convex run seed:run "{invites:[{email:'coo@example.com',title:'COO',role:'admin'},{email:'ceo@example.com',title:'CEO',role:'member'}], adminTaskReviewerEmail:'ceo@example.com'}"
    ```
-   Safe to re-run; existing users/invites/settings are skipped.
-5. Optional, **dev only**: demo data so the Board has something to show —
-   `bunx convex run demo:seed` (3 demo people with `@demo.cadence.test` emails and no login,
-   3 features titled "Demo: …", 12 tasks across every status, spread over real users too) and
-   `bunx convex run demo:clear` to remove all of it. Never run these with `--prod`.
+   Safe to re-run; existing users/invites/settings are skipped. The result lists each new
+   invite's **one-time code**: send each person theirs (codes expire after 14 days). A pending
+   invite without a code (made before codes existed), or a lost/expired code:
+   `bunx convex run invites:newCode "{email:'coo@example.com'}"`, or New code on the Admin tab.
+5. Optional, **dev only**: demo data so the Board has something to show. Switch it on for the
+   dev deployment once: `bunx convex env set CADENCE_DEMO on` (never on prod; without it both
+   commands refuse). Then `bunx convex run demo:seed` (3 demo people with `@demo.cadence.test`
+   emails and no login, 3 features titled "Demo: …", 12 tasks across every status, spread over
+   real users too) and `bunx convex run demo:clear` to remove it (only features a demo person
+   created; the activity log is kept).
 
 **Daily**
 

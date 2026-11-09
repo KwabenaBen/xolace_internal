@@ -19,6 +19,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_constants from "../lib/constants.js";
 import type * as lib_dates from "../lib/dates.js";
 import type * as lib_errors from "../lib/errors.js";
+import type * as lib_inviteCodes from "../lib/inviteCodes.js";
 import type * as lib_settings from "../lib/settings.js";
 import type * as lib_tasks from "../lib/tasks.js";
 import type * as lib_validators from "../lib/validators.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   "lib/constants": typeof lib_constants;
   "lib/dates": typeof lib_dates;
   "lib/errors": typeof lib_errors;
+  "lib/inviteCodes": typeof lib_inviteCodes;
   "lib/settings": typeof lib_settings;
   "lib/tasks": typeof lib_tasks;
   "lib/validators": typeof lib_validators;

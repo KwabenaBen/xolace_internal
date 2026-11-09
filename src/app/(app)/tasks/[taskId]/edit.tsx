@@ -34,7 +34,9 @@ export default function EditTaskScreen(): JSX.Element {
           const plan = toTaskPlan(values);
           if (isProposal) await approveProposal({ taskId, ...plan });
           else await updateTask({ taskId, ...plan });
-          router.back();
+          // Opened straight from a link or a web refresh, there may be nothing to go back to.
+          if (router.canGoBack()) router.back();
+          else router.replace({ pathname: "/tasks/[taskId]", params: { taskId } });
         }}
       />
     </AdminOnly>

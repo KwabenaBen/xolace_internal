@@ -1,7 +1,10 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { logActivity } from "./activity";
+import { DAY_MS } from "./dates";
+import { INVITE_DAYS, INVITE_REJECTED_MESSAGE } from "./constants";
 import { appError } from "./errors";
+import { newInviteCode, normalizeInviteCode } from "./inviteCodes";
 import { getSettingValue, linkPendingUserRefs, SETTINGS } from "./settings";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -35,25 +38,34 @@ export async function findUserByEmail(ctx: QueryCtx, email: string): Promise<Doc
     .unique();
 }
 
+/** A new code and expiry for an invite (the code is stored without its dash). */
+export function freshInviteCode(now: number): { code: string; expiresAt: number } {
+  return { code: newInviteCode(), expiresAt: now + INVITE_DAYS * DAY_MS };
+}
+
 /**
  * Sign-up gate, called from Convex Auth's `createOrUpdateUser` callback (convex/auth.ts).
- * Only an email with an unused invite can sign up; the user gets the invite's role and
+ * Only an email with an unused, unexpired invite AND its code can sign up. Every failure gets
+ * the same message, so sign-up never reveals who is invited or registered. The user gets the
+ * invite's role and
  * title and the invite is marked used. Runs in the same transaction as the auth account
  * insert, so a rejection leaves nothing behind.
  */
 export async function createUserFromInvite(
   ctx: MutationCtx,
-  { email, name }: { email: string; name: string }
+  { email, name, inviteCode }: { email: string; name: string; inviteCode: string }
 ): Promise<Id<"users">> {
   const invite = await findUnusedInvite(ctx, email);
-  if (invite === null) {
-    throw appError(
-      "NOT_INVITED",
-      "This email hasn't been invited to Cadence. Ask an admin to send you an invite."
-    );
-  }
-  if ((await findUserByEmail(ctx, email)) !== null) {
-    throw appError("CONFLICT", "An account with this email already exists. Try signing in.");
+  const code = normalizeInviteCode(inviteCode);
+  if (
+    invite === null ||
+    invite.code === undefined ||
+    invite.code !== code ||
+    invite.expiresAt === undefined ||
+    invite.expiresAt < Date.now() ||
+    (await findUserByEmail(ctx, email)) !== null
+  ) {
+    throw appError("NOT_INVITED", INVITE_REJECTED_MESSAGE);
   }
 
   const timeZone = await getSettingValue(ctx, "timeZone");
@@ -65,7 +77,12 @@ export async function createUserFromInvite(
     isActive: true,
     timezone: typeof timeZone === "string" ? timeZone : String(SETTINGS.timeZone.defaultValue),
   });
-  await ctx.db.patch("invites", invite._id, { usedAt: Date.now(), usedBy: userId });
+  // The code has done its job; clear it so it can't be read or reused.
+  await ctx.db.patch("invites", invite._id, {
+    usedAt: Date.now(),
+    usedBy: userId,
+    code: undefined,
+  });
   await linkPendingUserRefs(ctx, { _id: userId, email });
   await logActivity(ctx, {
     actorId: userId,

@@ -40,7 +40,15 @@ export default function AppLayout(): JSX.Element {
         }}
       />
       <Stack.Screen name="features/[featureId]/index" options={{ title: "Feature" }} />
-      <Stack.Screen name="tasks/[taskId]/index" options={{ title: "Task" }} />
+      {/* The task page draws its own header, black whatever the theme. */}
+      <Stack.Screen
+        name="tasks/[taskId]/index"
+        options={{
+          title: "Task",
+          headerShown: false,
+          contentStyle: { backgroundColor: boardColors.background },
+        }}
+      />
       <Stack.Screen name="features/new" options={{ title: "New feature", presentation: "modal" }} />
       <Stack.Screen
         name="features/[featureId]/edit"

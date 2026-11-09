@@ -46,6 +46,12 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ..
                          pit-stop.ts (the fling-out/slam-back motion, worklets), bento.tsx,
                          bento-tile.tsx, board-stats.ts, board-lists.ts (the tile pages' data),
                          feature-feed.tsx, sym.tsx (SF Symbol / Material icon)
+  task/                  The task page: holo-card.tsx (Skia: the tilting status card, after Native
+                         Cook's "Holo Cash Card"; .web.tsx = still SVG; holo-shared.ts),
+                         countdown-card.tsx + odometer.tsx (rolling digits), people-cards.tsx,
+                         task-panels.tsx, task-header.tsx (PageHeader), task-actions.tsx,
+                         week-strip.tsx (unused; parked for Phase 4's daily logs),
+                         task-dates.ts (GMT calendar maths), task-theme.ts, task-symbols.ts
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
 src/lib/                 Convex client, auth token storage, error messages, hooks (useNow, useDeviceFlag for
                          per-device yes/no settings, ...)
@@ -63,8 +69,8 @@ convex/                  Backend (deployed by `bunx convex dev`)
                          with the app), tasks (task rules), views (shapes sent to the app)
   tests/                 Vitest + convex-test
   test.setup.ts          Test helpers (never deployed: two dots in the name)
-assets/fonts/            Montserrat (5 weights, SIL OFL — licence alongside), loaded in the root
-                         layout with expo-font
+assets/fonts/            Montserrat (5 weights) and Anton (the holo card's wordmark), SIL OFL —
+                         licences alongside; loaded in the root layout with expo-font
 scripts/                 generate-auth-keys.mjs, generate-route-types.mjs
 docs/                    Requirements
 ```
@@ -126,6 +132,9 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   multiplied by `s = width / 402` (capped at 520 wide). Read Reanimated shared values with
   `.get()` / `.set()` (React Compiler friendly). The pit stop plays once when the Board first
   loads and when the feed is pulled past its top (iOS overscroll); Reduce Motion turns it off.
+- **The task page** is always black too and hides the stack header (it draws its own). Its
+  countdown ticks with `useNow(1000)` inside `CountdownCard` only, so the rest of the page
+  (and the Skia holo card) doesn't re-render every second.
 - Prettier formats; ESLint (Expo + Convex + Prettier rules) must pass.
 
 ## How to run

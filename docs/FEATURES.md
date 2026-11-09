@@ -66,6 +66,65 @@ flowchart LR
 A rejected task loops back to its owner with a reason. Today Cadence covers planning and
 proposals; status updates arrive in Phase 3, and peer review and verification in Phase 5.
 
+### Step by step
+
+The whole system, from joining the team to shipping a feature. Steps 1 to 4 are built; the
+rest arrive in the phase shown.
+
+1. **Join (built).** The admin invites an email with a role and a title (e.g. CTO). The person
+   signs up with that email; nobody else can. Admins plan and decide; members do the work.
+   Deactivated accounts can't get in.
+2. **Plan the feature (built).** After a meeting, the admin creates the feature, on the web or
+   phone: what it is, the expected result, which meeting agreed it and a hard deadline. It
+   starts as **Planned**.
+3. **Plan its tasks (built).** The admin splits the feature into tasks. Each gets one owner, a
+   deadline no later than the feature's, a priority, a type and at least one acceptance
+   criterion. Code tasks also get a peer reviewer, who can't be the owner. A new task starts as
+   **To do**.
+   - _Side door, proposals:_ anyone can suggest a task under a feature. The admin approves it
+     (sets the owner, deadline and final criteria, and it becomes To do) or declines it with a
+     reason (kept as Declined).
+4. **Everyone sees everything (built).** The Board, its tile pages, feature pages, task pages,
+   My Tasks and the Admin tab all show the same live data; a change appears on every device
+   within seconds.
+5. **Do the work (Phase 3).** The owner moves their task to **In progress** or **Blocked**, sets
+   a progress % and comments. Once a deadline passes without verification, the task is flagged
+   **overdue** automatically. The owner can ask for a new deadline with a reason and a type; the
+   admin decides. An extension counts as late if it was asked for within 24 hours of the
+   deadline or isn't a meeting-agreed scope change. Every change goes into the activity log.
+6. **Daily logs (Phase 4).** Each weekday, everyone writes a short log: what I did, what's next,
+   blockers, and which tasks it touched. Missed weekdays are recorded. Weekends get an optional
+   one-liner that is never counted as missed.
+7. **Peer review (Phase 5, code tasks only).** The owner asks for review (**In peer review**);
+   the reviewer approves it or sends it back with comments. The CTO reviews the CEO's code and
+   the CEO reviews the CTO's.
+8. **Submit (Phase 5).** The owner submits with a note and optional proof (a link, screenshot or
+   PR). The task becomes **Submitted**; the owner's part is done.
+9. **Verify (Phase 5).** The admin checks each acceptance criterion. The task becomes
+   **Verified**, or goes to **Changes requested** with a reason and back to step 5. The CEO
+   verifies the admin's own tasks, so nobody approves their own work. Only Verified counts as
+   done.
+10. **Ship the feature (Phase 5).** When every task in a feature is verified, the feature moves to
+    **Internal testing**; the admin marks it **Shipped** once it's live. A shipped feature takes
+    no new work.
+11. **Notifications and release (Phase 6).** Instant pushes only for: a task assigned to you, a
+    review or verification request, a verified or changes-requested decision, and an extension or
+    proposal decision. An 8am GMT digest lists your tasks due within 48 hours, your overdue ones,
+    reviews waiting on you and whether yesterday's log is missing; an 8pm reminder comes if
+    today's log isn't in. Then a TestFlight build and a web deploy.
+
+### Whose move it is
+
+Each status says who has to act next.
+
+| Status                                         | Whose move                                                 |
+| ---------------------------------------------- | ---------------------------------------------------------- |
+| Proposed                                       | The admin (approve or decline)                             |
+| To do, In progress, Blocked, Changes requested | The owner                                                  |
+| In peer review                                 | The peer reviewer                                          |
+| Submitted                                      | The verifier (the admin, or the CEO for the admin's tasks) |
+| Verified, Declined                             | Nobody; it's finished                                      |
+
 ### Task statuses
 
 | Status            | What it means                                          | Colour on the Board |
@@ -167,10 +226,37 @@ planned it, then its tasks and any proposals waiting for approval. Admins get **
 
 ### The task page
 
-Shows the status, priority and type, the title, a link back to its feature, the owner, the peer
-reviewer (code tasks), the deadline (with "Originally …" if it moved), who proposed it, the
-description and the numbered acceptance criteria. Admins get **Edit task**. A declined proposal
-shows the reason in a red box.
+Like the Board, the task page is always black. From top to bottom:
+
+- **Header.** A round back button on its own, then the task's title in big letters with "Part of
+  <feature>" under it (or "Proposed for <feature>"). Go back to reach the feature.
+- **The status card.** A black card whose huge shiny word is the task's status (TO DO, IN
+  PROGRESS, IN REVIEW, VERIFIED…), with the owner's name (or the proposer's) and the task type
+  along the bottom. On iPhone it tilts in 3D: press and hold it for a moment, then drag, and the
+  rainbow shine follows your finger; let go and it wobbles back. It also wobbles once when the
+  page opens, so people find out it moves. A verified task's card shines brighter. On the web the
+  card holds still.
+- **The countdown card (lavender).** "Task due in 2d 14h 33m 07s", ticking every second with
+  digits that roll like a car's odometer. Under it, the task's own deadline ("originally …" if it
+  moved) and the feature's deadline, so it's clear which is which. The priority sits on a pink
+  tag, and the progress bar at the bottom. Once the deadline passes, the card turns red and the
+  clock counts up ("Task late by …"). A yellow sticker says **LATE**, **TODAY** (due today) or
+  **URGENT**. A verified task shows "Done" and the day it was verified. A proposal shows "No
+  deadline yet".
+- **Description** on a dark card, if there is one.
+- **Who's on it.** Pastel cards: the owner (orange, with the priority), the peer reviewer for code
+  tasks (blue) and whoever proposed it (pink), each with initials, name and title. Someone who
+  has left is tagged "Deactivated".
+- **Acceptance criteria** on a dark card, numbered; they turn into ticks once the task is verified.
+- **Buttons (admins only).** **Edit task**. Members have no buttons yet; updating your own task
+  arrives in Phase 3.
+
+On a proposal, a lavender note says it's waiting for an admin (for the admin: waiting for your
+review), and the admin gets **Review & approve** and **Decline**. **Decline** opens a box for the
+reason. A declined proposal shows the reason in a red note.
+
+With Reduce Motion on, the card doesn't wobble, the digits change without rolling and the
+sticker doesn't pop.
 
 ### Planning a feature (admin)
 

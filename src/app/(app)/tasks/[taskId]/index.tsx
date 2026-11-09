@@ -1,219 +1,200 @@
-import { useMutation, useQuery } from "convex/react";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Alert, Button, Card, Input, Label, Separator, TextField, Typography } from "heroui-native";
-import { useState, type JSX } from "react";
-import { Pressable, View } from "react-native";
+import { useQuery } from "convex/react";
+import { Stack, useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import type { JSX } from "react";
+import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { formatDeadline } from "@convex/lib/dates";
-import type { UserSummary } from "@convex/lib/views";
 
-import { LoadingScreen } from "@/components/loading-screen";
-import { PriorityText, StatusChip } from "@/components/planning/badges";
-import { DeadlineText } from "@/components/planning/deadline-text";
-import { DetailRow } from "@/components/planning/detail";
-import { FormError } from "@/components/planning/form-error";
-import { NotFound } from "@/components/planning/not-found";
-import { Screen } from "@/components/screen";
-import { TASK_KIND_LABELS } from "@/constants/labels";
-import { getErrorMessage } from "@/lib/errors";
+import { fonts, MAX_BOARD_WIDTH, REFERENCE_WIDTH } from "@/components/board/board-theme";
+import { CountdownCard } from "@/components/task/countdown-card";
+import { HoloCard } from "@/components/task/holo-card";
+import { PeopleCards, type PersonCard } from "@/components/task/people-cards";
+import { TaskActions } from "@/components/task/task-actions";
+import { shortDay } from "@/components/task/task-dates";
+import { PageHeader, RoundButton } from "@/components/task/task-header";
+import { CriteriaCard, DescriptionCard, TaskBanner } from "@/components/task/task-panels";
+import { taskSymbols } from "@/components/task/task-symbols";
+import { STATUS_WORDS, taskColors } from "@/components/task/task-theme";
+import { TASK_KIND_LABELS, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/constants/labels";
 import { useSignedInUser } from "@/lib/use-current-user";
 
-function person(user: UserSummary | null, fallback: string): string {
-  if (user === null) return fallback;
-  return `${user.name} · ${user.title}${user.isActive ? "" : " (deactivated)"}`;
-}
+const GUTTER = 18;
 
+/**
+ * A task, in the Board's black style: back button, its title (and the feature it's part of), a
+ * holographic card spelling its status (after Native Cook's "Holo Cash Card"), a lavender
+ * countdown to the task's own deadline (with the feature's beside it), its description, the people
+ * on it as pastel cards (after the team's fitness-app reference), its acceptance criteria, and the
+ * admin's pill buttons. Always black, whatever the theme.
+ */
 export default function TaskScreen(): JSX.Element {
   const { taskId } = useLocalSearchParams<{ taskId: Id<"tasks"> }>();
   const data = useQuery(api.tasks.get, { taskId });
   const user = useSignedInUser();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
+  const { width: windowWidth } = useWindowDimensions();
+  const width = Math.min(windowWidth, MAX_BOARD_WIDTH);
+  const s = width / REFERENCE_WIDTH;
+  const content = width - GUTTER * 2;
   const isAdmin = user.role === "admin";
 
-  if (data === undefined) return <LoadingScreen />;
-  if (data === null) return <NotFound what="task" />;
-  const { task, feature } = data;
-  const isProposal = task.status === "proposed";
-  const deadlineMoved =
-    task.originalDeadline !== undefined &&
-    task.deadline !== undefined &&
-    task.originalDeadline !== task.deadline;
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/"));
 
-  return (
-    <Screen withHeader>
-      <Stack.Screen options={{ title: isProposal ? "Proposal" : "Task" }} />
-
-      <View className="gap-2">
-        <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
-          <StatusChip status={task.status} />
-          <PriorityText priority={task.priority} />
-          <Typography type="body-xs" color="muted">
-            {TASK_KIND_LABELS[task.kind]}
-          </Typography>
-        </View>
-        <Typography.Heading type="h3">{task.title}</Typography.Heading>
-        <Pressable
-          accessibilityRole="link"
-          onPress={() =>
-            router.push({ pathname: "/features/[featureId]", params: { featureId: feature._id } })
-          }
-          className="self-start active:opacity-60"
-        >
-          <Typography type="body-sm" className="text-link">
-            {feature.title} ›
-          </Typography>
-        </Pressable>
+  let body: JSX.Element;
+  if (data === undefined) {
+    body = (
+      <View style={{ paddingTop: 80, alignItems: "center" }}>
+        <ActivityIndicator color={taskColors.white} />
       </View>
+    );
+  } else if (data === null) {
+    body = (
+      <View style={{ gap: 24 }}>
+        <View style={{ flexDirection: "row" }}>
+          <RoundButton symbol={taskSymbols.back} label="Back" onPress={goBack} s={s} />
+        </View>
+        <Text style={{ fontFamily: fonts.medium, fontSize: 15, color: taskColors.secondary }}>
+          This task doesn&apos;t exist.
+        </Text>
+      </View>
+    );
+  } else {
+    const { task, feature } = data;
+    const isProposal = task.status === "proposed";
+    const isDeclined = task.status === "declined";
+    const isLive = !isProposal && !isDeclined;
+    const edit = () =>
+      router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId: task._id } });
 
-      {task.status === "declined" ? (
-        <Alert status="danger">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Proposal declined</Alert.Title>
-            <Alert.Description>{task.declineReason ?? "No reason given."}</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
-      {isProposal && !isAdmin ? (
-        <Typography type="body-sm" color="muted">
-          Waiting for the admin to approve it. Owner, deadline and final acceptance criteria are set
-          on approval.
-        </Typography>
-      ) : null}
-
-      <Card>
-        <Card.Body className="gap-4">
-          {!isProposal && task.status !== "declined" ? (
-            <>
-              <DetailRow label="Owner">{person(task.owner, "Unassigned")}</DetailRow>
-              {task.kind === "code" ? (
-                <DetailRow label="Peer reviewer">{person(task.peerReviewer, "Not set")}</DetailRow>
-              ) : null}
-              <DetailRow label="Deadline">
-                <View className="gap-0.5">
-                  <DeadlineText deadline={task.deadline} status={task.status} />
-                  {deadlineMoved && task.originalDeadline !== undefined ? (
-                    <Typography type="body-xs" color="muted">
-                      Originally {formatDeadline(task.originalDeadline)}
-                    </Typography>
-                  ) : null}
-                </View>
-              </DetailRow>
-            </>
-          ) : null}
-          {task.proposer !== null ? (
-            <DetailRow label="Proposed by">{person(task.proposer, "Someone")}</DetailRow>
-          ) : null}
-          {task.description !== "" ? (
-            <DetailRow label="Description">{task.description}</DetailRow>
-          ) : null}
-          <Separator />
-          <DetailRow label={isProposal ? "Suggested acceptance criteria" : "Acceptance criteria"}>
-            {task.acceptanceCriteria.length === 0 ? (
-              <Typography type="body-sm" color="muted">
-                None yet.
-              </Typography>
-            ) : (
-              <View className="gap-2">
-                {task.acceptanceCriteria.map((criterion, index) => (
-                  <View key={index} className="flex-row gap-2">
-                    <Typography type="body" color="muted" className="w-5 text-right">
-                      {index + 1}.
-                    </Typography>
-                    <Typography type="body" className="flex-1">
-                      {criterion}
-                    </Typography>
-                  </View>
-                ))}
-              </View>
-            )}
-          </DetailRow>
-        </Card.Body>
-      </Card>
-
-      {isAdmin && isProposal ? <ProposalActions taskId={task._id} /> : null}
-      {isAdmin && !isProposal && task.status !== "declined" ? (
-        <Button
-          variant="secondary"
-          onPress={() =>
-            router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId: task._id } })
-          }
-        >
-          Edit task
-        </Button>
-      ) : null}
-    </Screen>
-  );
-}
-
-/** Admin: approve (opens the plan form) or decline with a reason. */
-function ProposalActions({ taskId }: { taskId: Id<"tasks"> }): JSX.Element {
-  const router = useRouter();
-  const declineProposal = useMutation(api.tasks.declineProposal);
-  const [isDeclining, setIsDeclining] = useState(false);
-  const [reason, setReason] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  async function decline() {
-    if (reason.trim() === "") {
-      setError("Give a reason so the proposer knows why.");
-      return;
+    const people: PersonCard[] = [];
+    if (isLive) {
+      people.push({
+        role: "Owner",
+        user: task.owner,
+        fallback: "Unassigned",
+        color: taskColors.peach,
+        tag: TASK_PRIORITY_LABELS[task.priority],
+      });
+      if (task.kind === "code") {
+        people.push({
+          role: "Peer reviewer",
+          user: task.peerReviewer,
+          fallback: "Not set",
+          color: taskColors.sky,
+          tag: TASK_KIND_LABELS.code,
+        });
+      }
     }
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      await declineProposal({ taskId, reason });
-      setIsDeclining(false);
-    } catch (e) {
-      setError(getErrorMessage(e));
-    } finally {
-      setIsSubmitting(false);
+    if (task.proposer !== null) {
+      people.push({
+        role: "Proposed by",
+        user: task.proposer,
+        fallback: "Someone",
+        color: taskColors.pink,
+      });
     }
-  }
 
-  if (isDeclining) {
-    return (
-      <Card>
-        <Card.Body className="gap-4">
-          <FormError message={error} />
-          <TextField isRequired>
-            <Label>Why are you declining it?</Label>
-            <Input
-              value={reason}
-              onChangeText={setReason}
-              placeholder="e.g. Out of scope for v1"
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-          </TextField>
-          <View className="flex-row gap-3">
-            <Button variant="secondary" className="flex-1" onPress={() => setIsDeclining(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" className="flex-1" onPress={decline} isDisabled={isSubmitting}>
-              {isSubmitting ? "Declining…" : "Decline"}
-            </Button>
-          </View>
-        </Card.Body>
-      </Card>
+    const holder = isLive
+      ? ["OWNED BY", task.owner?.name ?? "Unassigned"]
+      : ["PROPOSED BY", task.proposer?.name ?? "Someone"];
+
+    body = (
+      <View style={{ gap: 22 * s }}>
+        <PageHeader
+          s={s}
+          title={task.title}
+          subtitle={`${isLive ? "Part of" : "Proposed for"} ${feature.title}`}
+          onBack={goBack}
+        />
+
+        <HoloCard
+          width={content}
+          word={STATUS_WORDS[task.status]}
+          footer={[holder[0], holder[1].toUpperCase()]}
+          corner={TASK_KIND_LABELS[task.kind].toUpperCase()}
+          glow={task.status === "verified" ? 1 : 0}
+          accessibilityLabel={`Status: ${TASK_STATUS_LABELS[task.status]}. ${TASK_KIND_LABELS[task.kind]} task.`}
+        />
+
+        {isDeclined ? (
+          <TaskBanner
+            s={s}
+            tone="declined"
+            title="Proposal declined"
+            body={task.declineReason ?? "No reason given."}
+          />
+        ) : null}
+        {isProposal ? (
+          <TaskBanner
+            s={s}
+            tone="waiting"
+            title={isAdmin ? "Waiting for your review" : "Waiting for an admin"}
+            body={
+              isAdmin
+                ? "Approve it to set the owner, deadline and final acceptance criteria, or decline it with a reason."
+                : "The owner, deadline and final acceptance criteria are set when an admin approves it."
+            }
+          />
+        ) : null}
+
+        {!isDeclined ? (
+          <CountdownCard
+            s={s}
+            subject="Task"
+            deadline={task.deadline}
+            originalDeadline={task.originalDeadline}
+            finished={
+              task.status === "verified" ? { verb: "Verified", at: task.verifiedAt } : undefined
+            }
+            tag={{
+              text: TASK_PRIORITY_LABELS[task.priority].toUpperCase(),
+              spoken: `Priority ${TASK_PRIORITY_LABELS[task.priority]}`,
+            }}
+            urgent={task.priority === "urgent"}
+            progress={task.progress}
+            dueNote={`feature due ${shortDay(feature.deadline)}`}
+            noDeadlineNote="Set when an admin approves it"
+          />
+        ) : null}
+        {task.description !== "" ? <DescriptionCard s={s} text={task.description} /> : null}
+        {people.length > 0 ? <PeopleCards width={content} s={s} people={people} /> : null}
+        <CriteriaCard
+          s={s}
+          criteria={task.acceptanceCriteria}
+          suggested={!isLive}
+          verified={task.status === "verified"}
+        />
+        <TaskActions
+          taskId={task._id}
+          isAdmin={isAdmin}
+          isProposal={isProposal}
+          isDeclined={isDeclined}
+          onEdit={edit}
+        />
+      </View>
     );
   }
 
   return (
-    <View className="flex-row gap-3">
-      <Button
-        className="flex-1"
-        onPress={() => router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId } })}
+    <View style={{ flex: 1, backgroundColor: taskColors.page }}>
+      <Stack.Screen options={{ title: data?.task.status === "proposed" ? "Proposal" : "Task" }} />
+      {isFocused ? <StatusBar style="light" /> : null}
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={{
+          paddingTop: insets.top + 8,
+          paddingBottom: insets.bottom + 40,
+          alignItems: "center",
+        }}
       >
-        Review & approve
-      </Button>
-      <Button variant="danger-soft" className="flex-1" onPress={() => setIsDeclining(true)}>
-        Decline
-      </Button>
+        <View style={{ width: content }}>{body}</View>
+      </ScrollView>
     </View>
   );
 }

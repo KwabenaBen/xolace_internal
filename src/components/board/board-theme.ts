@@ -51,13 +51,17 @@ export const STATUS_COLORS: Record<TaskStatus, { fill: string; ink: string }> = 
   changes_requested: { fill: colors.yellow, ink: colors.black },
 };
 
-/** Montserrat (OFL, assets/fonts) as registered with expo-font in the root layout. */
+/**
+ * The app's display fonts (OFL, assets/fonts), registered with expo-font in the root layout:
+ * Montserrat for the Board and task page, Anton (condensed) for the task page's holo wordmark.
+ */
 export const BOARD_FONT_FILES = {
   "Montserrat-Medium": require("../../../assets/fonts/Montserrat-Medium.ttf"),
   "Montserrat-SemiBold": require("../../../assets/fonts/Montserrat-SemiBold.ttf"),
   "Montserrat-Bold": require("../../../assets/fonts/Montserrat-Bold.ttf"),
   "Montserrat-ExtraBold": require("../../../assets/fonts/Montserrat-ExtraBold.ttf"),
   "Montserrat-Black": require("../../../assets/fonts/Montserrat-Black.ttf"),
+  "Anton-Regular": require("../../../assets/fonts/Anton-Regular.ttf"),
 } as const;
 
 export const fonts = {
@@ -66,6 +70,7 @@ export const fonts = {
   bold: "Montserrat-Bold",
   extraBold: "Montserrat-ExtraBold",
   black: "Montserrat-Black",
+  condensed: "Anton-Regular",
   serif: Platform.select({ ios: "ui-serif", default: "serif" }),
 } as const;
 

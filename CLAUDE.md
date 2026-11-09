@@ -25,22 +25,34 @@ before starting a phase.**
 src/app/                 Expo Router routes
   _layout.tsx            Providers, offline banner, auth gate (Stack.Protected)
   (auth)/                welcome → sign-in / sign-up (signed-out only; always black)
-  (app)/                 Tabs: Board (index), My Tasks, Logs, Profile, Admin (admins only)
+  (app)/_layout.tsx      Stack: loads the user, then (tabs) + pages + modal forms
+  (app)/(tabs)/          Tabs: Board (index), My Tasks, Logs, Profile, Admin (admins only)
+  (app)/features/        new (modal), [featureId]/index (page), [featureId]/edit (modal)
+  (app)/tasks/           new (modal: admin creates / member proposes), [taskId]/index (page),
+                         [taskId]/edit (modal: edit a live task, or approve a proposal)
 src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ...)
   auth/                  Signed-out UI: DotField (dots that spell "cadence"; dot-field.tsx = Skia,
                          dot-field.web.tsx = canvas, math in dot-formations.ts), DotWordmark,
                          PillButton, AuthTextField, AuthFormScreen
+  planning/              Features & tasks UI: TaskCard, FeatureGroup, badges, DeadlineText,
+                         OptionPicker (modal select), ChoiceChips, CriteriaEditor, DateField
+                         (.web.tsx = browser date input), FeatureForm, TaskForm, AdminOnly
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
-src/lib/                 Convex client, auth token storage, error messages, hooks
+src/lib/                 Convex client, auth token storage, error messages, hooks (useNow, ...)
 convex/                  Backend (deployed by `bunx convex dev`)
   schema.ts              All tables + indexes
   auth.ts                Convex Auth: Password provider, invite gate, inactive gate
   users.ts invites.ts settings.ts   Public functions
+  features.ts            list, get, create, update (admin)
+  tasks.ts               board (filters), get, mine, proposals, create, update (admin),
+                         propose (anyone), approveProposal, declineProposal (admin)
   seed.ts                Internal seed mutation (CLI only)
   lib/                   Server helpers: auth (permissions), accounts, settings, activity,
-                         validators (enums), errors, constants
+                         validators (enums), errors, constants, dates (deadline dates, shared
+                         with the app), tasks (task rules), views (shapes sent to the app)
   tests/                 Vitest + convex-test
   test.setup.ts          Test helpers (never deployed: two dots in the name)
+scripts/                 generate-auth-keys.mjs, generate-route-types.mjs
 docs/                    Requirements
 ```
 
@@ -69,6 +81,12 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 - **Queries:** use indexes (`by_a_and_b` naming), bounded reads (`.take(n)`/pagination), and the
   table-name forms `ctx.db.get("table", id)` / `patch` / `delete`.
 - Emails are stored trimmed + lower-case (`normalizeEmail`).
+- **Tasks:** `kind` (code/design/content/operations/other); code tasks need a peer reviewer who
+  isn't the owner. Proposals (`status: "proposed"`) have no owner/deadline until an admin approves
+  them (→ `"todo"`, `originalDeadline` set) or declines them (→ `"declined"` + `declineReason`,
+  kept, never on the board). All task-plan rules live in `validateTaskPlan` (`convex/lib/tasks.ts`):
+  active owner/reviewer, ≥1 acceptance criterion, deadline not past and ≤ the feature's. A
+  feature's deadline can't move before its latest task deadline. Shipped features take no new work.
 
 **App**
 
@@ -83,6 +101,13 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   initialization") — on iOS and web alike.
 - Animations must respect Reduce Motion (`useReducedMotion()` on native,
   `prefers-reduced-motion` on web).
+- Don't call `Date.now()` during render (React Compiler lint rule): use `useNow()`
+  (`src/lib/use-now.ts`), which also re-renders each minute so "Overdue" labels stay current.
+- Navigate with typed hrefs, e.g. `router.push({ pathname: "/tasks/[taskId]", params: { taskId } })`.
+  Route types live in `.expo/types/router.d.ts`; **on Windows the dev server's watcher writes
+  them wrong for files added while it runs** — `bun run typegen` (or a dev-server restart) fixes
+  them, and `bun run typecheck` runs it first.
+- Selects use `OptionPicker` (RN `Modal`), not HeroUI's Select, so they work on web too.
 - Prettier formats; ESLint (Expo + Convex + Prettier rules) must pass.
 
 ## How to run
@@ -106,20 +131,22 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 
 - `bun run convex` — Convex dev server (pushes `convex/` on save, regenerates `_generated`).
 - `bun start` — Expo dev server; `w` for web. `bun run web` opens web directly.
-- iOS: no Mac on the main dev machine, so no iOS Simulator. Expo Go on the App Store supports
-  SDK 57 until its SDK 58 update ships; otherwise use an EAS development build (see Open decisions).
+- iOS: no Mac on the main dev machine, so no iOS Simulator. Use Expo Go (App Store, SDK 58) on
+  an iPhone on the same Wi-Fi: sign in to the **same Expo account** in Expo Go and in the CLI.
+  On Windows, `expo login`'s browser flow crashes (its `start` command splits the URL at `&`),
+  so use `bunx expo login --no-browser`. If the phone can't connect, `bunx expo start --tunnel`.
 - `bun run test` (Vitest + convex-test), `bun run lint`, `bun run typecheck`, `bun run format`.
 
 ## Phases
 
-- [ ] **Phase 1 — Foundation:** Expo (iOS + web) + Convex, schema for all tables, Convex Auth
+- [x] **Phase 1 — Foundation:** Expo (iOS + web) + Convex, schema for all tables, Convex Auth
       (email + password, invite-only), admin/member roles, permission helpers, settings, seed,
-      app shell with tabs, offline banner. _Built and verified (tests, lint, typecheck, iOS + web
-      bundles, web smoke test); the four real invites and default settings are seeded on the dev
-      deployment. Tick once a real sign-up works and the app has run on an iPhone._
+      app shell with tabs, offline banner, welcome screen (dots spell "cadence"). Real invites
+      seeded on dev; real sign-up done; runs on iPhone via Expo Go. Branch `cadence-phase-1`.
 - [ ] **Phase 2 — Features & tasks:** create/edit features and tasks with acceptance criteria
       (admin, web + phone), proposals + approval, owner/peer reviewer/deadline, shared board with
-      filters, task detail.
+      filters, task detail. Branch `cadence-phase-2`. _Built; server rules covered by tests. Tick
+      once an admin and a member have walked through it on iPhone and web._
 - [ ] **Phase 3 — Progress & extensions:** status changes, progress %, comments, overdue flag,
       extension requests + late rule, activity log.
 - [ ] **Phase 4 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.
@@ -130,12 +157,9 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 
 ## Open decisions (carry forward)
 
-- **iOS testing route** without a Mac: EAS development build (recommended), wait for Expo Go
-  SDK 58, or `eas go`. Needs an iOS bundle identifier in `app.json`.
 - **App identity:** `app.json` still has the template's name/slug (`xolace_internal`) and scheme
-  (`heroui-native-app`); the product name is "Cadence".
-- **Code tasks:** currently "a task with a `peerReviewerId`". A task `kind` field was proposed
-  but not approved.
+  (`heroui-native-app`); the product name is "Cadence". An iOS bundle identifier is needed
+  before EAS builds (Phase 6).
 - **Known HeroUI-on-web issue:** in the web dev build, HeroUI's `Button` logs
   `[colorKit.RGB] … default color "black" will be used` (its JS colour parser can't read the
   `lab()`/`color-mix()` values theme variables resolve to on web), so the press highlight is

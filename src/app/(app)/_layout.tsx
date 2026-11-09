@@ -1,83 +1,45 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router/js-tabs";
+import { Stack } from "expo-router";
 import { useThemeColor } from "heroui-native";
-import type { ComponentProps, JSX } from "react";
-import type { ColorValue } from "react-native";
+import type { JSX } from "react";
 
 import { AccountUnavailable } from "@/components/account-unavailable";
 import { LoadingScreen } from "@/components/loading-screen";
-import { layout } from "@/constants/theme";
 import { useCurrentUser } from "@/lib/use-current-user";
 
-type IoniconName = ComponentProps<typeof Ionicons>["name"];
-
-function TabIcon({ name, color }: { name: IoniconName; color: ColorValue }): JSX.Element {
-  // RN 0.88's `ColorValue` also admits `null` and processed numbers, which Ionicons rejects.
-  const iconColor = color === null || typeof color === "number" ? undefined : color;
-  return <Ionicons name={name} size={layout.tabIconSize} color={iconColor} />;
-}
-
+/**
+ * Signed-in area: the tabs, plus feature/task pages pushed over them and create/edit forms
+ * shown as modals. Renders only once the user's profile is loaded and active.
+ */
 export default function AppLayout(): JSX.Element {
   const user = useCurrentUser();
-  const [accent, muted, surface, border, background] = useThemeColor([
-    "accent",
-    "muted",
-    "surface",
-    "border",
-    "background",
-  ]);
+  const [background, surface, foreground] = useThemeColor(["background", "surface", "foreground"]);
 
   if (user === undefined) return <LoadingScreen />;
   if (user === null || !user.isActive) return <AccountUnavailable user={user} />;
 
   return (
-    <Tabs
+    <Stack
       screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: accent,
-        tabBarInactiveTintColor: muted,
-        tabBarStyle: { backgroundColor: surface, borderTopColor: border },
-        sceneStyle: { backgroundColor: background },
+        contentStyle: { backgroundColor: background },
+        headerStyle: { backgroundColor: surface },
+        headerTintColor: foreground,
+        headerShadowVisible: false,
+        headerBackButtonDisplayMode: "minimal",
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Board",
-          tabBarIcon: ({ color }) => <TabIcon name="albums-outline" color={color} />,
-        }}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="features/[featureId]/index" options={{ title: "Feature" }} />
+      <Stack.Screen name="tasks/[taskId]/index" options={{ title: "Task" }} />
+      <Stack.Screen name="features/new" options={{ title: "New feature", presentation: "modal" }} />
+      <Stack.Screen
+        name="features/[featureId]/edit"
+        options={{ title: "Edit feature", presentation: "modal" }}
       />
-      <Tabs.Screen
-        name="my-tasks"
-        options={{
-          title: "My Tasks",
-          tabBarIcon: ({ color }) => <TabIcon name="checkbox-outline" color={color} />,
-        }}
+      <Stack.Screen name="tasks/new" options={{ title: "New task", presentation: "modal" }} />
+      <Stack.Screen
+        name="tasks/[taskId]/edit"
+        options={{ title: "Edit task", presentation: "modal" }}
       />
-      <Tabs.Screen
-        name="logs"
-        options={{
-          title: "Logs",
-          tabBarIcon: ({ color }) => <TabIcon name="journal-outline" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => <TabIcon name="person-circle-outline" color={color} />,
-        }}
-      />
-      {/* UI-only: the admin tab is hidden from members, but every admin function also checks on the server. */}
-      <Tabs.Protected guard={user.role === "admin"}>
-        <Tabs.Screen
-          name="admin"
-          options={{
-            title: "Admin",
-            tabBarIcon: ({ color }) => <TabIcon name="shield-checkmark-outline" color={color} />,
-          }}
-        />
-      </Tabs.Protected>
-    </Tabs>
+    </Stack>
   );
 }

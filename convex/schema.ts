@@ -10,6 +10,7 @@ import {
   roleValidator,
   settingKeyValidator,
   settingValueValidator,
+  taskKindValidator,
   taskPriorityValidator,
   taskStatusValidator,
   verificationDecisionValidator,
@@ -69,12 +70,14 @@ export default defineSchema({
     featureId: v.id("features"),
     title: v.string(),
     description: v.string(),
+    kind: taskKindValidator, // "code" tasks must name a peer reviewer
     acceptanceCriteria: v.array(v.string()),
-    // Owner and deadline may be unset only while a task is "proposed"; mutations enforce
-    // them for every other status.
+    // Owner and deadline are unset only while a task is "proposed" or "declined"; mutations
+    // enforce them for every live status.
     ownerId: v.optional(v.id("users")),
     peerReviewerId: v.optional(v.id("users")), // set for code tasks
     proposedBy: v.optional(v.id("users")), // set when a member proposed the task
+    declineReason: v.optional(v.string()), // set when the admin declines a proposal
     deadline: v.optional(v.number()),
     originalDeadline: v.optional(v.number()),
     priority: taskPriorityValidator,
@@ -88,7 +91,8 @@ export default defineSchema({
     .index("by_ownerId_and_status", ["ownerId", "status"])
     .index("by_ownerId_and_deadline", ["ownerId", "deadline"])
     .index("by_status_and_deadline", ["status", "deadline"])
-    .index("by_peerReviewerId_and_status", ["peerReviewerId", "status"]),
+    .index("by_peerReviewerId_and_status", ["peerReviewerId", "status"])
+    .index("by_proposedBy_and_status", ["proposedBy", "status"]),
 
   extensionRequests: defineTable({
     taskId: v.id("tasks"),

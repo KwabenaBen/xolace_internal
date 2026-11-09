@@ -1,32 +1,56 @@
 import { useQuery } from "convex/react";
-import { Card, Chip, Separator, Spinner, Typography } from "heroui-native";
+import { useRouter } from "expo-router";
+import { Button, Card, Chip, Separator, Spinner, Typography } from "heroui-native";
 import { Fragment, type JSX } from "react";
 import { View } from "react-native";
 
 import { api } from "@convex/_generated/api";
 
+import { Section } from "@/components/planning/detail";
+import { TaskCard } from "@/components/planning/task-card";
 import { Screen } from "@/components/screen";
 import { ROLE_LABELS } from "@/constants/labels";
 import { typography } from "@/constants/theme";
 
 /**
  * Admin-only. The tab is hidden from members, and `invites.list` itself throws for
- * non-admins. User management and planning tools arrive in later phases.
+ * non-admins. User management arrives in a later phase.
  */
 export default function AdminScreen(): JSX.Element {
+  const router = useRouter();
+  const proposals = useQuery(api.tasks.proposals);
   const invites = useQuery(api.invites.list);
+  const featureTitle = new Map((proposals?.features ?? []).map((f) => [f._id, f.title]));
 
   return (
-    <Screen title="Admin" subtitle="Invites, users and team settings.">
-      <Card>
-        <Card.Body className="gap-2">
-          <Card.Title>Planning tools arrive in Phase 2</Card.Title>
-          <Typography type={typography.body} color="muted">
-            Creating features and tasks, approving proposals and managing users come next. For now,
-            here are the invites on file.
-          </Typography>
-        </Card.Body>
-      </Card>
+    <Screen
+      title="Admin"
+      subtitle="Proposals to review, and who's invited."
+      action={
+        <Button size="sm" onPress={() => router.push("/features/new")}>
+          New feature
+        </Button>
+      }
+    >
+      {proposals === undefined ? (
+        <Spinner />
+      ) : (
+        <Section
+          title="Proposals to review"
+          count={proposals.proposals.length}
+          empty="Nothing waiting. Proposals from the team show up here."
+        >
+          <View className="gap-3">
+            {proposals.proposals.map((task) => (
+              <TaskCard
+                key={task._id}
+                task={task}
+                featureTitle={featureTitle.get(task.featureId)}
+              />
+            ))}
+          </View>
+        </Section>
+      )}
 
       <View className="gap-3">
         <Typography.Heading type={typography.sectionTitle}>Invites</Typography.Heading>

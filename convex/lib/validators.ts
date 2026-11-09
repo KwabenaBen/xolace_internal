@@ -19,6 +19,7 @@ export type FeatureStatus = Infer<typeof featureStatusValidator>;
 
 export const taskStatusValidator = v.union(
   v.literal("proposed"),
+  v.literal("declined"), // a proposal the admin turned down; never on the board
   v.literal("todo"),
   v.literal("in_progress"),
   v.literal("blocked"),
@@ -28,6 +29,38 @@ export const taskStatusValidator = v.union(
   v.literal("changes_requested")
 );
 export type TaskStatus = Infer<typeof taskStatusValidator>;
+
+/** Statuses of tasks that are live on the board (everything except proposals). */
+export const LIVE_TASK_STATUSES = [
+  "todo",
+  "in_progress",
+  "blocked",
+  "in_peer_review",
+  "submitted",
+  "verified",
+  "changes_requested",
+] as const satisfies readonly TaskStatus[];
+
+export const liveTaskStatusValidator = v.union(
+  v.literal("todo"),
+  v.literal("in_progress"),
+  v.literal("blocked"),
+  v.literal("in_peer_review"),
+  v.literal("submitted"),
+  v.literal("verified"),
+  v.literal("changes_requested")
+);
+export type LiveTaskStatus = Infer<typeof liveTaskStatusValidator>;
+
+/** What kind of work a task is. Code tasks need a peer reviewer. */
+export const taskKindValidator = v.union(
+  v.literal("code"),
+  v.literal("design"),
+  v.literal("content"),
+  v.literal("operations"),
+  v.literal("other")
+);
+export type TaskKind = Infer<typeof taskKindValidator>;
 
 export const taskPriorityValidator = v.union(
   v.literal("low"),

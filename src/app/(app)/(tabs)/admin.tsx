@@ -7,19 +7,24 @@ import { Text, View } from "react-native";
 import { api } from "@convex/_generated/api";
 
 import { Screen } from "@/components/screen";
+import { ExtensionRow } from "@/components/task/extension-row";
 import { SectionTitle } from "@/components/ui/panel";
 import { TaskRow } from "@/components/ui/task-row";
 import { fonts, usePageColors } from "@/components/ui/theme";
 import { useNow } from "@/lib/use-now";
 
 /**
- * The Admin tab, shown to admins only (every admin action is also checked on the server): the
- * team's task proposals waiting for review, and New feature. Invites and the team itself live in
- * Settings → People.
+ * The Admin tab, shown to admins only (every admin action is also checked on the server):
+ * requests for more time that are theirs to decide, the team's task proposals waiting for review,
+ * and New feature. Invites and the team itself live in Settings → People.
  */
 export default function AdminScreen(): JSX.Element {
   const router = useRouter();
   const proposals = useQuery(api.tasks.proposals);
+  const extensions = useQuery(api.extensions.pending);
+  const toDecide = (extensions ?? []).filter((e) => e.canDecide);
+  const openTask = (taskId: string) =>
+    router.push({ pathname: "/tasks/[taskId]", params: { taskId } });
   const now = useNow();
   const c = usePageColors();
   const featureTitle = new Map((proposals?.features ?? []).map((f) => [f._id, f.title]));
@@ -27,13 +32,27 @@ export default function AdminScreen(): JSX.Element {
   return (
     <Screen
       title="Admin"
-      subtitle="Proposals waiting for your review. Invites are in Settings → People."
+      subtitle="Requests and proposals waiting for you. Invites are in Settings → People."
       action={
         <Button size="sm" onPress={() => router.push("/features/new")}>
           New feature
         </Button>
       }
     >
+      {toDecide.length > 0 ? (
+        <View style={{ gap: 12 }}>
+          <SectionTitle s={1} title="More time to decide" count={toDecide.length} />
+          {toDecide.map((item) => (
+            <ExtensionRow
+              key={item.request._id}
+              s={1}
+              item={item}
+              now={now}
+              onPress={() => openTask(item.task._id)}
+            />
+          ))}
+        </View>
+      ) : null}
       {proposals === undefined ? (
         <Spinner />
       ) : (
@@ -57,9 +76,7 @@ export default function AdminScreen(): JSX.Element {
                 task={task}
                 now={now}
                 featureTitle={featureTitle.get(task.featureId)}
-                onPress={() =>
-                  router.push({ pathname: "/tasks/[taskId]", params: { taskId: task._id } })
-                }
+                onPress={() => openTask(task._id)}
               />
             ))
           )}

@@ -21,7 +21,7 @@ export const BOARD_LISTS: Record<
   },
   waiting: {
     title: "waiting",
-    subtitle: "Proposals waiting for the admin to approve or decline them.",
+    subtitle: "Requests for more time and proposals, waiting for a decision.",
     empty: "No proposals are waiting.",
   },
 };

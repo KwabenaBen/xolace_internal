@@ -474,7 +474,10 @@ describe("edit rules (audit batch 3)", () => {
     expect(board.map((g) => g.feature._id)).toEqual([liveFeature]);
     const picked = await ceo.asUser.query(api.tasks.board, { featureId: doneFeature });
     expect(picked[0].tasks).toHaveLength(1);
-    expect(await ceo.asUser.query(api.tasks.waitingCount, {})).toBe(1);
+    expect(await ceo.asUser.query(api.tasks.waitingCount, {})).toEqual({
+      proposals: 1,
+      extensions: 0,
+    });
   });
 
   test("a deactivated member can't read the board or a task", async () => {

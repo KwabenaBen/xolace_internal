@@ -7,15 +7,22 @@ import { Text, View } from "react-native";
 import { api } from "@convex/_generated/api";
 
 import { Screen } from "@/components/screen";
+import { ExtensionRow } from "@/components/task/extension-row";
 import { SectionTitle } from "@/components/ui/panel";
 import { TaskRow } from "@/components/ui/task-row";
 import { fonts, usePageColors } from "@/components/ui/theme";
 import { useSignedInUser } from "@/lib/use-current-user";
 import { useNow } from "@/lib/use-now";
 
-/** Your work: what you own, soonest deadline first, and what you've proposed. */
+/**
+ * Your work: requests for more time waiting on your decision (an admin's, or the admin task
+ * reviewer's for an admin's own task), what you own, soonest deadline first, and what you've
+ * proposed.
+ */
 export default function MyTasksScreen(): JSX.Element {
   const data = useQuery(api.tasks.mine);
+  const extensions = useQuery(api.extensions.pending);
+  const waitingOnMe = (extensions ?? []).filter((e) => e.canDecide);
   const user = useSignedInUser();
   const router = useRouter();
   const now = useNow();
@@ -44,6 +51,20 @@ export default function MyTasksScreen(): JSX.Element {
         </Button>
       }
     >
+      {waitingOnMe.length > 0 ? (
+        <View style={{ gap: 12 }}>
+          <SectionTitle s={1} title="Waiting on you" count={waitingOnMe.length} />
+          {waitingOnMe.map((item) => (
+            <ExtensionRow
+              key={item.request._id}
+              s={1}
+              item={item}
+              now={now}
+              onPress={() => openTask(item.task._id)}
+            />
+          ))}
+        </View>
+      ) : null}
       <View style={{ gap: 12 }}>
         <SectionTitle s={1} title="Assigned to me" count={data.owned.length} />
         {data.owned.length === 0 ? (

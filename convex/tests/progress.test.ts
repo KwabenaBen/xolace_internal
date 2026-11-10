@@ -257,8 +257,11 @@ describe("extension requests", () => {
       cto.asUser.mutation(api.extensions.decide, { requestId, approve: true }),
       "FORBIDDEN"
     );
-    expect(await coo.asUser.query(api.extensions.waitingOnMe, {})).toHaveLength(1);
-    expect(await ceo.asUser.query(api.extensions.waitingOnMe, {})).toHaveLength(0);
+    const forAdmin = await coo.asUser.query(api.extensions.pending, {});
+    const forMember = await ceo.asUser.query(api.extensions.pending, {});
+    expect(forAdmin.map((p) => p.canDecide)).toEqual([true]);
+    // Everyone sees it waiting; only the decider may answer it.
+    expect(forMember.map((p) => p.canDecide)).toEqual([false]);
     const view = await cto.asUser.query(api.extensions.forTask, { taskId });
     expect(view).toMatchObject({ canDecide: false, decider: { kind: "admins" } });
 

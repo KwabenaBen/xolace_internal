@@ -21,11 +21,14 @@ import {
   usePageSize,
 } from "@/components/ui/detail-page";
 import { PageHeader } from "@/components/ui/page-header";
+import { SectionTitle } from "@/components/ui/panel";
+import { ExtensionRow } from "@/components/task/extension-row";
 import { useNow } from "@/lib/use-now";
 
 /**
- * The tasks behind one of the Board's quick tiles — due this week, overdue, or proposals
- * waiting — grouped by feature, with the same header as the other detail pages.
+ * The tasks behind one of the Board's quick tiles — due this week, overdue, or what's waiting
+ * for a decision (requests for more time first, then proposals) — grouped by feature, with the
+ * same header as the other detail pages.
  */
 export default function BoardListScreen(): JSX.Element {
   const { view } = useLocalSearchParams<{ view: string }>();
@@ -37,6 +40,9 @@ export default function BoardListScreen(): JSX.Element {
 
   const board = useQuery(api.tasks.board, known && view !== "waiting" ? {} : "skip");
   const proposals = useQuery(api.tasks.proposals, view === "waiting" ? {} : "skip");
+  const extensions = useQuery(api.extensions.pending, view === "waiting" ? {} : "skip");
+  const openTask = (taskId: string) =>
+    router.push({ pathname: "/tasks/[taskId]", params: { taskId } });
 
   let groups: BoardGroup[] | undefined;
   if (known) {
@@ -59,11 +65,30 @@ export default function BoardListScreen(): JSX.Element {
             title={copy.title}
             subtitle={
               count !== undefined
-                ? `${plural(count, view === "waiting" ? "proposal" : "task")} · ${copy.subtitle}`
+                ? `${
+                    view === "waiting"
+                      ? `${plural(extensions?.length ?? 0, "request")} · ${plural(count, "proposal")}`
+                      : plural(count, "task")
+                  } · ${copy.subtitle}`
                 : copy.subtitle
             }
             onBack={goBack}
           />
+          {view === "waiting" && extensions !== undefined && extensions.length > 0 ? (
+            <View style={{ gap: 12 * s }}>
+              <SectionTitle s={s} title="More time asked for" count={extensions.length} />
+              {extensions.map((item) => (
+                <ExtensionRow
+                  key={item.request._id}
+                  s={s}
+                  item={item}
+                  now={now}
+                  onPress={() => openTask(item.task._id)}
+                />
+              ))}
+              <SectionTitle s={s} title="Proposals" count={count} />
+            </View>
+          ) : null}
           {groups === undefined ? (
             <PageLoading />
           ) : (
@@ -74,9 +99,7 @@ export default function BoardListScreen(): JSX.Element {
               onOpenFeature={(featureId) =>
                 router.push({ pathname: "/features/[featureId]", params: { featureId } })
               }
-              onOpenTask={(taskId) =>
-                router.push({ pathname: "/tasks/[taskId]", params: { taskId } })
-              }
+              onOpenTask={openTask}
             />
           )}
         </View>

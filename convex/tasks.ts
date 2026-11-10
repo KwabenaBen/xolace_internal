@@ -99,17 +99,24 @@ export const board = query({
   },
 });
 
-/** How many proposals are waiting for an admin (the Board's waiting tile). */
+/**
+ * What's waiting for a decision (the Board's waiting tile): proposals for an admin to approve
+ * or decline, and requests for more time.
+ */
 export const waitingCount = query({
   args: {},
-  returns: v.number(),
+  returns: v.object({ proposals: v.number(), extensions: v.number() }),
   handler: async (ctx) => {
     await requireUser(ctx);
-    const pending = await ctx.db
+    const proposals = await ctx.db
       .query("tasks")
       .withIndex("by_status_and_deadline", (q) => q.eq("status", "proposed"))
       .take(500);
-    return pending.length;
+    const extensions = await ctx.db
+      .query("extensionRequests")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .take(500);
+    return { proposals: proposals.length, extensions: extensions.length };
   },
 });
 

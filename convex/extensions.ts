@@ -251,34 +251,40 @@ export const forTask = query({
   },
 });
 
-/** The requests waiting for the caller's decision, oldest first, with their task and feature. */
-export const waitingOnMe = query({
+/**
+ * Every request waiting for a decision (everyone sees everything), oldest first, with its task
+ * and feature, and whether the caller is the one to decide it (the Admin tab and My Tasks list
+ * those; the Board's waiting page lists them all).
+ */
+export const pending = query({
   args: {},
   returns: v.array(
     v.object({
       request: extensionViewValidator,
-      task: v.object({ _id: v.id("tasks"), title: v.string() }),
+      task: v.object({ _id: v.id("tasks"), title: v.string(), ownerId: v.optional(v.id("users")) }),
       feature: v.object({ _id: v.id("features"), title: v.string(), deadline: v.number() }),
+      canDecide: v.boolean(),
     })
   ),
   handler: async (ctx) => {
     const user = await requireUser(ctx);
-    const pending = await ctx.db
+    const waiting = await ctx.db
       .query("extensionRequests")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .take(200);
     const directory = await loadUserDirectory(ctx);
     const deciders = await loadDeciders(ctx);
     const rows = [];
-    for (const request of pending) {
+    for (const request of waiting) {
       const task = await ctx.db.get("tasks", request.taskId);
-      if (task === null || !(await deciders.canDecide(user, task))) continue;
+      if (task === null) continue;
       const feature = await ctx.db.get("features", task.featureId);
       if (feature === null) continue;
       rows.push({
         request: toExtensionView(request, directory),
-        task: { _id: task._id, title: task.title },
+        task: { _id: task._id, title: task.title, ownerId: task.ownerId },
         feature: { _id: feature._id, title: feature.title, deadline: feature.deadline },
+        canDecide: await deciders.canDecide(user, task),
       });
     }
     return rows;

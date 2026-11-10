@@ -33,7 +33,13 @@ export function ActivityRow({
       onPress={onPress}
       accessibilityRole={onPress !== undefined ? "button" : undefined}
       accessibilityLabel={`${who} ${what}, ${when}.${quote !== undefined ? ` “${quote}”` : ""}`}
-      accessibilityHint={onPress !== undefined ? "Opens the task" : undefined}
+      accessibilityHint={
+        onPress === undefined
+          ? undefined
+          : item.task !== null
+            ? "Opens the task"
+            : "Opens the feature"
+      }
       style={({ pressed }) => ({
         flexDirection: "row",
         gap: 12,

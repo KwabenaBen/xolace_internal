@@ -41,6 +41,7 @@ src/app/                 Expo Router routes
   (app)/tasks/           new (modal: admin creates / member proposes), [taskId]/index (page),
                          [taskId]/edit (modal: edit a live task, or approve a proposal)
   (app)/board/[view].tsx The Board's tile pages: due-this-week, overdue, waiting
+  (app)/activity.tsx     The team's activity (from the Board's red hero tile), by day, by person
 src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ErrorScreen (the signed-in
                          area's error boundary), ...)
   ui/                    The shared kit, used across screens: theme.ts (usePageColors: the
@@ -93,7 +94,8 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          task-dates.ts (countdown maths), task-theme.ts (holo words),
                          task-symbols.ts
   activity/              describe.ts (an activity entry as a sentence; timeAgo), activity-row.tsx
-                         (one entry: avatar, sentence, comment bubble or quote)
+                         (one entry: avatar, sentence, comment bubble or quote); the task folder's
+                         extension-row.tsx lists waiting requests (Admin, My Tasks, waiting page)
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
 src/lib/                 Convex client, auth token storage, theme-preference (the Dark mode
                          switch's choice, remembered per device), error messages, hooks (useNow, useDeviceFlag for
@@ -111,7 +113,7 @@ convex/                  Backend (deployed by `bunx convex dev`)
                          propose (anyone), approveProposal, declineProposal (admin),
                          postUpdate (owner: status, progress, note)
   extensions.ts          request (owner), decide (admins; the admin task reviewer for an
-                         admin's own task), forTask, waitingOnMe
+                         admin's own task), forTask, pending (all waiting, with canDecide)
   comments.ts            add (anyone; no edit/delete: part of the record)
   activity.ts            feed (paginated; invites hidden from members), forTask (a task's history)
   overdue.ts + crons.ts  flag: hourly job that sets tasks.overdueSince once a deadline passes

@@ -18,11 +18,21 @@ import { colors, fonts } from "@/components/ui/theme";
 /** Montserrat's ascender per point of size: a line's top is `baseline - ASCENT * size`. */
 const ASCENT = 0.968;
 
+type Waiting = { proposals: number; extensions: number };
+
+/** "2 proposals", "1 extension", or "3 to decide" when it's both. */
+function waitingWords({ proposals, extensions }: Waiting): string {
+  if (extensions === 0) return plural(proposals, "proposal");
+  if (proposals === 0) return plural(extensions, "extension");
+  return `${proposals + extensions} to decide`;
+}
+
 type BentoProps = {
   s: number;
   pit: SharedValue<number>;
   stats: BoardStats;
-  waiting: number;
+  /** Proposals and requests for more time waiting for a decision. */
+  waiting: Waiting;
   now: number;
   isAdmin: boolean;
   showGuide: boolean;
@@ -32,6 +42,8 @@ type BentoProps = {
   /** Open the page listing a quick tile's tasks. */
   onOpenList: (view: BoardListView) => void;
   onOpenMyTasks: () => void;
+  /** The red "every task, one owner" tile: the team's activity. */
+  onOpenActivity: () => void;
   onAction: () => void;
 };
 
@@ -238,7 +250,7 @@ export function Bento(props: BentoProps): JSX.Element {
         </BentoTile>
       </View>
 
-      <HeroTile s={s} pit={pit} />
+      <HeroTile s={s} pit={pit} onPress={props.onOpenActivity} />
       {showGuide ? <GuideTile s={s} pit={pit} onClose={props.onCloseGuide} /> : null}
     </View>
   );
@@ -361,7 +373,7 @@ function WaitingTile({
 }: {
   s: number;
   pit: SharedValue<number>;
-  waiting: number;
+  waiting: Waiting;
   onPress: () => void;
 }): JSX.Element {
   return (
@@ -373,7 +385,7 @@ function WaitingTile({
       s={s}
       pit={pit}
       fill={colors.yellow}
-      label={`${plural(waiting, "proposal")} waiting for approval. Opens the list.`}
+      label={`Waiting for a decision: ${plural(waiting.proposals, "proposal")} and ${plural(waiting.extensions, "request")} for more time. Opens the list.`}
       onPress={onPress}
     >
       <Mark
@@ -386,7 +398,7 @@ function WaitingTile({
       />
       <TileLabel
         eyebrow="waiting"
-        title={plural(waiting, "proposal")}
+        title={waitingWords(waiting)}
         x={space.tileTextAfterMark}
         color={colors.black}
         s={s}
@@ -710,7 +722,19 @@ function ProgressTile({
   );
 }
 
-function HeroTile({ s, pit }: { s: number; pit: SharedValue<number> }): JSX.Element {
+/**
+ * The red "every task, one owner" tile: Cadence's promise, and the way into the team's activity
+ * (every change, who made it and when), which is where that promise is kept.
+ */
+function HeroTile({
+  s,
+  pit,
+  onPress,
+}: {
+  s: number;
+  pit: SharedValue<number>;
+  onPress: () => void;
+}): JSX.Element {
   const seal = size.seal;
   return (
     <BentoTile
@@ -721,7 +745,8 @@ function HeroTile({ s, pit }: { s: number; pit: SharedValue<number> }): JSX.Elem
       s={s}
       pit={pit}
       fill={colors.red}
-      label="Every task, one owner."
+      label="Every task, one owner. Activity: every change, who made it and when."
+      onPress={onPress}
     >
       <Line
         text="every task"
@@ -768,6 +793,22 @@ function HeroTile({ s, pit }: { s: number; pit: SharedValue<number> }): JSX.Elem
         >
           c
         </Txt>
+      </View>
+      {/* Opens the activity, like the other tiles' arrows. */}
+      <View
+        style={{
+          position: "absolute",
+          right: 12.5 * s,
+          top: 12.5 * s,
+          width: size.arrow * s,
+          height: size.arrow * s,
+          borderRadius: (size.arrow / 2) * s,
+          backgroundColor: colors.black,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Sym symbol={symbols.arrowUpRight} size={8 * s} color={colors.white} weight="bold" />
       </View>
     </BentoTile>
   );

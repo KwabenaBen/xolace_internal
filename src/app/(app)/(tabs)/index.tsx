@@ -168,6 +168,7 @@ export default function BoardScreen(): JSX.Element {
               }
               onOpenList={(view) => router.push({ pathname: "/board/[view]", params: { view } })}
               onOpenMyTasks={() => router.push("/my-tasks")}
+              onOpenActivity={() => router.push("/activity")}
               onAction={() => router.push(isAdmin ? "/features/new" : "/tasks/new")}
             />
           )}

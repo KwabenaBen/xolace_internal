@@ -61,6 +61,14 @@ export function isUserRef(value: SettingValue): value is UserRef {
   return typeof value === "object" && value !== null;
 }
 
+/** Whether two values of a setting are the same (a user reference by its user and email). */
+export function sameSettingValue(a: SettingValue, b: SettingValue): boolean {
+  if (isUserRef(a) || isUserRef(b)) {
+    return isUserRef(a) && isUserRef(b) && a.email === b.email && a.userId === b.userId;
+  }
+  return a === b;
+}
+
 /** Throws INVALID_ARGUMENT unless `value` fits the setting's kind. */
 export function validateSettingValue(key: SettingKey, value: SettingValue): void {
   const { kind, label } = SETTINGS[key];

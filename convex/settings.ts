@@ -5,6 +5,7 @@ import { requireAdmin, requireUser } from "./lib/auth";
 import { appError } from "./lib/errors";
 import {
   getSettingDoc,
+  sameSettingValue,
   SETTING_KEYS,
   SETTINGS,
   validateSettingValue,
@@ -68,6 +69,10 @@ export const set = mutation({
       }
       normalized = { email: user.email, userId: user._id };
     }
+
+    // Saving what's already there changes nothing, so it isn't written or logged.
+    const current = await getSettingDoc(ctx, key);
+    if (current !== null && sameSettingValue(current.value, normalized)) return null;
 
     await writeSetting(ctx, key, normalized, admin._id);
     return null;

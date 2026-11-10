@@ -352,8 +352,14 @@ UX, security) and write the findings up before moving on.
       digest/reminder times on a time wheel, read-only time zone, late window) and the
       Notifications / Daily log reminder time sheets: `cadence-phase-3-teamrulesscreen`.
       _Built. Tick once an admin and a member have walked through it on iPhone and web._
-- [ ] **Phase 4 — Progress & extensions:** status changes, progress %, comments, overdue flag,
-      extension requests + late rule, activity log.
+- [ ] **Phase 4 — Progress & extensions:** owners' updates (status, a drag bar for progress, a
+      note; blocked needs one), comments and each task's history, the hourly overdue flag,
+      requests for more time (admins decide; the admin task reviewer for an admin's own task;
+      withdraw) with the late rule, direct deadline moves judged by the same rule, the Activity
+      page (from the Board's red tile), and requests on the Admin tab, My Tasks and the waiting
+      tile. Branch `cadence-phase-4`; end-of-phase audit in the System audit doc's "Phase 4
+      audit" tab. _Built; iPhone checks of the drag bar and the update card with the keyboard
+      done 10 Nov. Tick once an admin and a member have walked through it on iPhone and web._
 - [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.
 - [ ] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
       verification queue (admin task reviewer for admin-owned tasks), feature status rollup.

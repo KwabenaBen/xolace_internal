@@ -4,7 +4,7 @@ What every part of Cadence does and why it's there, in plain language. Keep this
 with each phase (see [CLAUDE.md](../CLAUDE.md) → Phases). The full spec is
 [REQUIREMENTS.md](REQUIREMENTS.md).
 
-_As of 10 Nov 2026: Phase 1, Phase 2, the bento Board, the feature, person and task pages, the black and off-white themes, and the Settings tab with its People and Team rules pages are built._
+_As of 10 Nov 2026: Phase 1, Phase 2, the bento Board, the feature, person and task pages, the black and off-white themes, and the Settings tab with its People and Team rules pages, and Phase 4 (progress, comments, requests for more time and the Activity page) are built._
 
 ## What Cadence is for
 
@@ -501,15 +501,15 @@ A few things work without a screen of their own.
 
 ## Coming next
 
-Phase 3 (Settings) is built; four more phases complete version 1. Each starts once the
+Phases 3 (Settings) and 4 (progress and extensions) are built; three more phases complete
+version 1. Each starts once the
 previous one runs on a phone.
 
-| Phase                           | What it adds                                                                                                                                                                                                                                                                                                                                                                                         |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 4. Progress and extensions      | Owners move their tasks through the statuses, set a progress percentage and comment. Overdue tasks are flagged automatically. Owners can ask for a later deadline with a reason and a type (scope change or other); the admin approves or declines. An approved extension counts as late if it was asked for within 24 hours of the deadline or isn't a scope change. A screen for the activity log. |
-| 5. Daily logs                   | A short log every weekday: what I did, what's next, blockers and linked tasks. An optional one-liner at weekends, never counted as missed. Each person's history, with missed weekdays recorded.                                                                                                                                                                                                     |
-| 6. Peer review and verification | Code tasks go to their peer reviewer first. Owners submit with a note and proof (a link, screenshot, PR or build). The admin checks each acceptance criterion and verifies or sends it back with a reason; the CEO does this for tasks the admin owns. A feature moves to Internal testing once all its tasks are verified, and to Shipped when the admin marks it live.                             |
-| 7. Notifications and release    | One 8am digest: your tasks due in 48 hours, your overdue tasks, reviews waiting on you, and yesterday's missing log. Instant pushes only for assignments, review requests, verifications and decisions. An 8pm reminder on weekdays if your log isn't in. Then a TestFlight build and the web version going live.                                                                                    |
+| Phase                           | What it adds                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 5. Daily logs                   | A short log every weekday: what I did, what's next, blockers and linked tasks. An optional one-liner at weekends, never counted as missed. Each person's history, with missed weekdays recorded.                                                                                                                                                                         |
+| 6. Peer review and verification | Code tasks go to their peer reviewer first. Owners submit with a note and proof (a link, screenshot, PR or build). The admin checks each acceptance criterion and verifies or sends it back with a reason; the CEO does this for tasks the admin owns. A feature moves to Internal testing once all its tasks are verified, and to Shipped when the admin marks it live. |
+| 7. Notifications and release    | One 8am digest: your tasks due in 48 hours, your overdue tasks, reviews waiting on you, and yesterday's missing log. Instant pushes only for assignments, review requests, verifications and decisions. An 8pm reminder on weekdays if your log isn't in. Then a TestFlight build and the web version going live.                                                        |
 
 After version 1: a team health dashboard (features on track, overdue counts, log consistency),
 GitHub links for code tasks, a contribution graph and an Android build.

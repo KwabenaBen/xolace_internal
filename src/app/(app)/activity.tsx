@@ -75,6 +75,7 @@ export default function ActivityScreen(): JSX.Element {
       key={key}
       accessibilityRole="radio"
       accessibilityState={{ checked: isChosen }}
+      aria-checked={isChosen}
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => ({

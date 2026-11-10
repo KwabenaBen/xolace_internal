@@ -61,6 +61,17 @@ export function isUserRef(value: SettingValue): value is UserRef {
   return typeof value === "object" && value !== null;
 }
 
+/**
+ * For members: a person named before they joined (a reference with no user yet) shows without
+ * their email, since only admins see invites. Anything else is returned as it is.
+ */
+export function hidePendingEmail<T>(value: T): T {
+  if (typeof value !== "object" || value === null) return value;
+  const ref = value as { email?: unknown; userId?: unknown };
+  if (typeof ref.email === "string" && ref.userId === undefined) return { ...value, email: "" };
+  return value;
+}
+
 /** Whether two values of a setting are the same (a user reference by its user and email). */
 export function sameSettingValue(a: SettingValue, b: SettingValue): boolean {
   if (isUserRef(a) || isUserRef(b)) {

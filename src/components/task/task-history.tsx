@@ -10,6 +10,7 @@ import { Panel } from "@/components/ui/panel";
 import { Sym, symbols } from "@/components/ui/sym";
 import { fonts, usePageColors } from "@/components/ui/theme";
 import { getErrorMessage } from "@/lib/errors";
+import { useAnnounce } from "@/lib/use-announce";
 import { useNow } from "@/lib/use-now";
 
 const FIRST = 8;
@@ -36,6 +37,7 @@ export function TaskHistory({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  useAnnounce(error);
 
   async function send() {
     if (body.trim() === "" || sending) return;

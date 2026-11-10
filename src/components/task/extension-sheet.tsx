@@ -41,6 +41,7 @@ export function ExtensionSheet({
   featureDeadline,
   windowHours,
   decidedBy,
+  alreadyLate,
   onClose,
 }: {
   taskId: Id<"tasks">;
@@ -51,6 +52,8 @@ export function ExtensionSheet({
   windowHours: number;
   /** Who decides, as a sentence: "An admin decides." */
   decidedBy: string;
+  /** The task already counts as late (that never goes back). */
+  alreadyLate: boolean;
   onClose: () => void;
 }): JSX.Element {
   const c = usePageColors();
@@ -81,7 +84,13 @@ export function ExtensionSheet({
       onClose={onClose}
       footer={
         <View style={{ gap: 8 }}>
-          {late ? (
+          {alreadyLate ? (
+            <Text
+              style={{ fontFamily: fonts.medium, fontSize: 13, lineHeight: 19, color: c.muted }}
+            >
+              The task already counts as late; another extension doesn&apos;t change that.
+            </Text>
+          ) : late ? (
             <WarningNote
               text={
                 type === "other"
@@ -118,6 +127,7 @@ export function ExtensionSheet({
                 key={option.value}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: isChosen }}
+                aria-checked={isChosen}
                 accessibilityLabel={`${option.title}. ${option.line}`}
                 onPress={() => setType(option.value)}
                 style={({ pressed }) => ({

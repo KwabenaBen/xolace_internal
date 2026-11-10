@@ -1,10 +1,11 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
-import { requireAdmin, requireUser } from "./lib/auth";
+import { isAdmin, requireAdmin, requireUser } from "./lib/auth";
 import { appError } from "./lib/errors";
 import {
   getSettingDoc,
+  hidePendingEmail,
   sameSettingValue,
   SETTING_KEYS,
   SETTINGS,
@@ -27,15 +28,17 @@ export const list = query({
     })
   ),
   handler: async (ctx) => {
-    await requireUser(ctx);
+    const user = await requireUser(ctx);
+    const admin = isAdmin(user);
     const rows = [];
     for (const key of SETTING_KEYS) {
       const doc = await getSettingDoc(ctx, key);
+      const value = doc === null ? SETTINGS[key].defaultValue : doc.value;
       rows.push({
         key,
         label: SETTINGS[key].label,
         description: SETTINGS[key].description,
-        value: doc === null ? SETTINGS[key].defaultValue : doc.value,
+        value: admin ? value : hidePendingEmail(value),
         isDefault: doc === null,
         updatedAt: doc?.updatedAt,
       });

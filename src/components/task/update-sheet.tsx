@@ -9,6 +9,7 @@ import { OWNER_STATUSES } from "@convex/lib/validators";
 import type { TaskView } from "@convex/lib/views";
 
 import { SaveSheet } from "@/components/ui/save-sheet";
+import { SheetScrollView } from "@/components/ui/sheet";
 import { fonts, usePageColors } from "@/components/ui/theme";
 import { TASK_STATUS_LABELS } from "@/constants/labels";
 
@@ -55,7 +56,9 @@ export function UpdateSheet({
       }}
       onClose={onClose}
     >
-      <View style={{ gap: 20, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 }}>
+      <SheetScrollView
+        contentContainerStyle={{ gap: 20, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 }}
+      >
         <View
           accessibilityRole="radiogroup"
           accessibilityLabel="Status"
@@ -68,6 +71,7 @@ export function UpdateSheet({
                 key={option}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: isChosen }}
+                aria-checked={isChosen}
                 accessibilityLabel={TASK_STATUS_LABELS[option]}
                 onPress={() => setStatus(option)}
                 style={({ pressed }) => ({
@@ -122,7 +126,7 @@ export function UpdateSheet({
             className="min-h-20 rounded-2xl border border-border bg-field px-4 py-3 text-base text-field-foreground focus:border-foreground"
           />
         </View>
-      </View>
+      </SheetScrollView>
     </SaveSheet>
   );
 }

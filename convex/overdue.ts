@@ -28,9 +28,12 @@ export const flag = internalMutation({
     const now = Date.now();
     let flagged = 0;
     for (const status of UNVERIFIED) {
+      // Not yet flagged and past the deadline (the index skips the ones already flagged).
       const pastDeadline = await ctx.db
         .query("tasks")
-        .withIndex("by_status_and_deadline", (q) => q.eq("status", status).lt("deadline", now))
+        .withIndex("by_status_and_overdueSince_and_deadline", (q) =>
+          q.eq("status", status).eq("overdueSince", undefined).lt("deadline", now)
+        )
         .take(1000);
       for (const task of pastDeadline) {
         if (task.deadline === undefined || task.overdueSince !== undefined) continue;

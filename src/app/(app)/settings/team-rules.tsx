@@ -35,7 +35,9 @@ function reviewerWarning(reviewer: Reviewer): string | undefined {
     case "none":
       return "Nobody is chosen yet, so nobody can verify the tasks an admin owns.";
     case "invited":
-      return `${reviewer.email} hasn't joined yet. They take this on once they sign up.`;
+      return reviewer.email !== ""
+        ? `${reviewer.email} hasn't joined yet. They take this on once they sign up.`
+        : "They haven't joined yet. They take this on once they sign up.";
     case "person": {
       const first = firstName(reviewer.person.name);
       if (!reviewer.person.isActive) {
@@ -100,7 +102,9 @@ export default function TeamRulesScreen(): JSX.Element {
     reviewer.kind === "person"
       ? reviewer.person.name
       : reviewer.kind === "invited"
-        ? reviewer.email
+        ? reviewer.email !== ""
+          ? reviewer.email
+          : "Someone invited"
         : "Not chosen";
   const reviewerLine =
     reviewer.kind === "person"

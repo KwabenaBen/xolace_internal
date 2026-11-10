@@ -20,11 +20,11 @@ const ASCENT = 0.968;
 
 type Waiting = { proposals: number; extensions: number };
 
-/** "2 proposals", "1 extension", or "3 to decide" when it's both. */
+/** "2 proposals", "1 request" (for more time), or "3 pending" when it's both. */
 function waitingWords({ proposals, extensions }: Waiting): string {
   if (extensions === 0) return plural(proposals, "proposal");
-  if (proposals === 0) return plural(extensions, "extension");
-  return `${proposals + extensions} to decide`;
+  if (proposals === 0) return plural(extensions, "request");
+  return `${proposals + extensions} pending`;
 }
 
 type BentoProps = {

@@ -95,7 +95,9 @@ export default defineSchema({
     .index("by_ownerId_and_deadline", ["ownerId", "deadline"])
     .index("by_status_and_deadline", ["status", "deadline"])
     .index("by_peerReviewerId_and_status", ["peerReviewerId", "status"])
-    .index("by_proposedBy_and_status", ["proposedBy", "status"]),
+    .index("by_proposedBy_and_status", ["proposedBy", "status"])
+    // The overdue job: tasks of a status not yet flagged, past their deadline.
+    .index("by_status_and_overdueSince_and_deadline", ["status", "overdueSince", "deadline"]),
 
   extensionRequests: defineTable({
     taskId: v.id("tasks"),
@@ -109,6 +111,9 @@ export default defineSchema({
     // The requested date is later than the feature's deadline (when asked): approving it moves
     // the feature's deadline too.
     beyondFeatureDeadline: v.boolean(),
+    // Team rules' late window when it was asked for: the late rule uses this, so changing the
+    // window later doesn't change how a waiting request is judged.
+    lateWindowHours: v.optional(v.number()),
     reviewerId: v.optional(v.id("users")), // who decided
     decidedAt: v.optional(v.number()),
     decisionNote: v.optional(v.string()), // required when declined

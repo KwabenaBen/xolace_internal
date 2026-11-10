@@ -66,6 +66,14 @@ export const request = mutation({
     if (pending !== null) {
       throw appError("CONFLICT", "This task already has a request waiting for a decision.");
     }
+    const deciders = await loadDeciders(ctx);
+    if (!(await deciders.hasDecider(task))) {
+      throw appError(
+        "INVALID_ARGUMENT",
+        "Nobody can decide this yet: an admin needs to choose an admin task reviewer (someone other than you) in Team rules."
+      );
+    }
+    const windowValue = await getSettingValue(ctx, "extensionLateWindowHours");
 
     const now = Date.now();
     const requestedDeadline = parseDeadline(newDeadline, now);
@@ -85,6 +93,7 @@ export const request = mutation({
       type,
       status: "pending",
       beyondFeatureDeadline,
+      lateWindowHours: typeof windowValue === "number" ? windowValue : 24,
     });
     await logActivity(ctx, {
       actorId: user._id,
@@ -120,6 +129,9 @@ export const decide = mutation({
       throw appError("CONFLICT", "This request has already been decided.");
     }
     const task = await requireTask(ctx, request.taskId);
+    if (request.requestedBy === user._id) {
+      throw appError("FORBIDDEN", "You can't decide on your own request.");
+    }
     const deciders = await loadDeciders(ctx);
     if (!(await deciders.canDecide(user, task))) {
       throw appError(
@@ -154,8 +166,24 @@ export const decide = mutation({
       return null;
     }
 
-    if (task.status === "verified") {
-      throw appError("INVALID_ARGUMENT", "This task is already verified; it needs no more time.");
+    if (request.requestedBy !== task.ownerId) {
+      throw appError(
+        "INVALID_ARGUMENT",
+        "This request came from the task's previous owner. Decline it; the new owner can ask for themselves."
+      );
+    }
+    if (!isOwnerWorking(task.status)) {
+      throw appError(
+        "INVALID_ARGUMENT",
+        "This task is with its reviewer or already verified, so its deadline is fixed. Decline the request instead."
+      );
+    }
+    const feature = await requireFeature(ctx, task.featureId);
+    if (feature.status === "shipped") {
+      throw appError(
+        "INVALID_ARGUMENT",
+        "This feature has shipped; its deadlines are final. Decline the request instead."
+      );
     }
     if (task.deadline !== undefined && request.requestedDeadline <= task.deadline) {
       throw appError(
@@ -170,7 +198,9 @@ export const decide = mutation({
       );
     }
 
-    const windowValue = await getSettingValue(ctx, "extensionLateWindowHours");
+    // The window as it was when they asked (older requests: today's).
+    const windowValue =
+      request.lateWindowHours ?? (await getSettingValue(ctx, "extensionLateWindowHours"));
     const late = isLateExtension({
       type: request.type,
       requestedAt: request.requestedAt,
@@ -207,7 +237,6 @@ export const decide = mutation({
     });
 
     // A task's deadline never passes its feature's: a later date moves the feature too.
-    const feature = await requireFeature(ctx, task.featureId);
     if (request.requestedDeadline > feature.deadline) {
       await ctx.db.patch("features", feature._id, { deadline: request.requestedDeadline });
       await logActivity(ctx, {
@@ -224,6 +253,37 @@ export const decide = mutation({
   },
 });
 
+/** Whoever asked: take back a request that's still waiting (e.g. nobody can decide it). */
+export const withdraw = mutation({
+  args: { requestId: v.id("extensionRequests") },
+  returns: v.null(),
+  handler: async (ctx, { requestId }) => {
+    const user = await requireUser(ctx);
+    const request = await ctx.db.get("extensionRequests", requestId);
+    if (request === null) throw appError("NOT_FOUND", "That request doesn't exist.");
+    if (request.requestedBy !== user._id) {
+      throw appError("FORBIDDEN", "Only the person who asked can withdraw a request.");
+    }
+    if (request.status !== "pending") {
+      throw appError("CONFLICT", "This request has already been decided.");
+    }
+    await ctx.db.patch("extensionRequests", requestId, {
+      status: "withdrawn",
+      decidedAt: Date.now(),
+    });
+    await logActivity(ctx, {
+      actorId: user._id,
+      entityType: "extensionRequest",
+      entityId: requestId,
+      taskId: request.taskId,
+      action: "extension.withdrawn",
+      before: { status: "pending" },
+      after: { status: "withdrawn" },
+    });
+    return null;
+  },
+});
+
 /** A task's extension requests, newest first, and whether the caller decides them. */
 export const forTask = query({
   args: { taskId: v.id("tasks") },
@@ -231,6 +291,8 @@ export const forTask = query({
     requests: v.array(extensionViewValidator),
     canDecide: v.boolean(),
     decider: deciderValidator,
+    /** Whether a request on this task could be decided at all (else asking is refused). */
+    canRequest: v.boolean(),
   }),
   handler: async (ctx, { taskId }) => {
     const user = await requireUser(ctx);
@@ -247,6 +309,7 @@ export const forTask = query({
         .map((r) => toExtensionView(r, directory)),
       canDecide: await deciders.canDecide(user, task),
       decider: await deciders.deciderOf(task),
+      canRequest: await deciders.hasDecider(task),
     };
   },
 });

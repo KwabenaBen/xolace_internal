@@ -8,6 +8,7 @@ import { FormError } from "@/components/planning/form-error";
 import { Sheet, useSheet } from "@/components/ui/sheet";
 import { colors, fonts, usePageColors } from "@/components/ui/theme";
 import { getErrorMessage } from "@/lib/errors";
+import { useKeyboardShown } from "@/lib/use-keyboard-shown";
 
 type SaveSheetProps = {
   title: string;
@@ -52,6 +53,7 @@ function SaveSheetBody({
   onSave,
 }: Omit<SaveSheetProps, "onClose">): JSX.Element {
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardShown();
   const [muted] = useThemeColor(["muted"]);
   const sheet = useSheet();
   const { close, setLocked } = sheet;
@@ -83,7 +85,7 @@ function SaveSheetBody({
   }
 
   return (
-    <View style={{ flexShrink: 1, paddingBottom: insets.bottom + 12 }}>
+    <View style={{ flexShrink: 1, paddingBottom: (keyboard ? 0 : insets.bottom) + 12 }}>
       <View className="flex-row items-start justify-between gap-3 px-5 pb-1 pt-7">
         <View className="flex-1 gap-1">
           <Typography type="h6" accessibilityRole="header">

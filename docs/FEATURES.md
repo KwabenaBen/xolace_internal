@@ -189,7 +189,7 @@ The tiles always count the whole team, even when the list below is filtered.
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | due this week (violet)             | How many unverified tasks are due in the next 7 days                                                                                     | Open a page of those tasks, grouped by feature                                                         |
 | overdue (orange)                   | How many unverified tasks are past their deadline                                                                                        | Open a page of those tasks, grouped by feature                                                         |
-| waiting (yellow)                   | What's waiting for a decision: "2 proposals", "1 extension", or "3 to decide" when it's both                                             | Open a page of every request for more time and every proposal; each opens its task, where it's decided |
+| waiting (yellow)                   | What's waiting for a decision: "2 proposals", "1 request" (for more time), or "3 pending" when it's both                                 | Open a page of every request for more time and every proposal; each opens its task, where it's decided |
 | next up (tall, cream)              | The feature due next (not yet shipped): its name, "2 of 5 tasks verified", a progress bar, its deadline and "in 3 days" or "2 days late" | Open that feature's page                                                                               |
 | the team · Progress (dark)         | Total tasks, how many are verified, in progress and blocked, and bars for To do, Doing, Review and Done                                  | Nothing; it's a summary                                                                                |
 | assigned to me (green)             | How many of your own tasks are still open                                                                                                | Open My Tasks                                                                                          |
@@ -293,7 +293,10 @@ From top to bottom:
   asked for, the type (scope change or other), when and why, and what approving would do ("counts
   the task as late", "moves the feature too" when the date is past the feature's). Whoever
   decides gets **Approve** (with an optional note) and **Decline** (with a reason the owner
-  reads) right there; everyone else sees who it's waiting for.
+  reads) right there; everyone else sees who it's waiting for, and whoever asked can **Withdraw
+  request**. It can only be declined once the task has gone to its reviewer, its feature has
+  shipped, or it has moved to a new owner (a new owner's task closes any request the old owner
+  made).
 - **The countdown card (lavender).** "Task due in 2d 14h 33m 07s", ticking every second with
   digits that roll like a car's odometer. Under it, the task's own deadline ("originally …" if it
   moved) and the feature's deadline, so it's clear which is which. The priority sits on a pink
@@ -308,7 +311,8 @@ From top to bottom:
   note saying what's in the way. **Ask for more time** opens a card: the new date, why it moves
   (scope change, agreed in a meeting, or other) and why you need it. It says straight away whether
   approving would count the task as late, and whether the date is past the feature's deadline.
-  One request at a time.
+  One request at a time. On an admin's own task, the admin task reviewer decides; if none is
+  set (or the reviewer owns the task), the button is replaced by a note saying so.
 - **Description** on a dark card, if there is one.
 - **Who's on it.** Pastel cards: the owner (orange, with the priority), the peer reviewer for code
   tasks (blue) and whoever proposed it (pink), each with initials, name and title. Someone who

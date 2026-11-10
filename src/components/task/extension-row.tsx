@@ -2,7 +2,7 @@ import type { FunctionReturnType } from "convex/server";
 import type { JSX } from "react";
 
 import type { api } from "@convex/_generated/api";
-import { shortDay } from "@convex/lib/dates";
+import { formatDeadline, shortDay } from "@convex/lib/dates";
 
 import { Avatar, pastelFor } from "@/components/people/avatar";
 import { ListRow } from "@/components/people/list-row";
@@ -42,8 +42,8 @@ export function ExtensionRow({
         />
       }
       title={task.title}
-      line={`${who} asks for ${until} · ${type}`}
-      aside={canDecide ? "Yours" : feature.title}
+      line={`${who} · ${type} · ${feature.title}`}
+      aside={`Until ${formatDeadline(request.requestedDeadline, now)}`}
       dot={canDecide ? colors.yellow : undefined}
       label={`${who} asks for more time on ${task.title}, until ${until}, ${type}. ${
         canDecide ? "Yours to decide." : `Part of ${feature.title}.`

@@ -10,8 +10,14 @@ import { userSummaryValidator, type UserDirectory } from "./views";
 /** Who decides a task's extension requests, as the app says it. */
 export const deciderValidator = v.union(
   v.object({ kind: v.literal("admins") }),
-  // An admin owns the task: the admin task reviewer (Team rules) decides. Null when unset.
-  v.object({ kind: v.literal("reviewer"), name: v.union(v.string(), v.null()) })
+  // An admin owns the task: the admin task reviewer (Team rules) decides. `name` is null when
+  // none is set (or they're deactivated); `isOwner` when the reviewer is the task's own owner,
+  // so nobody can decide.
+  v.object({
+    kind: v.literal("reviewer"),
+    name: v.union(v.string(), v.null()),
+    isOwner: v.boolean(),
+  })
 );
 export type Decider = Infer<typeof deciderValidator>;
 
@@ -42,12 +48,22 @@ export async function loadDeciders(ctx: QueryCtx) {
       }
       return isAdmin(user);
     },
+    /**
+     * Whether anyone can decide on `task`: always for a member's task (there's always an active
+     * admin); for an admin's own task, only with an active admin task reviewer who isn't its owner.
+     */
+    async hasDecider(task: Doc<"tasks">): Promise<boolean> {
+      if (!(await ownerIsAdmin(task))) return true;
+      return reviewer !== null && reviewer.isActive && reviewer._id !== task.ownerId;
+    },
     /** Who decides on `task`, for the app to name. */
     async deciderOf(task: Doc<"tasks">): Promise<Decider> {
       if (!(await ownerIsAdmin(task))) return { kind: "admins" };
+      const active = reviewer !== null && reviewer.isActive;
       return {
         kind: "reviewer",
-        name: reviewer !== null && reviewer.isActive ? reviewer.name : null,
+        name: active ? reviewer.name : null,
+        isOwner: active && reviewer._id === task.ownerId,
       };
     },
   };

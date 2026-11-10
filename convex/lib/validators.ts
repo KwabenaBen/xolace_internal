@@ -121,7 +121,9 @@ export type ExtensionType = Infer<typeof extensionTypeValidator>;
 export const extensionStatusValidator = v.union(
   v.literal("pending"),
   v.literal("approved"),
-  v.literal("declined")
+  v.literal("declined"),
+  // Taken back by whoever asked, or closed when the task moved to a new owner.
+  v.literal("withdrawn")
 );
 export type ExtensionStatus = Infer<typeof extensionStatusValidator>;
 

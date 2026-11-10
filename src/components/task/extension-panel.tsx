@@ -4,6 +4,7 @@ import { useState, type JSX } from "react";
 import { Text, TextInput, View } from "react-native";
 
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { longDay, shortDay } from "@convex/lib/dates";
 import { isLateExtension } from "@convex/lib/lateRule";
 
@@ -11,63 +12,71 @@ import { PillButton, PillRow } from "@/components/ui/pill-button";
 import { colors, fonts, usePageColors } from "@/components/ui/theme";
 import { EXTENSION_TYPE_LABELS } from "@/constants/labels";
 import { getErrorMessage } from "@/lib/errors";
+import { useAnnounce } from "@/lib/use-announce";
+
+import { waitingFor } from "./deciders";
 
 type Extensions = FunctionReturnType<typeof api.extensions.forTask>;
+type Request = Extensions["requests"][number];
 
 /**
  * A request for more time that's waiting for a decision, as a peach sticker card on the task
  * page: the date asked for, the type, the reason, what approving would do (count as late, move
  * the feature) and who decides. The decider answers right here: Approve (an optional note) or
- * Decline (a reason, which the owner reads). Nothing when no request is waiting.
+ * Decline (a reason, which the owner reads); whoever asked can withdraw it. Key it by the
+ * request's id, so a new request starts clean.
  */
 export function ExtensionPanel({
   s,
   data,
+  pending,
   featureDeadline,
   windowHours,
   now,
+  myId,
+  alreadyLate,
+  approveBlock,
 }: {
   s: number;
   data: Extensions;
+  /** The request waiting for a decision. */
+  pending: Request;
   featureDeadline: number;
   windowHours: number;
   now: number;
-}): JSX.Element | null {
+  /** The signed-in user: whoever asked can withdraw the request. */
+  myId: Id<"users">;
+  /** The task already counts as late (that never goes back). */
+  alreadyLate: boolean;
+  /** Why it can only be declined now (the server refuses approving), or null. */
+  approveBlock: string | null;
+}): JSX.Element {
   const c = usePageColors();
   const decide = useMutation(api.extensions.decide);
+  const withdraw = useMutation(api.extensions.withdraw);
   const [mode, setMode] = useState<"approve" | "decline" | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const pending = data.requests.find((r) => r.status === "pending");
-  if (pending === undefined) return null;
+  useAnnounce(error);
 
   const late = isLateExtension({
     type: pending.type,
     requestedAt: pending.requestedAt,
     currentDeadline: pending.currentDeadline,
-    windowHours,
+    // The window in force when they asked, which is what approving applies.
+    windowHours: pending.lateWindowHours ?? windowHours,
   });
+  const isAsker = pending.requestedBy === myId;
   const movesFeature = pending.requestedDeadline > featureDeadline;
   const who = pending.requester?.name.split(" ")[0] ?? "The owner";
   const until = shortDay(pending.requestedDeadline, now);
-  const waitingFor =
-    data.decider.kind === "admins"
-      ? "Waiting for an admin to decide."
-      : data.decider.name !== null
-        ? `Waiting for ${data.decider.name}, the admin task reviewer, to decide.`
-        : "Nobody can decide it yet: an admin needs to choose the admin task reviewer in Team rules.";
 
-  async function send(approve: boolean) {
-    if (!approve && note.trim() === "") {
-      setError(`Say why, so ${who} knows.`);
-      return;
-    }
+  async function run(work: () => Promise<unknown>) {
     setError(null);
     setBusy(true);
     try {
-      await decide({ requestId: pending!._id, approve, note });
+      await work();
       setMode(null);
       setNote("");
     } catch (e) {
@@ -77,8 +86,23 @@ export function ExtensionPanel({
     }
   }
 
+  function send(approve: boolean) {
+    if (!approve && note.trim() === "") {
+      setError(`Say why, so ${who} knows.`);
+      return;
+    }
+    void run(() => decide({ requestId: pending._id, approve, note }));
+  }
+
   const ink = colors.ink;
   const line = { fontFamily: fonts.medium, fontSize: 14, lineHeight: 20, color: ink };
+  // Ink on the peach sticker (red text there is too faint to read).
+  const errorLine =
+    error !== null ? (
+      <Text accessibilityRole="alert" style={{ ...line, fontFamily: fonts.extraBold }}>
+        ⚠ {error}
+      </Text>
+    ) : null;
 
   return (
     <View
@@ -113,9 +137,11 @@ export function ExtensionPanel({
 
       <View style={{ gap: 4 }}>
         <Text style={line}>
-          {late
-            ? "Approving it counts the task as late."
-            : "A scope change asked for early: approving keeps the task on time."}
+          {alreadyLate
+            ? "The task already counts as late; approving doesn't change that."
+            : late
+              ? "Approving it counts the task as late."
+              : "A scope change asked for early: approving keeps the task on time."}
         </Text>
         {movesFeature ? (
           <Text style={line}>
@@ -126,27 +152,40 @@ export function ExtensionPanel({
       </View>
 
       {!data.canDecide ? (
-        <Text style={{ ...line, fontFamily: fonts.semibold }}>{waitingFor}</Text>
+        <View style={{ gap: 10 }}>
+          <Text style={{ ...line, fontFamily: fonts.semibold }}>{waitingFor(data.decider)}</Text>
+          {errorLine}
+          {isAsker ? (
+            <PillButton
+              label="Withdraw request"
+              variant="secondary"
+              isLoading={busy}
+              onPress={() => void run(() => withdraw({ requestId: pending._id }))}
+            />
+          ) : null}
+        </View>
       ) : mode === null ? (
-        <PillRow>
-          <PillButton label="Decline" variant="secondary" onPress={() => setMode("decline")} />
-          <PillButton label="Approve" onPress={() => setMode("approve")} />
-        </PillRow>
+        <View style={{ gap: 10 }}>
+          {approveBlock !== null ? (
+            <Text style={{ ...line, fontFamily: fonts.semibold }}>{approveBlock}</Text>
+          ) : null}
+          {approveBlock !== null ? (
+            <PillButton label="Decline" variant="secondary" onPress={() => setMode("decline")} />
+          ) : (
+            <PillRow>
+              <PillButton label="Decline" variant="secondary" onPress={() => setMode("decline")} />
+              <PillButton label="Approve" onPress={() => setMode("approve")} />
+            </PillRow>
+          )}
+        </View>
       ) : (
         <View style={{ gap: 10 }}>
           <Text style={{ fontFamily: fonts.extraBold, fontSize: 16, color: ink }}>
-            {mode === "approve" ? `Move it to ${until}?` : `Why not, ${who}?`}
+            {mode === "approve" ? `Move it to ${until}?` : `Tell ${who} why not`}
           </Text>
-          {error !== null ? (
-            <Text
-              accessibilityRole="alert"
-              style={{ fontFamily: fonts.semibold, fontSize: 14, color: colors.lateCard }}
-            >
-              {error}
-            </Text>
-          ) : null}
+          {errorLine}
           <TextInput
-            accessibilityLabel={mode === "approve" ? "Note (optional)" : "Why not"}
+            accessibilityLabel={mode === "approve" ? "Note (optional)" : `Tell ${who} why not`}
             value={note}
             onChangeText={setNote}
             placeholder={
@@ -175,7 +214,7 @@ export function ExtensionPanel({
             <PillButton
               label={mode === "approve" ? "Approve" : "Decline"}
               isLoading={busy}
-              onPress={() => void send(mode === "approve")}
+              onPress={() => send(mode === "approve")}
             />
           </PillRow>
         </View>

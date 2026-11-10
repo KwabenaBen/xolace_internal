@@ -257,6 +257,31 @@ export const update = mutation({
     // Moved to a date still ahead: no longer overdue.
     const clearOverdue = task.overdueSince !== undefined && plan.deadline > Date.now();
     await ctx.db.patch("tasks", taskId, clearOverdue ? { ...plan, overdueSince: undefined } : plan);
+    // A new owner doesn't inherit the old owner's request for more time: it's closed.
+    if (plan.ownerId !== task.ownerId) {
+      const open = await ctx.db
+        .query("extensionRequests")
+        .withIndex("by_taskId_and_status", (q) => q.eq("taskId", taskId).eq("status", "pending"))
+        .take(10);
+      for (const request of open) {
+        const note = "The task moved to a new owner.";
+        await ctx.db.patch("extensionRequests", request._id, {
+          status: "withdrawn",
+          reviewerId: admin._id,
+          decidedAt: Date.now(),
+          decisionNote: note,
+        });
+        await logActivity(ctx, {
+          actorId: admin._id,
+          entityType: "extensionRequest",
+          entityId: request._id,
+          taskId,
+          action: "extension.closed",
+          before: { status: "pending" },
+          after: { status: "withdrawn", note },
+        });
+      }
+    }
     await logActivity(ctx, {
       actorId: admin._id,
       entityType: "task",

@@ -88,7 +88,8 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          task-panels.tsx, criteria-list.tsx, task-actions.tsx (admin's +
                          OwnerActions), update-sheet.tsx + progress-slider.tsx (the owner's
                          update; the drag bar), extension-sheet.tsx (ask for more time),
-                         extension-panel.tsx (a waiting request; the decider's buttons),
+                         extension-panel.tsx (a waiting request; the decider's buttons,
+                         Withdraw for the asker), deciders.ts (who decides, in words),
                          task-history.tsx (the task's history + comment box),
                          week-strip.tsx (unused; parked for Phase 5's daily logs),
                          task-dates.ts (countdown maths), task-theme.ts (holo words),
@@ -99,7 +100,8 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
 src/lib/                 Convex client, auth token storage, theme-preference (the Dark mode
                          switch's choice, remembered per device), error messages, hooks (useNow, useDeviceFlag for
-                         per-device yes/no settings, useReduceTransparency, ...)
+                         per-device yes/no settings, useReduceTransparency, useAnnounce
+                         (read an error out with VoiceOver), useKeyboardShown, ...)
 convex/                  Backend (deployed by `bunx convex dev`)
   schema.ts              All tables + indexes
   convex.config.ts       App config: typed deployment env vars (CADENCE_DEMO), read via `env`
@@ -113,7 +115,8 @@ convex/                  Backend (deployed by `bunx convex dev`)
                          propose (anyone), approveProposal, declineProposal (admin),
                          postUpdate (owner: status, progress, note)
   extensions.ts          request (owner), decide (admins; the admin task reviewer for an
-                         admin's own task), forTask, pending (all waiting, with canDecide)
+                         admin's own task), withdraw (the asker), forTask (with canRequest),
+                         pending (all waiting, with canDecide)
   comments.ts            add (anyone; no edit/delete: part of the record)
   activity.ts            feed (paginated; invites hidden from members), forTask (a task's history)
   overdue.ts + crons.ts  flag: hourly job that sets tasks.overdueSince once a deadline passes
@@ -183,9 +186,13 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   hands (`isOwnerWorking`: those three + changes requested). **Extensions:** the owner asks
   (one pending at a time, a later date, a reason, scope change / other); admins decide, but on an
   admin-owned task only the admin task reviewer does, and nobody decides their own
-  (`loadDeciders`, `convex/lib/extensions.ts`). Approving moves the deadline (the original is
-  kept), moves the feature's too if the date is later, clears `overdueSince` and applies
-  `isLateExtension` (`convex/lib/lateRule.ts`; `countsAsLate` never goes back to false).
+  (`loadDeciders`, `convex/lib/extensions.ts`); asking is refused when nobody could decide
+  (`hasDecider`). Approving needs the request to come from the current owner, the task in their
+  hands and the feature unshipped; it moves the deadline (the original is kept), moves the
+  feature's too if the date is later, clears `overdueSince` and applies `isLateExtension` with the
+  window saved on the request (`convex/lib/lateRule.ts`; `countsAsLate` never goes back to
+  false). A change of owner closes any waiting request (status `withdrawn`). Members never see
+  the email of a person a setting names before they joined (`hidePendingEmail`).
 - **Activity entries about a task carry `taskId`** (its changes, comments, extension requests,
   a feature moved by its extension), which is how `activity.forTask` finds them. Comments are
   read from the activity log, not the `comments` table.

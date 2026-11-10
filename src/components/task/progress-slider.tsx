@@ -97,6 +97,10 @@ export function ProgressSlider({
       accessibilityRole="adjustable"
       accessibilityLabel={label}
       accessibilityValue={{ min: 0, max: 100, now: value, text: `${value}%` }}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={value}
+      aria-valuetext={`${value}%`}
       accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
       onAccessibilityAction={(e) => {
         const next = e.nativeEvent.actionName === "increment" ? value + STEP : value - STEP;

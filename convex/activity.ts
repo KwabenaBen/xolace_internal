@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { query, type QueryCtx } from "./_generated/server";
 import { isAdmin, requireUser } from "./lib/auth";
+import { hidePendingEmail } from "./lib/settings";
 import { activityEntityTypeValidator } from "./lib/validators";
 import { loadUserDirectory, userSummaryValidator, type UserDirectory } from "./lib/views";
 
@@ -41,7 +42,14 @@ async function newLookups(ctx: QueryCtx): Promise<Lookups> {
   return { directory: await loadUserDirectory(ctx), tasks: new Map(), features: new Map() };
 }
 
-async function toItem(ctx: QueryCtx, entry: Doc<"activity">, lookups: Lookups) {
+async function toItem(
+  ctx: QueryCtx,
+  entry: Doc<"activity">,
+  lookups: Lookups,
+  { forAdmin }: { forAdmin: boolean }
+) {
+  // A team rule naming someone who hasn't joined: members see it without their email.
+  const hide = !forAdmin && entry.entityType === "setting";
   const taskId =
     entry.taskId ??
     (entry.entityType === "task" ? ctx.db.normalizeId("tasks", entry.entityId) : null);
@@ -68,8 +76,8 @@ async function toItem(ctx: QueryCtx, entry: Doc<"activity">, lookups: Lookups) {
     action: entry.action,
     entityType: entry.entityType,
     entityId: entry.entityId,
-    before: entry.before,
-    after: entry.after,
+    before: hide ? hidePendingEmail(entry.before) : entry.before,
+    after: hide ? hidePendingEmail(entry.after) : entry.after,
     actor: entry.actorId !== undefined ? (lookups.directory.get(entry.actorId) ?? null) : null,
     task,
     feature,
@@ -96,7 +104,8 @@ export const feed = query({
     const result = await visible.paginate(paginationOpts);
     const lookups = await newLookups(ctx);
     const page = [];
-    for (const entry of result.page) page.push(await toItem(ctx, entry, lookups));
+    const forAdmin = isAdmin(user);
+    for (const entry of result.page) page.push(await toItem(ctx, entry, lookups, { forAdmin }));
     return { ...result, page };
   },
 });
@@ -106,7 +115,7 @@ export const forTask = query({
   args: { taskId: v.id("tasks") },
   returns: v.array(activityItemValidator),
   handler: async (ctx, { taskId }) => {
-    await requireUser(ctx);
+    const user = await requireUser(ctx);
     const tagged = await ctx.db
       .query("activity")
       .withIndex("by_taskId", (q) => q.eq("taskId", taskId))
@@ -125,7 +134,8 @@ export const forTask = query({
     const entries = [...byId.values()].sort((a, b) => b.timestamp - a.timestamp).slice(0, 200);
     const lookups = await newLookups(ctx);
     const items = [];
-    for (const entry of entries) items.push(await toItem(ctx, entry, lookups));
+    const forAdmin = isAdmin(user);
+    for (const entry of entries) items.push(await toItem(ctx, entry, lookups, { forAdmin }));
     return items;
   },
 });

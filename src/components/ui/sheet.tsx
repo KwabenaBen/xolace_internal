@@ -91,6 +91,7 @@ export function SheetScrollView({ style, ...props }: ScrollViewProps): JSX.Eleme
         bounces={false}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         {...props}
         style={[{ flexGrow: 0, flexShrink: 1 }, style]}
         onScroll={onScroll}

@@ -60,7 +60,10 @@ function settingValue(key: string, value: unknown): string {
   if (key === "morningDigestTime" || key === "dailyLogReminderTime") return clock(value);
   if (key === "extensionLateWindowHours" && typeof value === "number") return hoursLabel(value);
   const ref = record(value);
-  if (typeof ref.email === "string") return ref.email;
+  if (typeof ref.email === "string") {
+    // Members don't see the email of someone who hasn't joined (the server leaves it empty).
+    return ref.email !== "" ? ref.email : "someone who hasn't joined yet";
+  }
   return typeof value === "string" ? value.replace(/_/g, " ") : "a new value";
 }
 /** "just now", "5 min ago", "3 h ago", "yesterday", else "Tue 11 Nov". */
@@ -107,13 +110,18 @@ export function describeActivity(
     case "task.proposal_declined":
       return plain(`declined ${inTask ? "the proposal" : it}`, text(after.declineReason));
     case "task.updated": {
+      // A deadline move is named with its dates; the other changes are listed after it.
+      const others = Object.keys(after)
+        .filter((k) => k !== "deadline")
+        .map((k) => PLAN_FIELDS[k] ?? k);
       if (after.deadline !== undefined && before.deadline !== undefined) {
+        const its = inTask ? "its" : `${it}'s`;
+        const also = others.length > 0 ? ` and changed the ${list(others)}` : "";
         return plain(
-          `moved the deadline of ${it} from ${day(before.deadline)} to ${day(after.deadline)}`
+          `moved ${its} deadline from ${day(before.deadline)} to ${day(after.deadline)}${also}`
         );
       }
-      const fields = Object.keys(after).map((k) => PLAN_FIELDS[k] ?? k);
-      return plain(`edited ${it}${fields.length > 0 ? `: ${list(fields)}` : ""}`);
+      return plain(`edited ${it}${others.length > 0 ? `: ${list(others)}` : ""}`);
     }
     case "task.update_posted": {
       const moved = before.status !== after.status;
@@ -164,6 +172,10 @@ export function describeActivity(
       };
     case "extension.declined":
       return plain(`said no to more time on ${it}`, text(after.note));
+    case "extension.withdrawn":
+      return plain(`withdrew their request for more time on ${it}`);
+    case "extension.closed":
+      return plain(`closed the request for more time on ${it}: it has a new owner`);
     case "feature.created":
       return plain(`created the feature ${item.feature?.title ?? text(after.title) ?? ""}`.trim());
     case "feature.updated":

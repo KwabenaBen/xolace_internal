@@ -324,7 +324,8 @@ describe("extension requests", () => {
     );
     expect(await ceo.asUser.query(api.extensions.forTask, { taskId })).toMatchObject({
       canDecide: true,
-      decider: { kind: "reviewer", name: "ceo" },
+      decider: { kind: "reviewer", name: "ceo", isOwner: false },
+      canRequest: true,
     });
     await ceo.asUser.mutation(api.extensions.decide, { requestId, approve: true });
     // "Other" is always late.
@@ -423,6 +424,288 @@ describe("overdue", () => {
     expect(extended?.overdueSince).toBeUndefined();
     // Asked after the deadline had passed: late.
     expect(extended?.countsAsLate).toBe(true);
+  });
+});
+
+describe("extension requests: the audit's cases", () => {
+  test("a request doesn't follow the task to a new owner, and nobody decides their own", async () => {
+    const { t, coo, cmo, ceo, cto, featureId } = await setup();
+    // The COO owns a task and asks; then hands the task to the CTO.
+    const taskId = await createTask(t, cmo.asUser, featureId, coo.userId, 10);
+    const requestId = await coo.asUser.mutation(api.extensions.request, {
+      taskId,
+      newDeadline: inDays(14),
+      type: "scope_change",
+      reason: "Bigger than planned",
+    });
+    const task = await getTask(t, taskId);
+    await coo.asUser.mutation(api.tasks.update, {
+      taskId,
+      title: task!.title,
+      description: task!.description,
+      kind: task!.kind,
+      acceptanceCriteria: task!.acceptanceCriteria,
+      ownerId: cto.userId,
+      deadline: toDateOnly(task!.deadline!),
+      priority: task!.priority,
+    });
+    const closed = await t.run(async (ctx) => ctx.db.get("extensionRequests", requestId));
+    expect(closed).toMatchObject({
+      status: "withdrawn",
+      decisionNote: "The task moved to a new owner.",
+    });
+    // Closed, so nobody can approve it, the COO least of all.
+    for (const who of [coo, ceo]) {
+      await expectAppError(
+        who.asUser.mutation(api.extensions.decide, { requestId, approve: true }),
+        "CONFLICT"
+      );
+    }
+
+    // Even if a request were still waiting after the task changed hands, its asker can't
+    // decide it, and nobody can approve it for the new owner.
+    const other = await createTask(t, cmo.asUser, featureId, coo.userId, 10);
+    const stale = await coo.asUser.mutation(api.extensions.request, {
+      taskId: other,
+      newDeadline: inDays(13),
+      type: "other",
+      reason: "Partner moved",
+    });
+    await t.run(async (ctx) => ctx.db.patch("tasks", other, { ownerId: cto.userId }));
+    await expectAppError(
+      coo.asUser.mutation(api.extensions.decide, { requestId: stale, approve: true }),
+      "FORBIDDEN"
+    );
+    await expectAppError(
+      cmo.asUser.mutation(api.extensions.decide, { requestId: stale, approve: true }),
+      "INVALID_ARGUMENT"
+    );
+  });
+
+  test("approving needs the task in its owner's hands and the feature not shipped", async () => {
+    const { t, coo, cto, featureId } = await setup();
+    const taskId = await createTask(t, coo.asUser, featureId, cto.userId, 10);
+    const ask = async () =>
+      await cto.asUser.mutation(api.extensions.request, {
+        taskId,
+        newDeadline: inDays(12),
+        type: "scope_change",
+        reason: "More screens",
+      });
+    const first = await ask();
+    await setStatus(t, taskId, "submitted");
+    await expectAppError(
+      coo.asUser.mutation(api.extensions.decide, { requestId: first, approve: true }),
+      "INVALID_ARGUMENT"
+    );
+    // Declining still works.
+    await coo.asUser.mutation(api.extensions.decide, {
+      requestId: first,
+      approve: false,
+      note: "Submitted already",
+    });
+
+    await setStatus(t, taskId, "in_progress");
+    const second = await ask();
+    await t.run(async (ctx) => ctx.db.patch("features", featureId, { status: "shipped" }));
+    await expectAppError(
+      coo.asUser.mutation(api.extensions.decide, { requestId: second, approve: true }),
+      "INVALID_ARGUMENT"
+    );
+  });
+
+  test("approving refuses a date that has passed or a deadline that already moved", async () => {
+    setClock("2026-11-10T09:00:00Z");
+    const { t, coo, cto, featureId } = await setup();
+    const taskId = await createTask(t, coo.asUser, featureId, cto.userId, 2); // ends 12 Nov
+    const requestId = await cto.asUser.mutation(api.extensions.request, {
+      taskId,
+      newDeadline: "2026-11-13",
+      type: "scope_change",
+      reason: "One more day",
+    });
+    setClock("2026-11-14T09:00:00Z");
+    await expectAppError(
+      coo.asUser.mutation(api.extensions.decide, { requestId, approve: true }),
+      "INVALID_ARGUMENT"
+    );
+    await coo.asUser.mutation(api.extensions.decide, {
+      requestId,
+      approve: false,
+      note: "Too late",
+    });
+
+    setClock("2026-11-10T09:00:00Z");
+    const later = await cto.asUser.mutation(api.extensions.request, {
+      taskId,
+      newDeadline: "2026-11-15",
+      type: "scope_change",
+      reason: "Three more days",
+    });
+    // Meanwhile an admin moves the deadline past it.
+    await t.run(async (ctx) =>
+      ctx.db.patch("tasks", taskId, { deadline: Date.parse("2026-11-16T23:59:59.999Z") })
+    );
+    await expectAppError(
+      coo.asUser.mutation(api.extensions.decide, { requestId: later, approve: true }),
+      "INVALID_ARGUMENT"
+    );
+  });
+
+  test("the late window is the one in force when they asked", async () => {
+    setClock("2026-11-10T09:00:00Z");
+    const { t, coo, cto, featureId } = await setup();
+    await coo.asUser.mutation(api.settings.set, { key: "extensionLateWindowHours", value: 72 });
+    const taskId = await createTask(t, coo.asUser, featureId, cto.userId, 2); // ends 12 Nov, under 72 h
+    const requestId = await cto.asUser.mutation(api.extensions.request, {
+      taskId,
+      newDeadline: "2026-11-15",
+      type: "scope_change",
+      reason: "Scope grew",
+    });
+    // Narrowing the window afterwards doesn't change the verdict.
+    await coo.asUser.mutation(api.settings.set, { key: "extensionLateWindowHours", value: 6 });
+    await coo.asUser.mutation(api.extensions.decide, { requestId, approve: true });
+    expect((await getTask(t, taskId))?.countsAsLate).toBe(true);
+  });
+
+  test("no request when nobody could decide it; the asker can withdraw", async () => {
+    const { t, coo, cmo, ceo, cto, featureId } = await setup();
+    const adminTask = await createTask(t, cmo.asUser, featureId, coo.userId, 10);
+    // The reviewer (the CEO) is deactivated: nobody can decide an admin's request.
+    await t.run(async (ctx) => ctx.db.patch("users", ceo.userId, { isActive: false }));
+    await expectAppError(
+      coo.asUser.mutation(api.extensions.request, {
+        taskId: adminTask,
+        newDeadline: inDays(12),
+        type: "other",
+        reason: "x",
+      }),
+      "INVALID_ARGUMENT"
+    );
+
+    const taskId = await createTask(t, coo.asUser, featureId, cto.userId, 10);
+    const requestId = await cto.asUser.mutation(api.extensions.request, {
+      taskId,
+      newDeadline: inDays(12),
+      type: "other",
+      reason: "Changed my mind later",
+    });
+    await expectAppError(cmo.asUser.mutation(api.extensions.withdraw, { requestId }), "FORBIDDEN");
+    await cto.asUser.mutation(api.extensions.withdraw, { requestId });
+    const history = await cto.asUser.query(api.activity.forTask, { taskId });
+    expect(history[0]?.action).toBe("extension.withdrawn");
+    // Withdrawn, so they can ask again.
+    await cto.asUser.mutation(api.extensions.request, {
+      taskId,
+      newDeadline: inDays(11),
+      type: "other",
+      reason: "One day",
+    });
+  });
+
+  test("no requests on proposals, or from anyone but the owner", async () => {
+    const { coo, ceo, cto, featureId, t } = await setup();
+    const proposal = await ceo.asUser.mutation(api.tasks.propose, {
+      featureId,
+      title: "Referral screen",
+      description: "Invite friends.",
+      kind: "design",
+      acceptanceCriteria: [],
+      priority: "low",
+    });
+    await expectAppError(
+      ceo.asUser.mutation(api.extensions.request, {
+        taskId: proposal,
+        newDeadline: inDays(5),
+        type: "other",
+        reason: "x",
+      }),
+      "INVALID_ARGUMENT"
+    );
+    const taskId = await createTask(t, coo.asUser, featureId, cto.userId, 10);
+    await expectAppError(
+      coo.asUser.mutation(api.extensions.request, {
+        taskId,
+        newDeadline: inDays(12),
+        type: "other",
+        reason: "x",
+      }),
+      "FORBIDDEN"
+    );
+  });
+
+  test("signed-out and deactivated callers are turned away", async () => {
+    const { t, coo, cto, featureId } = await setup();
+    const taskId = await createTask(t, coo.asUser, featureId, cto.userId, 10);
+    await expectAppError(
+      t.mutation(api.tasks.postUpdate, { taskId, status: "todo", progress: 0 }),
+      "UNAUTHENTICATED"
+    );
+    await expectAppError(t.mutation(api.comments.add, { taskId, body: "hi" }), "UNAUTHENTICATED");
+    await expectAppError(t.query(api.activity.forTask, { taskId }), "UNAUTHENTICATED");
+    await expectAppError(t.query(api.extensions.pending, {}), "UNAUTHENTICATED");
+    await expectAppError(t.query(api.extensions.forTask, { taskId }), "UNAUTHENTICATED");
+    await t.run(async (ctx) => ctx.db.patch("users", cto.userId, { isActive: false }));
+    await expectAppError(
+      cto.asUser.mutation(api.extensions.request, {
+        taskId,
+        newDeadline: inDays(12),
+        type: "other",
+        reason: "x",
+      }),
+      "ACCOUNT_INACTIVE"
+    );
+  });
+});
+
+describe("overdue: the audit's cases", () => {
+  test("tasks with their reviewer are flagged too; an admin's later deadline clears it", async () => {
+    setClock("2026-11-10T09:00:00Z");
+    const { t, coo, cto, featureId } = await setup();
+    const ids = [];
+    for (const status of ["in_peer_review", "submitted", "changes_requested"] as const) {
+      const id = await createTask(t, coo.asUser, featureId, cto.userId, 1);
+      await setStatus(t, id, status);
+      ids.push(id);
+    }
+    setClock("2026-11-12T00:05:00Z");
+    expect(await t.mutation(internal.overdue.flag, {})).toBe(3);
+
+    const changed = ids[2]; // changes requested: its plan can be edited
+    const task = await getTask(t, changed);
+    await coo.asUser.mutation(api.tasks.update, {
+      taskId: changed,
+      title: task!.title,
+      description: task!.description,
+      kind: task!.kind,
+      acceptanceCriteria: task!.acceptanceCriteria,
+      ownerId: cto.userId,
+      deadline: "2026-11-15",
+      priority: task!.priority,
+    });
+    expect((await getTask(t, changed))?.overdueSince).toBeUndefined();
+  });
+});
+
+describe("a reviewer who hasn't joined yet", () => {
+  test("members see the rule without the invited person's email", async () => {
+    const t = createTestConvex();
+    const { asUser: asAdmin } = await insertUser(t, { email: "coo@cadence.test", role: "admin" });
+    const { asUser: asMember } = await insertUser(t, { email: "cto@cadence.test", role: "member" });
+    await t.run(async (ctx) =>
+      ctx.db.insert("settings", {
+        key: "adminTaskReviewer",
+        value: { email: "ceo@cadence.test" },
+        updatedAt: Date.now(),
+      })
+    );
+    const reviewer = (rules: { key: string; value: unknown }[]) =>
+      rules.find((r) => r.key === "adminTaskReviewer")?.value;
+    expect(reviewer(await asAdmin.query(api.settings.list, {}))).toEqual({
+      email: "ceo@cadence.test",
+    });
+    expect(reviewer(await asMember.query(api.settings.list, {}))).toEqual({ email: "" });
   });
 });
 

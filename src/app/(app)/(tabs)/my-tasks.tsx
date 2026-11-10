@@ -44,7 +44,7 @@ export default function MyTasksScreen(): JSX.Element {
   return (
     <Screen
       title="My Tasks"
-      subtitle="What you own, soonest deadline first, and what you've proposed."
+      subtitle="What's waiting on you, what you own (soonest deadline first) and what you've proposed."
       action={
         <Button size="sm" variant="secondary" onPress={() => router.push("/tasks/new")}>
           {newLabel}

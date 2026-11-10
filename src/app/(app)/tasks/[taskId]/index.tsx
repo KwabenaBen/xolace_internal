@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState, type JSX } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -9,7 +9,7 @@ import { isOwnerWorking, isPlanLocked } from "@convex/lib/validators";
 
 import type { UserSummary } from "@convex/lib/views";
 
-import { colors } from "@/components/ui/theme";
+import { colors, fonts, usePageColors } from "@/components/ui/theme";
 import { CountdownCard } from "@/components/task/countdown-card";
 import {
   DetailPage,
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/detail-page";
 import { HoloCard } from "@/components/task/holo-card";
 import { PeopleCards, type PersonCard } from "@/components/task/people-cards";
+import { decidedBy, nobodyDecides } from "@/components/task/deciders";
 import { ExtensionPanel } from "@/components/task/extension-panel";
 import { ExtensionSheet } from "@/components/task/extension-sheet";
 import { OwnerActions, TaskActions } from "@/components/task/task-actions";
@@ -51,6 +52,7 @@ export default function TaskScreen(): JSX.Element {
   const goBack = useGoBack();
   const { s, content } = usePageSize();
   const isAdmin = user.role === "admin";
+  const c = usePageColors();
   const now = useNow();
   const rules = useQuery(api.settings.list);
   const loadedId = data?.task._id;
@@ -73,7 +75,25 @@ export default function TaskScreen(): JSX.Element {
     const isDeclined = task.status === "declined";
     const isLive = !isProposal && !isDeclined;
     const canUpdate = isLive && task.ownerId === user._id && isOwnerWorking(task.status);
-    const hasPending = extensions?.requests.some((r) => r.status === "pending") ?? true;
+    const pending = extensions?.requests.find((r) => r.status === "pending");
+    // While loading, assume a request may be waiting (no Ask button flashing in and out).
+    const hasPending = extensions === undefined || pending !== undefined;
+    const cantAsk =
+      extensions !== undefined && !extensions.canRequest
+        ? nobodyDecides(extensions.decider, true)
+        : null;
+    // The server only approves while the task is in its owner's hands, its feature hasn't
+    // shipped, and the request came from its current owner.
+    const approveBlock =
+      pending === undefined
+        ? null
+        : pending.requestedBy !== task.ownerId
+          ? "It came from the task's previous owner, so it can only be declined."
+          : !isOwnerWorking(task.status)
+            ? "The task is with its reviewer or verified now, so it can only be declined."
+            : feature.status === "shipped"
+              ? "The feature has shipped, so it can only be declined."
+              : null;
     const edit = () =>
       router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId: task._id } });
     // Owner and reviewer cards open that person's work on this feature.
@@ -173,13 +193,18 @@ export default function TaskScreen(): JSX.Element {
             body="An extension was asked for close to its deadline, or wasn't a scope change. It stays on the record."
           />
         ) : null}
-        {isLive && extensions !== undefined ? (
+        {isLive && extensions !== undefined && pending !== undefined ? (
           <ExtensionPanel
+            key={pending._id}
             s={s}
             data={extensions}
+            pending={pending}
             featureDeadline={feature.deadline}
             windowHours={windowHours}
             now={now}
+            myId={user._id}
+            alreadyLate={task.countsAsLate}
+            approveBlock={approveBlock}
           />
         ) : null}
 
@@ -203,11 +228,20 @@ export default function TaskScreen(): JSX.Element {
           />
         ) : null}
         {canUpdate ? (
-          <OwnerActions
-            canExtend={!hasPending && task.deadline !== undefined}
-            onUpdate={() => setOpen("update")}
-            onExtend={() => setOpen("extend")}
-          />
+          <View style={{ gap: 10 }}>
+            <OwnerActions
+              canExtend={!hasPending && cantAsk === null && task.deadline !== undefined}
+              onUpdate={() => setOpen("update")}
+              onExtend={() => setOpen("extend")}
+            />
+            {!hasPending && cantAsk !== null ? (
+              <Text
+                style={{ fontFamily: fonts.medium, fontSize: 13, lineHeight: 19, color: c.muted }}
+              >
+                {cantAsk}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
         {task.description !== "" ? <DescriptionCard s={s} text={task.description} /> : null}
         {people.length > 0 ? <PeopleCards width={content} s={s} people={people} /> : null}
@@ -235,12 +269,9 @@ export default function TaskScreen(): JSX.Element {
             featureDeadline={feature.deadline}
             windowHours={windowHours}
             decidedBy={
-              extensions === undefined || extensions.decider.kind === "admins"
-                ? "An admin decides."
-                : extensions.decider.name !== null
-                  ? `${extensions.decider.name}, the admin task reviewer, decides.`
-                  : "The admin task reviewer decides; none is set yet."
+              extensions !== undefined ? decidedBy(extensions.decider) : "An admin decides."
             }
+            alreadyLate={task.countsAsLate}
             onClose={() => setOpen(null)}
           />
         ) : null}

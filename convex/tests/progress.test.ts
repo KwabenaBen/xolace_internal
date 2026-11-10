@@ -683,8 +683,12 @@ describe("overdue: the audit's cases", () => {
       ownerId: cto.userId,
       deadline: "2026-11-15",
       priority: task!.priority,
+      // Started (sent back) and overdue: moving it later says why, and counts as late.
+      deadlineChangeType: "scope_change",
     });
-    expect((await getTask(t, changed))?.overdueSince).toBeUndefined();
+    const moved = await getTask(t, changed);
+    expect(moved?.overdueSince).toBeUndefined();
+    expect(moved?.countsAsLate).toBe(true);
   });
 });
 

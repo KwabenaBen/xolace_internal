@@ -116,10 +116,18 @@ export function describeActivity(
         .map((k) => PLAN_FIELDS[k] ?? k);
       if (after.deadline !== undefined && before.deadline !== undefined) {
         const its = inTask ? "its" : `${it}'s`;
-        const also = others.length > 0 ? ` and changed the ${list(others)}` : "";
-        return plain(
-          `moved ${its} deadline from ${day(before.deadline)} to ${day(after.deadline)}${also}`
-        );
+        const why =
+          typeof after.deadlineChangeType === "string"
+            ? ` (${(EXTENSION_TYPE_LABELS[after.deadlineChangeType as ExtensionType] ?? "Other").toLowerCase()})`
+            : "";
+        const also = others.filter((o) => o !== "deadlineChangeType" && o !== "countsAsLate");
+        const rest = also.length > 0 ? ` and changed the ${list(also)}` : "";
+        const late = after.countsAsLate === true ? ". It counts as late" : "";
+        return {
+          who,
+          what: `moved ${its} deadline from ${day(before.deadline)} to ${day(after.deadline)}${why}${rest}${late}`,
+          tone: after.countsAsLate === true ? "warning" : "plain",
+        };
       }
       return plain(`edited ${it}${others.length > 0 ? `: ${list(others)}` : ""}`);
     }

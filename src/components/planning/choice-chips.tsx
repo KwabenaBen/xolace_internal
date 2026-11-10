@@ -10,7 +10,8 @@ export function ChoiceChips<T extends string>({
   onChange,
 }: {
   label: string;
-  value: T;
+  /** null: nothing chosen yet. */
+  value: T | null;
   options: readonly { value: T; label: string }[];
   onChange: (value: T) => void;
 }): JSX.Element {
@@ -27,6 +28,7 @@ export function ChoiceChips<T extends string>({
               key={option.value}
               accessibilityRole="radio"
               accessibilityState={{ checked: isSelected }}
+              aria-checked={isSelected}
               onPress={() => onChange(option.value)}
               className={`rounded-full border px-4 py-2 active:opacity-70 ${
                 isSelected ? "border-accent bg-accent" : "border-border bg-surface"

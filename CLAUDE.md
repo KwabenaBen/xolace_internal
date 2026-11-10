@@ -179,8 +179,11 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   active owner/reviewer, ≥1 acceptance criterion, deadline not past and ≤ the feature's. A
   feature's deadline can't move before its latest task deadline. Shipped features take no new work.
   `tasks.update` also refuses: a plan change while the task is in peer review, submitted or
-  verified (`isPlanLocked`, `convex/lib/validators.ts`, shared with the app), and an admin moving
-  the deadline of a task they own (that's for extension requests).
+  verified (`isPlanLocked`, `convex/lib/validators.ts`, shared with the app), and any deadline
+  change on a task an admin owns (before or after the edit): that's for requests for more time.
+  A started task (`hasStarted`: past to do, any progress, or overdue) moved later needs
+  `deadlineChangeType` and gets `isLateExtension`, like an approved extension; earlier, or while
+  still planning, is free.
 - **Progress (Phase 4):** only a task's owner posts updates (`tasks.postUpdate`): status between
   to do / in progress / blocked (blocked needs a note), progress 0–100, while the task is in their
   hands (`isOwnerWorking`: those three + changes requested). **Extensions:** the owner asks

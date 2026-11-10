@@ -5,10 +5,13 @@ import { View } from "react-native";
 
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
-import { formatDeadline, toDateOnly } from "@convex/lib/dates";
-import type { TaskKind, TaskPriority } from "@convex/lib/validators";
+import { endOfDayGmt, formatDeadline, toDateOnly } from "@convex/lib/dates";
+import { isLateExtension } from "@convex/lib/lateRule";
+import type { ExtensionType, TaskKind, TaskPriority } from "@convex/lib/validators";
 
 import { Screen } from "@/components/screen";
+import { hoursLabel } from "@/components/team-rules/rules";
+import { WarningNote } from "@/components/ui/save-sheet";
 import {
   KIND_ORDER,
   PRIORITY_ORDER,
@@ -97,20 +100,41 @@ export function TaskForm({
   initial,
   lockFeature = false,
   deadlineLockedReason,
+  deadlineMove,
   onSubmit,
 }: {
   mode: TaskFormMode;
   initial: TaskFormValues;
   /** The feature can't be changed (editing, approving, or opened from a feature page). */
   lockFeature?: boolean;
-  /** Set when the deadline can't be changed here; shown under the date (e.g. your own task). */
+  /** Set when the deadline can't be changed here; shown under the date (e.g. an admin's task). */
   deadlineLockedReason?: string;
-  onSubmit: (values: TaskFormValues) => Promise<void>;
+  /**
+   * Editing a task that has started: moving its deadline later needs a reason (scope change or
+   * other) and is judged by the late rule, like a request for more time.
+   */
+  deadlineMove?: { current: number; windowHours: number; alreadyLate: boolean };
+  onSubmit: (values: TaskFormValues, deadlineChangeType?: ExtensionType) => Promise<void>;
 }): JSX.Element {
   const features = useQuery(api.features.list);
   const users = useQuery(api.users.list);
   const [values, setValues] = useState(initial);
-  const today = toDateOnly(useNow());
+  const now = useNow();
+  const today = toDateOnly(now);
+  const [moveType, setMoveType] = useState<ExtensionType | null>(null);
+  const picked = values.deadline === "" ? null : endOfDayGmt(values.deadline);
+  // A started task moved later: say why, and see whether it counts as late.
+  const movingLater =
+    deadlineMove !== undefined && picked !== null && picked > deadlineMove.current;
+  const moveIsLate =
+    movingLater &&
+    moveType !== null &&
+    isLateExtension({
+      type: moveType,
+      requestedAt: now,
+      currentDeadline: deadlineMove.current,
+      windowHours: deadlineMove.windowHours,
+    });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isPlanning = mode !== "propose";
@@ -146,6 +170,9 @@ export function TaskForm({
         return "Code tasks need a peer reviewer.";
       }
       if (values.deadline === "") return "Pick a deadline.";
+      if (movingLater && moveType === null) {
+        return "Say why the deadline moves: a scope change, or something else.";
+      }
     }
     return null;
   }
@@ -160,7 +187,7 @@ export function TaskForm({
     setIsSubmitting(true);
     guard.markSaving();
     try {
-      await onSubmit(values);
+      await onSubmit(values, movingLater && moveType !== null ? moveType : undefined);
     } catch (e) {
       setError(getErrorMessage(e));
       guard.markFailed();
@@ -280,6 +307,31 @@ export function TaskForm({
                 : undefined)
             }
           />
+          {movingLater && deadlineMove !== undefined ? (
+            <View className="gap-3">
+              <ChoiceChips
+                label="Why the deadline moves"
+                value={moveType}
+                options={[
+                  { value: "scope_change", label: "Scope change" },
+                  { value: "other", label: "Other" },
+                ]}
+                onChange={setMoveType}
+              />
+              <Description>
+                The task has started, so a later deadline counts like a request for more time: a
+                scope change agreed in a meeting keeps it on time if it&apos;s more than{" "}
+                {hoursLabel(deadlineMove.windowHours)} before the deadline.
+              </Description>
+              {deadlineMove.alreadyLate ? (
+                <Description>
+                  The task already counts as late; this doesn&apos;t change that.
+                </Description>
+              ) : moveIsLate ? (
+                <WarningNote text="Saving this counts the task as late." />
+              ) : null}
+            </View>
+          ) : null}
         </View>
       ) : null}
     </Screen>

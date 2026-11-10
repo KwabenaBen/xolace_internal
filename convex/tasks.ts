@@ -3,8 +3,10 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type QueryCtx } from "./_generated/server";
 import { diffFields, logActivity } from "./lib/activity";
-import { requireAdmin, requireUser } from "./lib/auth";
+import { isAdmin, requireAdmin, requireUser } from "./lib/auth";
 import { appError } from "./lib/errors";
+import { isLateExtension } from "./lib/lateRule";
+import { getSettingValue } from "./lib/settings";
 import {
   cleanCriteria,
   cleanText,
@@ -16,8 +18,10 @@ import {
   validateTaskPlan,
 } from "./lib/tasks";
 import {
+  extensionTypeValidator,
   isOwnerWorking,
   isPlanLocked,
+  type ExtensionType,
   liveTaskStatusValidator,
   ownerStatusValidator,
   taskKindValidator,
@@ -228,9 +232,15 @@ export const create = mutation({
 
 /** Admin: edit a live task's plan (title, criteria, owner, reviewer, deadline, priority...). */
 export const update = mutation({
-  args: { taskId: v.id("tasks"), ...taskPlanArgs },
+  args: {
+    taskId: v.id("tasks"),
+    ...taskPlanArgs,
+    // Why a started task's deadline moves later (like a request for more time): needed then,
+    // and judged by the late rule.
+    deadlineChangeType: v.optional(extensionTypeValidator),
+  },
   returns: v.null(),
-  handler: async (ctx, { taskId, ...input }) => {
+  handler: async (ctx, { taskId, deadlineChangeType, ...input }) => {
     const admin = await requireAdmin(ctx);
     const task = await requireTask(ctx, taskId);
     if (!isLive(task)) {
@@ -243,20 +253,55 @@ export const update = mutation({
       );
     }
     const feature = await requireFeature(ctx, task.featureId);
-    const plan = await validateTaskPlan(ctx, feature, input, Date.now(), task.deadline);
-    // Nobody moves their own deadline: that's what extension requests (extensions.ts) are for.
-    if (task.ownerId === admin._id && plan.deadline !== task.deadline) {
-      throw appError(
-        "FORBIDDEN",
-        "You can't move the deadline of a task you own. Another admin can, or request an extension."
-      );
+    const now = Date.now();
+    const plan = await validateTaskPlan(ctx, feature, input, now, task.deadline);
+
+    // Deadline moves (convex/lib/lateRule.ts → "direct moves"):
+    let lateMove: { type: ExtensionType; late: boolean } | null = null;
+    if (plan.deadline !== task.deadline) {
+      // An admin's task moves only through a request for more time, decided by the admin task
+      // reviewer: nobody approves their own work, and admins don't approve each other's.
+      for (const ownerId of new Set([task.ownerId, plan.ownerId])) {
+        const owner = ownerId !== undefined ? await ctx.db.get("users", ownerId) : null;
+        if (owner !== null && isAdmin(owner)) {
+          throw appError(
+            "FORBIDDEN",
+            owner._id === admin._id
+              ? "You own this task, so its deadline moves through a request for more time, decided by the admin task reviewer."
+              : "An admin owns this task, so its deadline moves through their request for more time, decided by the admin task reviewer."
+          );
+        }
+      }
+      // A started task moved later is judged like a request for more time.
+      if (task.deadline !== undefined && plan.deadline > task.deadline && hasStarted(task, now)) {
+        if (deadlineChangeType === undefined) {
+          throw appError(
+            "INVALID_ARGUMENT",
+            "Say why the deadline moves (a scope change, or something else): it counts toward the late rule like a request for more time."
+          );
+        }
+        const windowValue = await getSettingValue(ctx, "extensionLateWindowHours");
+        lateMove = {
+          type: deadlineChangeType,
+          late: isLateExtension({
+            type: deadlineChangeType,
+            requestedAt: now,
+            currentDeadline: task.deadline,
+            windowHours: typeof windowValue === "number" ? windowValue : 24,
+          }),
+        };
+      }
     }
 
     const changes = diffFields(task, plan);
     if (changes === null) return null;
     // Moved to a date still ahead: no longer overdue.
-    const clearOverdue = task.overdueSince !== undefined && plan.deadline > Date.now();
-    await ctx.db.patch("tasks", taskId, clearOverdue ? { ...plan, overdueSince: undefined } : plan);
+    const clearOverdue = task.overdueSince !== undefined && plan.deadline > now;
+    await ctx.db.patch("tasks", taskId, {
+      ...plan,
+      ...(clearOverdue ? { overdueSince: undefined } : {}),
+      ...(lateMove?.late === true ? { countsAsLate: true } : {}),
+    });
     // A new owner doesn't inherit the old owner's request for more time: it's closed.
     if (plan.ownerId !== task.ownerId) {
       const open = await ctx.db
@@ -288,11 +333,27 @@ export const update = mutation({
       entityId: taskId,
       taskId,
       action: "task.updated",
-      ...changes,
+      before: changes.before,
+      after:
+        lateMove === null
+          ? changes.after
+          : { ...changes.after, deadlineChangeType: lateMove.type, countsAsLate: lateMove.late },
     });
     return null;
   },
 });
+
+/**
+ * Work has begun: anything past "to do", any progress, or a deadline already gone. Before that,
+ * moving the deadline is still planning; after, a later date is judged like an extension.
+ */
+function hasStarted(task: Doc<"tasks">, now: number): boolean {
+  return (
+    task.status !== "todo" ||
+    task.progress > 0 ||
+    (task.deadline !== undefined && task.deadline <= now)
+  );
+}
 
 /**
  * Owner: post an update on their task: its status (to do, in progress, blocked), its progress

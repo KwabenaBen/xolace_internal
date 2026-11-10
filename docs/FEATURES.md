@@ -345,8 +345,14 @@ owner, peer reviewer for code tasks, and a deadline between today and the featur
 new task starts as **To do**.
 
 - Editing uses the same form. An overdue task can still be edited if its deadline is left as it is.
-- **Nobody moves their own deadline.** An admin who owns a task sees its deadline greyed out;
-  another admin can move it (and from Phase 4, an extension request).
+- **Moving a deadline.** While a task hasn't started (To do, no progress, not overdue), an admin
+  moves its deadline freely: that's still planning. Once it has started, moving it later asks
+  **Why the deadline moves** (scope change or other) and the same late rule as a request for more
+  time applies: "other", or a move less than 24 hours before the deadline (or after it), counts
+  the task as late, and says so before saving. Moving it earlier asks nothing.
+- **An admin's own task.** No admin moves the deadline of a task an admin owns, their own or
+  another admin's: the date is greyed out with the reason, and it moves only through the owner's
+  request for more time, decided by the admin task reviewer.
 - **Locked in review.** Once a task is In peer review, Submitted or Verified, its plan can't be
   edited, so a review is never judged against something that changed. It unlocks when the task
   is sent back to its owner.

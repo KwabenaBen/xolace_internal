@@ -7,6 +7,11 @@
  * the team's late window (Team rules, 24 hours by default) before the deadline it extends,
  * including after that deadline has passed. A scope change asked for earlier keeps the task on
  * time. Once a task has a late extension it stays late.
+ *
+ * Direct moves: an admin moving a started task's deadline later (Edit task) says why, scope
+ * change or other, and the same rule applies, so a deadline can't be moved round it. Moving it
+ * earlier, or while planning a task that hasn't started, isn't judged. An admin's own task moves
+ * only through a request for more time (convex/tasks.ts → update).
  */
 
 const HOUR_MS = 60 * 60 * 1000;

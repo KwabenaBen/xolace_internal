@@ -362,16 +362,30 @@ describe("edit rules (audit batch 3)", () => {
     await admin.asUser.mutation(api.tasks.update, edit);
   });
 
-  test("an admin can't move the deadline of a task they own; another admin can", async () => {
-    const { t, admin } = await setup();
+  test("no admin moves an admin-owned deadline directly; a member's task can be", async () => {
+    const { t, admin, ceo } = await setup();
     const other = await insertUser(t, { email: "ceo2@cadence.test", role: "admin", title: "CEO" });
     const featureId = await createFeature(t, admin.asUser);
     const plan = { ...codeTask(featureId, admin.userId, other.userId), kind: "design" as TaskKind };
     const taskId = await admin.asUser.mutation(api.tasks.create, plan);
     const later = { taskId, ...withoutFeature(plan), deadline: inDays(20) };
 
+    // Not the owner, and not another admin: it goes through a request to the reviewer.
     await expectAppError(admin.asUser.mutation(api.tasks.update, later), "FORBIDDEN");
-    // Everything else about their own task can still change.
+    await expectAppError(other.asUser.mutation(api.tasks.update, later), "FORBIDDEN");
+    // Nor by handing it to an admin in the same edit.
+    const memberPlan = { ...plan, ownerId: ceo.userId };
+    const memberTask = await admin.asUser.mutation(api.tasks.create, memberPlan);
+    await expectAppError(
+      other.asUser.mutation(api.tasks.update, {
+        taskId: memberTask,
+        ...withoutFeature(memberPlan),
+        ownerId: admin.userId,
+        deadline: inDays(20),
+      }),
+      "FORBIDDEN"
+    );
+    // Everything else about an admin's task can still change.
     await admin.asUser.mutation(api.tasks.update, {
       taskId,
       ...withoutFeature(plan),
@@ -379,9 +393,55 @@ describe("edit rules (audit batch 3)", () => {
     });
     expect((await admin.asUser.query(api.tasks.get, { taskId }))?.task.priority).toBe("low");
 
-    await other.asUser.mutation(api.tasks.update, later);
-    const view = await admin.asUser.query(api.tasks.get, { taskId });
+    // A member's task that hasn't started: planning, so no reason needed.
+    await other.asUser.mutation(api.tasks.update, {
+      taskId: memberTask,
+      ...withoutFeature(memberPlan),
+      deadline: inDays(20),
+    });
+    const view = await admin.asUser.query(api.tasks.get, { taskId: memberTask });
     expect(view?.task.deadline).not.toBe(view?.task.originalDeadline);
+    expect(view?.task.countsAsLate).toBe(false);
+  });
+
+  test("a started task moved later says why, and the late rule applies", async () => {
+    const { t, admin, ceo } = await setup();
+    const featureId = await createFeature(t, admin.asUser, 30);
+    const plan = { ...codeTask(featureId, ceo.userId, undefined, 10), kind: "design" as TaskKind };
+    const taskId = await admin.asUser.mutation(api.tasks.create, plan);
+    await t.run(async (ctx) =>
+      ctx.db.patch("tasks", taskId, { status: "in_progress", progress: 30 })
+    );
+    const edit = { taskId, ...withoutFeature(plan) };
+
+    await expectAppError(
+      admin.asUser.mutation(api.tasks.update, { ...edit, deadline: inDays(14) }),
+      "INVALID_ARGUMENT"
+    );
+    // A scope change well before the deadline: on time.
+    await admin.asUser.mutation(api.tasks.update, {
+      ...edit,
+      deadline: inDays(14),
+      deadlineChangeType: "scope_change",
+    });
+    expect((await admin.asUser.query(api.tasks.get, { taskId }))?.task.countsAsLate).toBe(false);
+    // Earlier needs no reason.
+    await admin.asUser.mutation(api.tasks.update, { ...edit, deadline: inDays(12) });
+    // "Other" counts as late, and stays late.
+    await admin.asUser.mutation(api.tasks.update, {
+      ...edit,
+      deadline: inDays(16),
+      deadlineChangeType: "other",
+    });
+    await admin.asUser.mutation(api.tasks.update, {
+      ...edit,
+      deadline: inDays(18),
+      deadlineChangeType: "scope_change",
+    });
+    const view = await admin.asUser.query(api.tasks.get, { taskId });
+    expect(view?.task.countsAsLate).toBe(true);
+    const history = await admin.asUser.query(api.activity.forTask, { taskId });
+    expect(history[1]?.after).toMatchObject({ deadlineChangeType: "other", countsAsLate: true });
   });
 
   test("edits keep the deadline on or before the feature's, and not in the past", async () => {

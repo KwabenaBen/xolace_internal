@@ -99,7 +99,7 @@ export function ReviewerSheet({
       footer={
         chosen?.role === "admin" ? (
           <WarningNote
-            text={`${firstName(chosen.name)} is an admin too, so they'd verify their own tasks. Someone who isn't an admin keeps every check independent.`}
+            text={`${firstName(chosen.name)} is an admin too: for their own tasks, the other admins would decide instead. Someone who isn't an admin keeps every check independent.`}
           />
         ) : undefined
       }

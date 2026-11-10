@@ -432,10 +432,11 @@ them; admins tap one to change it. Each change opens a card over the blurred pag
 rule does, a picker and **Save**; nothing changes until Save, and swiping the card away leaves the
 rule as it was.
 
-- **Admin task reviewer.** Who verifies the tasks an admin owns, so nobody approves their own
-  work: their avatar, name and title. An admin picks someone from the active team. A yellow note
-  says when something needs attention: nobody chosen yet, the reviewer was deactivated, they
-  haven't joined yet, or they're an admin themselves (so they'd verify their own tasks).
+- **Admin task reviewer.** Who verifies the tasks an admin owns and decides their requests for
+  more time, so nobody approves their own work: their avatar, name and title. An admin picks
+  someone from the active team. When the reviewer can't (nobody chosen yet, deactivated, not
+  joined yet, or it's the reviewer's own task as an admin), the other admins decide for each
+  other, and a yellow note says so.
 - **Times.** The morning digest (8:00 AM) and the weekday daily log reminder (8:00 PM), set on
   the phone's time wheel (the browser's time box on the web). The pushes themselves arrive in
   Phase 7. The same times can be changed from their rows on Settings.

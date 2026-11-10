@@ -188,9 +188,9 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   to do / in progress / blocked (blocked needs a note), progress 0–100, while the task is in their
   hands (`isOwnerWorking`: those three + changes requested). **Extensions:** the owner asks
   (one pending at a time, a later date, a reason, scope change / other); admins decide, but on an
-  admin-owned task only the admin task reviewer does, and nobody decides their own
-  (`loadDeciders`, `convex/lib/extensions.ts`); asking is refused when nobody could decide
-  (`hasDecider`). Approving needs the request to come from the current owner, the task in their
+  admin-owned task the admin task reviewer does, or the other admins when the reviewer can't
+  (none set, deactivated, or it's their own task), and nobody decides their own (`loadDeciders`,
+  `convex/lib/extensions.ts`); asking is refused when nobody could decide (`hasDecider`). Approving needs the request to come from the current owner, the task in their
   hands and the feature unshipped; it moves the deadline (the original is kept), moves the
   feature's too if the date is later, clears `overdueSince` and applies `isLateExtension` with the
   window saved on the request (`convex/lib/lateRule.ts`; `countsAsLate` never goes back to

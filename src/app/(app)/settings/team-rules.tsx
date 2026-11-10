@@ -33,18 +33,18 @@ type Editing = TimeKey | "reviewer" | "lateWindow" | null;
 function reviewerWarning(reviewer: Reviewer): string | undefined {
   switch (reviewer.kind) {
     case "none":
-      return "Nobody is chosen yet, so nobody can verify the tasks an admin owns.";
+      return "Nobody is chosen yet. Until someone is, the admins decide for each other.";
     case "invited":
       return reviewer.email !== ""
-        ? `${reviewer.email} hasn't joined yet. They take this on once they sign up.`
-        : "They haven't joined yet. They take this on once they sign up.";
+        ? `${reviewer.email} hasn't joined yet. Until they do, the admins decide for each other.`
+        : "They haven't joined yet. Until they do, the admins decide for each other.";
     case "person": {
       const first = firstName(reviewer.person.name);
       if (!reviewer.person.isActive) {
-        return `${first} has been deactivated, so someone else needs to take this on.`;
+        return `${first} has been deactivated. Until someone else is chosen, the admins decide for each other.`;
       }
       if (reviewer.person.role === "admin") {
-        return `${first} is an admin too, so they'd verify their own tasks.`;
+        return `${first} is an admin too: for ${first}'s own tasks, the other admins decide instead.`;
       }
       return undefined;
     }

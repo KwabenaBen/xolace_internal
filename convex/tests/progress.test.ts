@@ -572,17 +572,31 @@ describe("extension requests: the audit's cases", () => {
   test("no request when nobody could decide it; the asker can withdraw", async () => {
     const { t, coo, cmo, ceo, cto, featureId } = await setup();
     const adminTask = await createTask(t, cmo.asUser, featureId, coo.userId, 10);
-    // The reviewer (the CEO) is deactivated: nobody can decide an admin's request.
+    // The reviewer (the CEO) is deactivated: the other admin (the CMO) decides instead.
     await t.run(async (ctx) => ctx.db.patch("users", ceo.userId, { isActive: false }));
+    const fallback = await coo.asUser.mutation(api.extensions.request, {
+      taskId: adminTask,
+      newDeadline: inDays(12),
+      type: "other",
+      reason: "Partner moved the date",
+    });
+    expect(await cmo.asUser.query(api.extensions.forTask, { taskId: adminTask })).toMatchObject({
+      canDecide: true,
+      decider: { kind: "admins" },
+    });
+    await cmo.asUser.mutation(api.extensions.decide, { requestId: fallback, approve: true });
+    // With no reviewer and no other admin, nobody could decide: asking is refused.
+    await t.run(async (ctx) => ctx.db.patch("users", cmo.userId, { isActive: false }));
     await expectAppError(
       coo.asUser.mutation(api.extensions.request, {
         taskId: adminTask,
-        newDeadline: inDays(12),
+        newDeadline: inDays(14),
         type: "other",
         reason: "x",
       }),
       "INVALID_ARGUMENT"
     );
+    await t.run(async (ctx) => ctx.db.patch("users", cmo.userId, { isActive: true }));
 
     const taskId = await createTask(t, coo.asUser, featureId, cto.userId, 10);
     const requestId = await cto.asUser.mutation(api.extensions.request, {

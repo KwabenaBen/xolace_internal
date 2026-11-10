@@ -83,7 +83,10 @@ export default defineSchema({
     priority: taskPriorityValidator,
     status: taskStatusValidator,
     progress: v.number(), // 0–100
-    countsAsLate: v.boolean(),
+    countsAsLate: v.boolean(), // an approved extension counted as late (convex/lib/lateRule.ts)
+    // Set by the hourly overdue job (convex/overdue.ts) once the deadline passes without
+    // verification; cleared when the deadline moves to a later date.
+    overdueSince: v.optional(v.number()),
     submittedAt: v.optional(v.number()),
     verifiedAt: v.optional(v.number()),
   })
@@ -103,8 +106,13 @@ export default defineSchema({
     reason: v.string(),
     type: extensionTypeValidator,
     status: extensionStatusValidator,
-    reviewerId: v.optional(v.id("users")),
+    // The requested date is later than the feature's deadline (when asked): approving it moves
+    // the feature's deadline too.
+    beyondFeatureDeadline: v.boolean(),
+    reviewerId: v.optional(v.id("users")), // who decided
     decidedAt: v.optional(v.number()),
+    decisionNote: v.optional(v.string()), // required when declined
+    countsAsLate: v.optional(v.boolean()), // set when approved (convex/lib/lateRule.ts)
   })
     .index("by_taskId_and_status", ["taskId", "status"])
     .index("by_status", ["status"])
@@ -152,9 +160,13 @@ export default defineSchema({
     before: v.optional(v.any()),
     after: v.optional(v.any()),
     timestamp: v.number(),
+    // The task an entry is about (its own changes, its comments, its extension requests), so a
+    // task page can show its history. Unset for entries about anything else.
+    taskId: v.optional(v.id("tasks")),
   })
     .index("by_entityType_and_entityId", ["entityType", "entityId"])
-    .index("by_actorId", ["actorId"]),
+    .index("by_actorId", ["actorId"])
+    .index("by_taskId", ["taskId"]),
 
   invites: defineTable({
     email: v.string(), // normalised: trimmed + lower-case

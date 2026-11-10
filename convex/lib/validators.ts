@@ -67,6 +67,36 @@ export function isPlanLocked(status: TaskStatus): boolean {
   return (PLAN_LOCKED_STATUSES as readonly TaskStatus[]).includes(status);
 }
 
+/**
+ * The statuses an owner moves their own task between while working on it. The review statuses
+ * (in peer review, submitted, verified, changes requested) are set by those steps (Phase 6).
+ */
+export const OWNER_STATUSES = [
+  "todo",
+  "in_progress",
+  "blocked",
+] as const satisfies readonly TaskStatus[];
+
+export const ownerStatusValidator = v.union(
+  v.literal("todo"),
+  v.literal("in_progress"),
+  v.literal("blocked")
+);
+export type OwnerStatus = Infer<typeof ownerStatusValidator>;
+
+/**
+ * While a task is in one of these it's in its owner's hands: they post updates on it and can
+ * ask for more time. (Sent back with changes requested, it's theirs again.) Shared with the app.
+ */
+export const OWNER_WORKING_STATUSES = [
+  ...OWNER_STATUSES,
+  "changes_requested",
+] as const satisfies readonly TaskStatus[];
+
+export function isOwnerWorking(status: TaskStatus): boolean {
+  return (OWNER_WORKING_STATUSES as readonly TaskStatus[]).includes(status);
+}
+
 /** What kind of work a task is. Code tasks need a peer reviewer. */
 export const taskKindValidator = v.union(
   v.literal("code"),

@@ -8,6 +8,7 @@ import { appError } from "./lib/errors";
 import {
   cleanCriteria,
   cleanText,
+  isLiveTask,
   LIMITS,
   requireFeature,
   requireTask,
@@ -15,8 +16,10 @@ import {
   validateTaskPlan,
 } from "./lib/tasks";
 import {
+  isOwnerWorking,
   isPlanLocked,
   liveTaskStatusValidator,
+  ownerStatusValidator,
   taskKindValidator,
   taskPriorityValidator,
 } from "./lib/validators";
@@ -31,9 +34,7 @@ import {
 } from "./lib/views";
 import schema from "./schema";
 
-function isLive(task: Doc<"tasks">): boolean {
-  return task.status !== "proposed" && task.status !== "declined";
-}
+const isLive = isLiveTask;
 
 /** Feature stages whose work belongs on the Board; shipped features drop off it. */
 const ACTIVE_FEATURE_STATUSES = ["planned", "in_progress", "internal_testing"] as const;
@@ -210,6 +211,7 @@ export const create = mutation({
       actorId: admin._id,
       entityType: "task",
       entityId: taskId,
+      taskId,
       action: "task.created",
       after: { featureId, ...plan },
     });
@@ -235,7 +237,7 @@ export const update = mutation({
     }
     const feature = await requireFeature(ctx, task.featureId);
     const plan = await validateTaskPlan(ctx, feature, input, Date.now(), task.deadline);
-    // Nobody moves their own deadline: that's what extension requests (Phase 3) are for.
+    // Nobody moves their own deadline: that's what extension requests (extensions.ts) are for.
     if (task.ownerId === admin._id && plan.deadline !== task.deadline) {
       throw appError(
         "FORBIDDEN",
@@ -245,13 +247,68 @@ export const update = mutation({
 
     const changes = diffFields(task, plan);
     if (changes === null) return null;
-    await ctx.db.patch("tasks", taskId, plan);
+    // Moved to a date still ahead: no longer overdue.
+    const clearOverdue = task.overdueSince !== undefined && plan.deadline > Date.now();
+    await ctx.db.patch("tasks", taskId, clearOverdue ? { ...plan, overdueSince: undefined } : plan);
     await logActivity(ctx, {
       actorId: admin._id,
       entityType: "task",
       entityId: taskId,
+      taskId,
       action: "task.updated",
       ...changes,
+    });
+    return null;
+  },
+});
+
+/**
+ * Owner: post an update on their task: its status (to do, in progress, blocked), its progress
+ * (0–100) and an optional note, which is required when marking it blocked (say what's in the
+ * way). Not while it's with its reviewer or verified: it's theirs again once sent back.
+ */
+export const postUpdate = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    status: ownerStatusValidator,
+    progress: v.number(),
+    note: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { taskId, status, progress, note }) => {
+    const user = await requireUser(ctx);
+    const task = await requireTask(ctx, taskId);
+    if (!isLive(task)) {
+      throw appError("INVALID_ARGUMENT", "Only live tasks take updates.");
+    }
+    if (task.ownerId !== user._id) {
+      throw appError("FORBIDDEN", "Only the task's owner can post updates on it.");
+    }
+    if (!isOwnerWorking(task.status)) {
+      throw appError(
+        "INVALID_ARGUMENT",
+        "This task is with its reviewer or already verified. You can update it again if it's sent back to you."
+      );
+    }
+    if (!Number.isInteger(progress) || progress < 0 || progress > 100) {
+      throw appError("INVALID_ARGUMENT", "Progress must be a whole number from 0 to 100.");
+    }
+    const text = cleanText(note ?? "", "Note", { required: false, max: LIMITS.note });
+    if (status === "blocked" && task.status !== "blocked" && text === "") {
+      throw appError("INVALID_ARGUMENT", "Say what's blocking it, so the team can help.");
+    }
+
+    const changed = status !== task.status || progress !== task.progress;
+    if (!changed && text === "") return null;
+    if (changed) await ctx.db.patch("tasks", taskId, { status, progress });
+    await logActivity(ctx, {
+      actorId: user._id,
+      entityType: "task",
+      entityId: taskId,
+      taskId,
+      action: "task.update_posted",
+      before: { status: task.status, progress: task.progress },
+      after: { status, progress, ...(text !== "" ? { note: text } : {}) },
     });
     return null;
   },
@@ -297,6 +354,7 @@ export const propose = mutation({
       actorId: user._id,
       entityType: "task",
       entityId: taskId,
+      taskId,
       action: "task.proposed",
       after: { featureId, ...fields },
     });
@@ -326,6 +384,7 @@ export const approveProposal = mutation({
       actorId: admin._id,
       entityType: "task",
       entityId: taskId,
+      taskId,
       action: "task.proposal_approved",
       before: { status: task.status },
       after: { status: "todo", ...plan },
@@ -351,6 +410,7 @@ export const declineProposal = mutation({
       actorId: admin._id,
       entityType: "task",
       entityId: taskId,
+      taskId,
       action: "task.proposal_declined",
       before: { status: task.status },
       after: { status: "declined", declineReason },

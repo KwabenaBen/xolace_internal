@@ -9,6 +9,8 @@ export type ActivityEntry = {
   action: string; // "<entity>.<verb>", e.g. "user.deactivated"
   before?: unknown;
   after?: unknown;
+  /** The task the entry is about, for that task's history (convex/activity.ts → forTask). */
+  taskId?: Id<"tasks">;
 };
 
 /**

@@ -16,7 +16,14 @@ export const LIMITS = {
   criterion: 300,
   criteria: 20,
   reason: 1000,
+  note: 1000,
+  comment: 2000,
 } as const;
+
+/** A task on the board: not a proposal and not a declined one. */
+export function isLiveTask(task: Doc<"tasks">): boolean {
+  return task.status !== "proposed" && task.status !== "declined";
+}
 
 /** Trims `value`; throws INVALID_ARGUMENT if it's required and empty, or too long. */
 export function cleanText(

@@ -344,6 +344,17 @@ export const clear = internalMutation({
         .withIndex("by_featureId_and_status", (q) => q.eq("featureId", feature._id))
         .take(500);
       for (const task of tasks) {
+        // What hangs off a demo task goes with it (the activity log stays, as always).
+        const comments = await ctx.db
+          .query("comments")
+          .withIndex("by_taskId", (q) => q.eq("taskId", task._id))
+          .take(500);
+        for (const comment of comments) await ctx.db.delete("comments", comment._id);
+        const requests = await ctx.db
+          .query("extensionRequests")
+          .withIndex("by_taskId_and_status", (q) => q.eq("taskId", task._id))
+          .take(500);
+        for (const request of requests) await ctx.db.delete("extensionRequests", request._id);
         await ctx.db.delete("tasks", task._id);
       }
       await ctx.db.delete("features", feature._id);

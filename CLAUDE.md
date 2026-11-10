@@ -34,7 +34,8 @@ src/app/                 Expo Router routes
   (app)/(tabs)/          Tabs: Board (index), My Tasks, Logs, Settings, Admin (admins only)
   (app)/settings/        Pages under Settings: account (profile + sign out), people/index (the
                          team grid, invites waiting, deactivated; person cards), people/invite
-                         (modal: invite with a live ticket, then the code to share)
+                         (modal: invite with a live ticket, then the code to share), team-rules
+                         (the team's settings; admins change each in a RuleSheet)
   (app)/features/        new (modal), [featureId]/index (page), [featureId]/edit (modal),
                          [featureId]/people/[userId] (one person's work on the feature)
   (app)/tasks/           new (modal: admin creates / member proposes), [taskId]/index (page),
@@ -50,7 +51,7 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          task-row.tsx (TaskRow,
                          StatusPill, FeatureStatusPill), progress-bar.tsx, sym.tsx (SF Symbol /
                          Material icon), sheet.tsx (Sheet: every overlay card; SheetScrollView,
-                         useSheet), action-sheet.tsx (ActionSheet), use-sheet-actions.ts
+                         SheetNoSwipe, useSheet), action-sheet.tsx (ActionSheet), use-sheet-actions.ts
                          (confirm-in-sheet), role-pill.tsx (RolePill)
   settings/              The Settings tab: ClayRelightSettings.tsx (Native Cook's "Clay Relight
                          Settings": a Skia ray-marched clay scene relit from noon to night by the
@@ -61,6 +62,11 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          stickers.tsx (SVG stickers + pen marks), person-actions.ts /
                          invite-actions.ts (what an admin can do, mirroring the server's rules),
                          invite-form.tsx + invite-ticket.tsx
+  team-rules/            Team rules: rules.ts (labels, "HH:mm" ↔ Date, who the reviewer is),
+                         rule-row.tsx, rule-sheet.tsx (RuleSheet: pick, then Save),
+                         rule-sheets.tsx (TimeRuleSheet, ReviewerSheet, LateWindowSheet; the time
+                         sheet is also opened from the Settings rows), time-picker.tsx (iOS
+                         wheel / Android dialog; .web.tsx = browser time input)
   auth/                  Signed-out UI: DotField (dots that spell "cadence"; dot-field.tsx = Skia,
                          dot-field.web.tsx = canvas, math in dot-formations.ts), DotWordmark,
                          AuthTextField, AuthFormScreen
@@ -196,7 +202,8 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 - **Overlays:** every overlay card is a `Sheet` (`src/components/ui/sheet.tsx`). Mount it to open
   it; it rises over the page, which blurs (expo-blur) and dims; swipe down, a tap outside or back
   closes it with the same exit, then `onClose` unmounts it. Scrolling content goes in
-  `SheetScrollView` (a swipe scrolls first, then moves the card); content closes it with
+  `SheetScrollView` (a swipe scrolls first, then moves the card); a control that is dragged
+  itself (the iOS time wheel) goes in `SheetNoSwipe`; content closes it with
   `useSheet().close` and locks it with `setLocked(busy)` while saving. Ask "are you sure?"
   inside the sheet (`useSheetActions`), never with an `Alert` over it (iOS won't show an alert
   over a closing modal). Reduce Motion: fade; Reduce Transparency: plain dim.
@@ -304,8 +311,10 @@ UX, security) and write the findings up before moving on.
       rules, Account & security) with clay icons; Account page (profile, sign out). Branch
       `cadence-phase-3-settings-screen`. People page (team grid, editorial person cards, invites
       with codes to share, roles, deactivate) and every overlay as a swipe-to-close Sheet over a
-      blurred page: `cadence-phase-3-peoplescreen`. Next: Team rules (admin task reviewer,
-      digest/reminder times, late window) and the Notifications / Daily log reminder time sheets.
+      blurred page: `cadence-phase-3-peoplescreen`. Team rules page (admin task reviewer,
+      digest/reminder times on a time wheel, read-only time zone, late window) and the
+      Notifications / Daily log reminder time sheets: `cadence-phase-3-teamrulesscreen`.
+      _Built. Tick once an admin and a member have walked through it on iPhone and web._
 - [ ] **Phase 4 — Progress & extensions:** status changes, progress %, comments, overdue flag,
       extension requests + late rule, activity log.
 - [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.

@@ -22,6 +22,8 @@ export const symbols = {
   calendar: { ios: "calendar", fallback: "calendar-month", fit: 1.1 },
   close: { ios: "xmark", fallback: "close", fit: 1 },
   back: { ios: "chevron.left", fallback: "chevron-left", fit: 1 },
+  forward: { ios: "chevron.right", fallback: "chevron-right", fit: 1 },
+  check: { ios: "checkmark", fallback: "check", fit: 1 },
   add: { ios: "plus", fallback: "plus", fit: 1 },
   invite: { ios: "envelope.fill", fallback: "email", fit: 1.1 },
 } as const satisfies Record<string, SymbolSpec>;

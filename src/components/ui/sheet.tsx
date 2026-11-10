@@ -11,13 +11,16 @@ import {
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   Easing,
+  measure,
   useAnimatedProps,
+  useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
+  type AnimatedRef,
   type SharedValue,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -54,6 +57,8 @@ export type SheetApi = {
 type SheetContextValue = SheetApi & {
   scrollGesture: ReturnType<typeof Gesture.Native>;
   scrollTop: SharedValue<number>;
+  noSwipe: AnimatedRef<View>;
+  hasNoSwipe: SharedValue<boolean>;
 };
 
 const SheetContext = createContext<SheetContextValue | null>(null);
@@ -93,6 +98,21 @@ export function SheetScrollView({ style, ...props }: ScrollViewProps): JSX.Eleme
 }
 
 /**
+ * Part of a sheet's content that a swipe never moves the card from: for a control that is
+ * dragged up and down itself, like the iOS time wheel. One per sheet.
+ */
+export function SheetNoSwipe({ children }: { children: ReactNode }): JSX.Element {
+  const sheet = use(SheetContext);
+  if (sheet === null) throw new Error("SheetNoSwipe is only for content inside a <Sheet>.");
+  const { noSwipe, hasNoSwipe } = sheet;
+  useEffect(() => {
+    hasNoSwipe.set(true);
+    return () => hasNoSwipe.set(false);
+  }, [hasNoSwipe]);
+  return <Animated.View ref={noSwipe}>{children}</Animated.View>;
+}
+
+/**
  * An overlay card that rises from the bottom (see the note at the top of this file). Mount it to
  * open it; `onClose` runs after the exit, when the parent should unmount it.
  */
@@ -124,6 +144,8 @@ export function Sheet({
   const dragging = useSharedValue(false);
   const locked = useSharedValue(false);
   const closing = useSharedValue(false);
+  const noSwipe = useAnimatedRef<View>();
+  const hasNoSwipe = useSharedValue(false);
 
   useEffect(() => {
     if (!reduced) y.set(withSpring(0, RISE));
@@ -151,6 +173,20 @@ export function Sheet({
     .activeOffsetY(10) // downward only: an upward drag is the content's scroll
     .failOffsetX([-24, 24])
     .simultaneousWithExternalGesture(scrollGesture)
+    .onTouchesDown((e, manager) => {
+      // A drag that starts on a SheetNoSwipe part (e.g. the time wheel) is that control's.
+      if (!hasNoSwipe.get()) return;
+      const zone = measure(noSwipe);
+      const touch = e.allTouches[0];
+      if (
+        zone !== null &&
+        touch !== undefined &&
+        touch.absoluteY >= zone.pageY &&
+        touch.absoluteY <= zone.pageY + zone.height
+      ) {
+        manager.fail();
+      }
+    })
     .onStart(() => {
       dragging.set(!locked.get() && !closing.get() && scrollTop.get() <= 0);
     })
@@ -224,7 +260,7 @@ export function Sheet({
                 cardStyle,
               ]}
             >
-              <SheetContext value={{ ...api, scrollGesture, scrollTop }}>
+              <SheetContext value={{ ...api, scrollGesture, scrollTop, noSwipe, hasNoSwipe }}>
                 <View style={{ flexShrink: 1 }}>
                   {typeof children === "function" ? children(api) : children}
                 </View>

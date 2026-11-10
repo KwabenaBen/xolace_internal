@@ -4,7 +4,7 @@ What every part of Cadence does and why it's there, in plain language. Keep this
 with each phase (see [CLAUDE.md](../CLAUDE.md) → Phases). The full spec is
 [REQUIREMENTS.md](REQUIREMENTS.md).
 
-_As of 9 Nov 2026: Phase 1, Phase 2, the bento Board, the feature, person and task pages, the black and off-white themes, and the Settings tab with its People page are built._
+_As of 10 Nov 2026: Phase 1, Phase 2, the bento Board, the feature, person and task pages, the black and off-white themes, and the Settings tab with its People and Team rules pages are built._
 
 ## What Cadence is for
 
@@ -340,12 +340,12 @@ new task starts as **To do**.
 
 Besides the Board there are four tabs; the Admin tab appears only for admins.
 
-| Tab                 | What it's for             | What's on it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| My Tasks            | Your own work at a glance | **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Logs                | Daily work logs           | A placeholder for now; the log form arrives in Phase 5.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Settings            | You and the team          | The **Dark mode** switch on a clay scene of a house on a hill: turning it on plays a sunset (the sun goes down, lights come on, the icons light up one by one) and switches the whole app to black; off brings the day and the off-white back. You can also drag across the sky to move the sun. Your choice is kept on this phone. Then five rows: Notifications (the morning digest time), Daily log reminder (its time), People (how many), Team rules (who verifies the admin's tasks) and **Account & security**, which opens your name, title, role, email and time zone, and **Sign out**. **People** opens the People page (below); Team rules gets its own page next. |
-| Admin (admins only) | Running the team          | **Proposals to review** and a **New feature** button. Invites live on the People page (Settings → People).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Tab                 | What it's for             | What's on it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| My Tasks            | Your own work at a glance | **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Logs                | Daily work logs           | A placeholder for now; the log form arrives in Phase 5.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Settings            | You and the team          | The **Dark mode** switch on a clay scene of a house on a hill: turning it on plays a sunset (the sun goes down, lights come on, the icons light up one by one) and switches the whole app to black; off brings the day and the off-white back. You can also drag across the sky to move the sun. Your choice is kept on this phone. Then five rows: Notifications (the morning digest time), Daily log reminder (its time), People (how many), Team rules (who verifies the admin's tasks) and **Account & security**, which opens your name, title, role, email and time zone, and **Sign out**. An admin taps Notifications or Daily log reminder to change that time on a time wheel. **People** and **Team rules** open their pages (below). |
+| Admin (admins only) | Running the team          | **Proposals to review** and a **New feature** button. Invites live on the People page (Settings → People).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ## People
 
@@ -385,20 +385,42 @@ blur. Forms (new feature, new task, invite) open as the phone's own sheets: swip
 and if you've typed something it asks before throwing it away. Pages slide in from the right and
 swipe back; switching tabs slides the new one in gently; signing in or out fades.
 
+## Team rules
+
+Settings → Team rules shows the rules Cadence runs on, the same for everyone. Everyone can read
+them; admins tap one to change it. Each change opens a card over the blurred page with what the
+rule does, a picker and **Save**; nothing changes until Save, and swiping the card away leaves the
+rule as it was.
+
+- **Admin task reviewer.** Who verifies the tasks an admin owns, so nobody approves their own
+  work: their avatar, name and title. An admin picks someone from the active team. A yellow note
+  says when something needs attention: nobody chosen yet, the reviewer was deactivated, they
+  haven't joined yet, or they're an admin themselves (so they'd verify their own tasks).
+- **Times.** The morning digest (8:00 AM) and the weekday daily log reminder (8:00 PM), set on
+  the phone's time wheel (the browser's time box on the web). The pushes themselves arrive in
+  Phase 7. The same times can be changed from their rows on Settings.
+- **Time zone.** Africa/Accra (GMT), shown but not changed here: deadlines and daily logs are
+  counted in GMT.
+- **Late window.** How close to a deadline an extension request has to be to count as late,
+  even once approved: 6, 12, 24 (the default), 48 or 72 hours.
+
+Every change applies to everyone straight away and is kept in the activity log; saving a rule
+without changing it records nothing.
+
 ## Who can do what
 
 Everyone sees everything; only admins plan and decide. Every rule is checked on the server, so
 hiding a button is never the only protection.
 
-| Action                                                          | Admin                   | Member |
-| --------------------------------------------------------------- | ----------------------- | ------ |
-| See the Board, every feature, task and proposal                 | Yes                     | Yes    |
-| Propose a task                                                  | Yes                     | Yes    |
-| Create and edit features                                        | Yes                     | No     |
-| Create and edit tasks, including owners, deadlines and criteria | Yes                     | No     |
-| Approve or decline proposals                                    | Yes                     | No     |
-| Invite people, change roles, deactivate accounts                | Yes (Settings → People) | No     |
-| Change team settings                                            | Yes                     | No     |
+| Action                                                          | Admin                       | Member |
+| --------------------------------------------------------------- | --------------------------- | ------ |
+| See the Board, every feature, task and proposal                 | Yes                         | Yes    |
+| Propose a task                                                  | Yes                         | Yes    |
+| Create and edit features                                        | Yes                         | No     |
+| Create and edit tasks, including owners, deadlines and criteria | Yes                         | No     |
+| Approve or decline proposals                                    | Yes                         | No     |
+| Invite people, change roles, deactivate accounts                | Yes (Settings → People)     | No     |
+| Change team rules                                               | Yes (Settings → Team rules) | No     |
 
 - More than one admin is allowed; the last active admin can't be demoted or deactivated.
 - Deactivated people can't be given work.
@@ -417,7 +439,8 @@ A few things work without a screen of their own.
 - **Team settings.** Team rules are stored as settings, not written into the app, so they can
   change without a new release: the admin task reviewer (the CEO, who verifies tasks the admin
   owns), the morning digest time (08:00), the daily log reminder (20:00), the team time zone
-  (Africa/Accra, GMT) and the late-extension window (24 hours).
+  (Africa/Accra, GMT) and the late-extension window (24 hours). Admins change them on Settings →
+  Team rules.
 - **Activity log.** Every change is recorded with who made it, when, and what it was before and
   after: sign-ups, invites, features, tasks, proposals and settings. Deadlines, reviews,
   verifications and logs are never deleted.
@@ -438,7 +461,7 @@ A few things work without a screen of their own.
 
 ## Coming next
 
-Phase 3 (Settings) is under way; four more phases complete version 1. Each starts once the
+Phase 3 (Settings) is built; four more phases complete version 1. Each starts once the
 previous one runs on a phone.
 
 | Phase                           | What it adds                                                                                                                                                                                                                                                                                                                                                                                         |

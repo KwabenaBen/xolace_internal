@@ -202,7 +202,7 @@ export default function TeamRulesScreen(): JSX.Element {
             isFirst
             label="Late window"
             value={hoursLabel(lateHours)}
-            note={`An approved extension still counts as late if it was asked for less than ${hoursLabel(lateHours)} before the deadline.`}
+            note={`An approved extension counts as late if it was asked for less than ${hoursLabel(lateHours)} before the deadline, or isn't a scope change.`}
             onPress={edit("lateWindow")}
           />
         </Panel>

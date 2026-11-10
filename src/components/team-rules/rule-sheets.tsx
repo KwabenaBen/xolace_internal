@@ -218,7 +218,7 @@ export function LateWindowSheet({
   return (
     <RuleSheet
       title="Late extension window"
-      note="An extension asked for close to its deadline still counts as late, even once approved."
+      note="An extension asked for close to its deadline still counts as late, even once approved, and so does one that isn't a scope change."
       isChanged={draft !== value}
       saveLabel={`Save ${hoursLabel(draft)}`}
       onSave={async () => {
@@ -227,7 +227,7 @@ export function LateWindowSheet({
       onClose={onClose}
       footer={
         <Typography type="body-sm" color="muted">
-          {`Asked for less than ${hoursLabel(draft)} before the deadline: late.`}
+          {`Asked for less than ${hoursLabel(draft)} before the deadline, or not a scope change: late.`}
         </Typography>
       }
     >

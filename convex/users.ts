@@ -1,12 +1,62 @@
 import { v } from "convex/values";
 
+import { internal } from "./_generated/api";
+
 import type { Doc } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
-import { revokeUserSessions } from "./lib/accounts";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { deleteSessionTokens, revokeUserSessions } from "./lib/accounts";
 import { logActivity } from "./lib/activity";
 import { countActiveAdmins, getCurrentUser, isAdmin, requireAdmin, requireUser } from "./lib/auth";
 import { appError } from "./lib/errors";
 import { roleValidator } from "./lib/validators";
+
+/**
+ * Whether an email already has a password account. Sign-up refuses those before Convex Auth
+ * sees them (convex/auth.ts). Internal: never exposed, so it can't be used to probe who's here.
+ */
+export const emailHasAccount = internalQuery({
+  args: { email: v.string() },
+  returns: v.boolean(),
+  handler: async (ctx, { email }) => {
+    const account = await ctx.db
+      .query("authAccounts")
+      .withIndex("providerAndAccountId", (q) =>
+        q.eq("provider", "password").eq("providerAccountId", email)
+      )
+      .unique();
+    return account !== null;
+  },
+});
+
+/**
+ * The rest of a deactivation's sign-out (convex/lib/accounts.ts → revokeUserSessions): leftover
+ * refresh tokens of ended sessions, then the remaining sessions from before the deactivation
+ * (reactivated meanwhile, their new sessions are left alone).
+ */
+export const finishSigningOut = internalMutation({
+  args: {
+    userId: v.id("users"),
+    before: v.number(),
+    sessionIds: v.array(v.id("authSessions")),
+  },
+  returns: v.null(),
+  handler: async (ctx, { userId, before, sessionIds }) => {
+    const leftover: typeof sessionIds = [];
+    for (const sessionId of sessionIds) {
+      if (!(await deleteSessionTokens(ctx, sessionId))) leftover.push(sessionId);
+    }
+    if (leftover.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.users.finishSigningOut, {
+        userId,
+        before,
+        sessionIds: leftover,
+      });
+      return null;
+    }
+    await revokeUserSessions(ctx, userId, before);
+    return null;
+  },
+});
 
 /** What the app sees of a user: no push token or auth internals. */
 const publicUserValidator = v.object({

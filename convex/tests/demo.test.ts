@@ -14,7 +14,7 @@ describe("demo data", () => {
 
   test("seed fills the board and gives real users some tasks; clear removes all of it", async () => {
     const t = createTestConvex();
-    const real = await insertUser(t, { email: "real@cadence.test", role: "member", title: "CMO" });
+    const real = await insertUser(t, { email: "real@cadence.test", role: "admin", title: "CMO" });
 
     await t.mutation(internal.demo.seed, {});
     // Seeding twice doesn't duplicate.
@@ -35,6 +35,45 @@ describe("demo data", () => {
     expect(await real.asUser.query(api.tasks.board, {})).toHaveLength(0);
     const users = await t.run(async (ctx) => ctx.db.query("users").collect());
     expect(users.map((u) => u.email)).toEqual(["real@cadence.test"]);
+  });
+
+  test("clear won't leave the app without a real admin, or real work pointing at nobody", async () => {
+    const t = createTestConvex();
+    const member = await insertUser(t, { email: "real@cadence.test", role: "member" });
+    await t.mutation(internal.demo.seed, {});
+    // The only admin left would be a demo person, about to be deleted.
+    await expectAppError(t.mutation(internal.demo.clear, {}), "INVALID_ARGUMENT");
+
+    const admin = await insertUser(t, { email: "coo@cadence.test", role: "admin" });
+    // A real feature with a task owned by a demo person.
+    const featureId = await admin.asUser.mutation(api.features.create, {
+      title: "Real work",
+      description: "x",
+      expectedResult: "x",
+      sourceNote: "",
+      deadline: "2099-01-01",
+    });
+    const demoPerson = await t.run(async (ctx) =>
+      (await ctx.db.query("users").collect()).find((u) => u.email.endsWith("@demo.cadence.test"))
+    );
+    await t.run(async (ctx) =>
+      ctx.db.insert("tasks", {
+        featureId,
+        title: "Owned by a demo person",
+        description: "",
+        kind: "other",
+        acceptanceCriteria: ["x"],
+        ownerId: demoPerson!._id,
+        deadline: Date.parse("2098-12-31T23:59:59.999Z"),
+        priority: "low",
+        status: "todo",
+        progress: 0,
+        countsAsLate: false,
+      })
+    );
+    const refused = await expectAppError(t.mutation(internal.demo.clear, {}), "INVALID_ARGUMENT");
+    expect(refused?.message).toContain("Owned by a demo person");
+    expect(member.userId).toBeDefined();
   });
 
   test("every command refuses to run without CADENCE_DEMO=on (e.g. on production)", async () => {

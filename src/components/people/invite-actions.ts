@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import { Share } from "react-native";
 
 import type { Doc } from "@convex/_generated/dataModel";
@@ -6,6 +7,7 @@ import { formatDeadline } from "@convex/lib/dates";
 import { formatInviteCode } from "@convex/lib/inviteCodes";
 
 import type { SheetAction } from "@/components/ui/action-sheet";
+import { copyText } from "@/lib/copy-text";
 
 /** Whether a pending invite has a code that still works at `now`. */
 export function hasLiveCode(invite: Doc<"invites">, now: number): boolean {
@@ -23,19 +25,23 @@ export function inviteMessage(invite: Doc<"invites">, now: number): string {
 }
 
 /**
- * What an admin can do with a pending invite: share its code (phone only: the share sheet), make
+ * What an admin can do with a pending invite: share its code (the phone's share sheet; on the
+ * web, copy it), make
  * a new code (the sheet stays open so the new one can be shared straight away), or revoke it.
  */
 export function inviteActions({
   invite,
   now,
   canShare,
+  canCopy = false,
   renew,
   revoke,
 }: {
   invite: Doc<"invites">;
   now: number;
   canShare: boolean;
+  /** The web: copy the invite to paste into an email or chat. */
+  canCopy?: boolean;
   renew: () => Promise<void>;
   revoke: () => Promise<void>;
 }): SheetAction[] {
@@ -48,6 +54,23 @@ export function inviteActions({
       description: "Send it by message, mail or WhatsApp.",
       run: async () => {
         await Share.share({ message: inviteMessage(invite, now) });
+      },
+      stayOpen: true,
+    });
+  }
+  if (live && canCopy) {
+    actions.push({
+      key: "copy",
+      label: "Copy invite",
+      description: "The code and how to use it, ready to paste into an email or chat.",
+      run: async () => {
+        if (!(await copyText(inviteMessage(invite, now)))) {
+          // A ConvexError, so the sheet shows this message rather than a generic one.
+          throw new ConvexError({
+            code: "INVALID_ARGUMENT",
+            message: "Couldn't copy. Select the code and copy it instead.",
+          });
+        }
       },
       stayOpen: true,
     });

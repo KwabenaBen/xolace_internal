@@ -150,7 +150,16 @@ export async function linkPendingUserRefs(
   for (const setting of allSettings) {
     const { value } = setting;
     if (isUserRef(value) && value.email === user.email && value.userId === undefined) {
-      await ctx.db.patch("settings", setting._id, { value: { ...value, userId: user._id } });
+      const linked = { ...value, userId: user._id };
+      await ctx.db.patch("settings", setting._id, { value: linked });
+      await logActivity(ctx, {
+        actorId: user._id,
+        entityType: "setting",
+        entityId: setting.key,
+        action: "setting.updated",
+        before: value,
+        after: linked,
+      });
     }
   }
 }

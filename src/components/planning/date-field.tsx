@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { formatDeadline } from "@convex/lib/dates";
 
-import { Sheet } from "@/components/ui/sheet";
+import { Sheet, SheetNoSwipe } from "@/components/ui/sheet";
 import { usePageColors } from "@/components/ui/theme";
 
 export type DateFieldProps = {
@@ -136,16 +136,18 @@ export function DateField({
                   <Text style={{ fontSize: 17, fontWeight: "600", color: foreground }}>Done</Text>
                 </Pressable>
               </View>
-              <DateTimePicker
-                value={draft}
-                mode="date"
-                display="inline"
-                themeVariant={scheme}
-                accentColor={accent}
-                minimumDate={min}
-                maximumDate={max}
-                onValueChange={(_event, date) => setDraft(date)}
-              />
+              <SheetNoSwipe>
+                <DateTimePicker
+                  value={draft}
+                  mode="date"
+                  display="inline"
+                  themeVariant={scheme}
+                  accentColor={accent}
+                  minimumDate={min}
+                  maximumDate={max}
+                  onValueChange={(_event, date) => setDraft(date)}
+                />
+              </SheetNoSwipe>
             </View>
           )}
         </Sheet>

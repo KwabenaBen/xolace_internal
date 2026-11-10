@@ -276,6 +276,13 @@ From top to bottom:
   rainbow shine follows your finger; let go and it wobbles back. It also wobbles once when the
   page opens, so people find out it moves. A verified task's card shines brighter. On the web the
   card holds still.
+- **Counts as late (yellow).** Once an approved extension counted as late, a yellow note says
+  so. It stays on the record.
+- **More time asked for (peach).** While the owner's request for a later deadline waits: the date
+  asked for, the type (scope change or other), when and why, and what approving would do ("counts
+  the task as late", "moves the feature too" when the date is past the feature's). Whoever
+  decides gets **Approve** (with an optional note) and **Decline** (with a reason the owner
+  reads) right there; everyone else sees who it's waiting for.
 - **The countdown card (lavender).** "Task due in 2d 14h 33m 07s", ticking every second with
   digits that roll like a car's odometer. Under it, the task's own deadline ("originally …" if it
   moved) and the feature's deadline, so it's clear which is which. The priority sits on a pink
@@ -283,14 +290,26 @@ From top to bottom:
   clock counts up ("Task late by …"). A yellow sticker says **LATE**, **TODAY** (due today) or
   **URGENT**. A verified task shows "Done" and the day it was verified. A proposal shows "No
   deadline yet".
+- **The owner's buttons** (only the owner, while the task is in their hands: to do, in progress,
+  blocked, or sent back with changes requested). **Post an update** opens a card: the status (To
+  do, In progress, Blocked), the progress on a thick bar you drag (it snaps to 5%, the number
+  rolls, and the iPhone gives a light tap at each step) and a note. Marking it Blocked needs a
+  note saying what's in the way. **Ask for more time** opens a card: the new date, why it moves
+  (scope change, agreed in a meeting, or other) and why you need it. It says straight away whether
+  approving would count the task as late, and whether the date is past the feature's deadline.
+  One request at a time.
 - **Description** on a dark card, if there is one.
 - **Who's on it.** Pastel cards: the owner (orange, with the priority), the peer reviewer for code
   tasks (blue) and whoever proposed it (pink), each with initials, name and title. Someone who
   has left is tagged "Deactivated". Tap the owner or reviewer to see their work on the feature.
 - **Acceptance criteria** on a dark card, numbered; they turn into ticks once the task is verified.
 - **Buttons (admins only).** **Edit task**, except while the task is in review, submitted or
-  verified, when a note says its plan is locked. Members have no buttons yet; updating your own
-  task arrives in Phase 4.
+  verified, when a note says its plan is locked.
+- **Updates and comments.** Everything that happened to the task, newest first: created, each
+  update ("marked it blocked at 85%" with the note), requests for more time and the decisions,
+  "Cadence flagged it overdue" when the deadline passed, and comments as speech bubbles. Anyone
+  can comment from the box at the top (not on a declined proposal). Comments can't be edited or
+  deleted: they're part of the record.
 
 On a proposal, a lavender note says it's waiting for an admin (for the admin: waiting for your
 review), and the admin gets **Review & approve** and **Decline**. **Decline** opens a box for the

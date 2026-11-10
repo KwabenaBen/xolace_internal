@@ -24,6 +24,8 @@ export const symbols = {
   back: { ios: "chevron.left", fallback: "chevron-left", fit: 1 },
   forward: { ios: "chevron.right", fallback: "chevron-right", fit: 1 },
   check: { ios: "checkmark", fallback: "check", fit: 1 },
+  send: { ios: "arrow.up", fallback: "arrow-up", fit: 1 },
+  system: { ios: "clock.badge.exclamationmark.fill", fallback: "clock-alert", fit: 1.1 },
   add: { ios: "plus", fallback: "plus", fit: 1 },
   invite: { ios: "envelope.fill", fallback: "email", fit: 1.1 },
 } as const satisfies Record<string, SymbolSpec>;

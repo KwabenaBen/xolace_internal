@@ -1,7 +1,9 @@
 import { BlurView } from "expo-blur";
 import { createContext, use, useEffect, type JSX, type ReactNode } from "react";
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -241,7 +243,11 @@ export function Sheet({
             style={{ flex: 1 }}
           />
         </Animated.View>
-        <View style={styles.stage}>
+        {/* Rises above the keyboard when a field in the card is typed in. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.stage}
+        >
           <GestureDetector gesture={swipe}>
             <Animated.View
               accessibilityViewIsModal
@@ -282,7 +288,7 @@ export function Sheet({
               />
             </Animated.View>
           </GestureDetector>
-        </View>
+        </KeyboardAvoidingView>
       </GestureHandlerRootView>
     </Modal>
   );

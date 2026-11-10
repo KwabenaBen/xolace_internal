@@ -35,7 +35,7 @@ src/app/                 Expo Router routes
   (app)/settings/        Pages under Settings: account (profile + sign out), people/index (the
                          team grid, invites waiting, deactivated; person cards), people/invite
                          (modal: invite with a live ticket, then the code to share), team-rules
-                         (the team's settings; admins change each in a RuleSheet)
+                         (the team's settings; admins change each in a SaveSheet)
   (app)/features/        new (modal), [featureId]/index (page), [featureId]/edit (modal),
                          [featureId]/people/[userId] (one person's work on the feature)
   (app)/tasks/           new (modal: admin creates / member proposes), [taskId]/index (page),
@@ -51,7 +51,8 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          task-row.tsx (TaskRow,
                          StatusPill, FeatureStatusPill), progress-bar.tsx, sym.tsx (SF Symbol /
                          Material icon), sheet.tsx (Sheet: every overlay card; SheetScrollView,
-                         SheetNoSwipe, useSheet), action-sheet.tsx (ActionSheet), use-sheet-actions.ts
+                         SheetNoSwipe, useSheet), save-sheet.tsx (SaveSheet: fields, then Save),
+                         action-sheet.tsx (ActionSheet), use-sheet-actions.ts
                          (confirm-in-sheet), role-pill.tsx (RolePill)
   settings/              The Settings tab: ClayRelightSettings.tsx (Native Cook's "Clay Relight
                          Settings": a Skia ray-marched clay scene relit from noon to night by the
@@ -63,7 +64,7 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          invite-actions.ts (what an admin can do, mirroring the server's rules),
                          invite-form.tsx + invite-ticket.tsx
   team-rules/            Team rules: rules.ts (labels, "HH:mm" ↔ Date, who the reviewer is),
-                         rule-row.tsx, rule-sheet.tsx (RuleSheet: pick, then Save),
+                         rule-row.tsx,
                          rule-sheets.tsx (TimeRuleSheet, ReviewerSheet, LateWindowSheet; the time
                          sheet is also opened from the Settings rows), time-picker.tsx (iOS
                          wheel / Android dialog; .web.tsx = browser time input)
@@ -83,10 +84,16 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
   task/                  The task page's parts: holo-card.tsx (Skia: the tilting status card, after Native
                          Cook's "Holo Cash Card"; .web.tsx = still SVG; holo-shared.ts),
                          countdown-card.tsx + odometer.tsx (rolling digits), people-cards.tsx,
-                         task-panels.tsx, criteria-list.tsx, task-actions.tsx,
+                         task-panels.tsx, criteria-list.tsx, task-actions.tsx (admin's +
+                         OwnerActions), update-sheet.tsx + progress-slider.tsx (the owner's
+                         update; the drag bar), extension-sheet.tsx (ask for more time),
+                         extension-panel.tsx (a waiting request; the decider's buttons),
+                         task-history.tsx (the task's history + comment box),
                          week-strip.tsx (unused; parked for Phase 5's daily logs),
                          task-dates.ts (countdown maths), task-theme.ts (holo words),
                          task-symbols.ts
+  activity/              describe.ts (an activity entry as a sentence; timeAgo), activity-row.tsx
+                         (one entry: avatar, sentence, comment bubble or quote)
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
 src/lib/                 Convex client, auth token storage, theme-preference (the Dark mode
                          switch's choice, remembered per device), error messages, hooks (useNow, useDeviceFlag for
@@ -101,7 +108,13 @@ convex/                  Backend (deployed by `bunx convex dev`)
   features.ts            list, get, create, update (admin)
   tasks.ts               board (filters; unshipped features unless one is picked), waitingCount,
                          get, mine, proposals, create, update (admin),
-                         propose (anyone), approveProposal, declineProposal (admin)
+                         propose (anyone), approveProposal, declineProposal (admin),
+                         postUpdate (owner: status, progress, note)
+  extensions.ts          request (owner), decide (admins; the admin task reviewer for an
+                         admin's own task), forTask, waitingOnMe
+  comments.ts            add (anyone; no edit/delete: part of the record)
+  activity.ts            feed (paginated; invites hidden from members), forTask (a task's history)
+  overdue.ts + crons.ts  flag: hourly job that sets tasks.overdueSince once a deadline passes
   seed.ts                Internal seed mutation (CLI only); prints each new invite's code
   demo.ts                Dev-only: demo:seed / demo:clear (demo data), demo:setRole (make an
                          account admin or member) (CLI only; refuse to run unless the deployment
@@ -110,7 +123,8 @@ convex/                  Backend (deployed by `bunx convex dev`)
                          validators (enums), errors, constants, dates (EVERY date helper:
                          GMT days, "Fri 14 Nov", "in 3 days"; shared with the app),
                          inviteCodes (shared with the app), tasks (task rules), views (shapes
-                         sent to the app)
+                         sent to the app), extensions (who decides), lateRule (the late rule;
+                         shared with the app)
   tests/                 Vitest + convex-test
   test.setup.ts          Test helpers (never deployed: two dots in the name)
 assets/fonts/            Montserrat (5 weights) and Anton (the holo card's wordmark), SIL OFL —
@@ -162,6 +176,17 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   `tasks.update` also refuses: a plan change while the task is in peer review, submitted or
   verified (`isPlanLocked`, `convex/lib/validators.ts`, shared with the app), and an admin moving
   the deadline of a task they own (that's for extension requests).
+- **Progress (Phase 4):** only a task's owner posts updates (`tasks.postUpdate`): status between
+  to do / in progress / blocked (blocked needs a note), progress 0–100, while the task is in their
+  hands (`isOwnerWorking`: those three + changes requested). **Extensions:** the owner asks
+  (one pending at a time, a later date, a reason, scope change / other); admins decide, but on an
+  admin-owned task only the admin task reviewer does, and nobody decides their own
+  (`loadDeciders`, `convex/lib/extensions.ts`). Approving moves the deadline (the original is
+  kept), moves the feature's too if the date is later, clears `overdueSince` and applies
+  `isLateExtension` (`convex/lib/lateRule.ts`; `countsAsLate` never goes back to false).
+- **Activity entries about a task carry `taskId`** (its changes, comments, extension requests,
+  a feature moved by its extension), which is how `activity.forTask` finds them. Comments are
+  read from the activity log, not the `comments` table.
 
 **App**
 
@@ -332,8 +357,8 @@ UX, security) and write the findings up before moving on.
   `[colorKit.RGB] … default color "black" will be used` (its JS colour parser can't read the
   `lab()`/`color-mix()` values theme variables resolve to on web), so the press highlight is
   black. Cosmetic, web-only; iOS is unaffected. Revisit if HeroUI adds web support.
-- Phase 4 needs a stored overdue flag (set by a cron, since queries can't read the clock);
-  Phase 5 needs a way to record missed weekdays. Add optional fields then.
+- Phase 5 needs a way to record missed weekdays (add optional fields then; the overdue flag
+  is done: `tasks.overdueSince`, set by `convex/overdue.ts`).
 
 <!-- convex-ai-start -->
 

@@ -1,11 +1,11 @@
 import { useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { JSX } from "react";
+import { useState, type JSX } from "react";
 import { View } from "react-native";
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { isPlanLocked } from "@convex/lib/validators";
+import { isOwnerWorking, isPlanLocked } from "@convex/lib/validators";
 
 import type { UserSummary } from "@convex/lib/views";
 
@@ -20,19 +20,28 @@ import {
 } from "@/components/ui/detail-page";
 import { HoloCard } from "@/components/task/holo-card";
 import { PeopleCards, type PersonCard } from "@/components/task/people-cards";
-import { TaskActions } from "@/components/task/task-actions";
+import { ExtensionPanel } from "@/components/task/extension-panel";
+import { ExtensionSheet } from "@/components/task/extension-sheet";
+import { OwnerActions, TaskActions } from "@/components/task/task-actions";
+import { TaskHistory } from "@/components/task/task-history";
+import { UpdateSheet } from "@/components/task/update-sheet";
+import { ruleValue } from "@/components/team-rules/rules";
 import { PageHeader } from "@/components/ui/page-header";
 import { CriteriaCard, DescriptionCard, TaskBanner } from "@/components/task/task-panels";
 import { STATUS_WORDS } from "@/components/task/task-theme";
 import { TASK_KIND_LABELS, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/constants/labels";
 import { useSignedInUser } from "@/lib/use-current-user";
+import { useNow } from "@/lib/use-now";
 
 /**
  * A task, in the app's black/off-white style: back button, its title (and a link to its feature), a
  * holographic card spelling its status (after Native Cook's "Holo Cash Card"), a lavender
  * countdown to the task's own deadline (with the feature's beside it), its description, the people
- * on it as pastel cards (after the team's fitness-app reference), its acceptance criteria, and the
- * admin's pill buttons. Black or off-white, following the phone's theme.
+ * on it as pastel cards (after the team's fitness-app reference), its acceptance criteria, the
+ * admin's pill buttons, and its history with comments. While it's in the owner's hands, the
+ * owner posts updates (status, progress, a note) and asks for more time from buttons under the
+ * countdown; a request waiting for a decision shows above it, where the decider answers it.
+ * Black or off-white, following the phone's theme.
  */
 export default function TaskScreen(): JSX.Element {
   const { taskId } = useLocalSearchParams<{ taskId: Id<"tasks"> }>();
@@ -42,6 +51,16 @@ export default function TaskScreen(): JSX.Element {
   const goBack = useGoBack();
   const { s, content } = usePageSize();
   const isAdmin = user.role === "admin";
+  const now = useNow();
+  const rules = useQuery(api.settings.list);
+  const loadedId = data?.task._id;
+  const extensions = useQuery(
+    api.extensions.forTask,
+    loadedId !== undefined ? { taskId: loadedId } : "skip"
+  );
+  const [open, setOpen] = useState<"update" | "extend" | null>(null);
+  const windowValue = ruleValue(rules, "extensionLateWindowHours");
+  const windowHours = typeof windowValue === "number" ? windowValue : 24;
 
   let body: JSX.Element;
   if (data === undefined) {
@@ -53,6 +72,8 @@ export default function TaskScreen(): JSX.Element {
     const isProposal = task.status === "proposed";
     const isDeclined = task.status === "declined";
     const isLive = !isProposal && !isDeclined;
+    const canUpdate = isLive && task.ownerId === user._id && isOwnerWorking(task.status);
+    const hasPending = extensions?.requests.some((r) => r.status === "pending") ?? true;
     const edit = () =>
       router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId: task._id } });
     // Owner and reviewer cards open that person's work on this feature.
@@ -144,6 +165,24 @@ export default function TaskScreen(): JSX.Element {
           />
         ) : null}
 
+        {isLive && task.countsAsLate ? (
+          <TaskBanner
+            s={s}
+            tone="late"
+            title="Counts as late"
+            body="An extension was asked for close to its deadline, or wasn't a scope change. It stays on the record."
+          />
+        ) : null}
+        {isLive && extensions !== undefined ? (
+          <ExtensionPanel
+            s={s}
+            data={extensions}
+            featureDeadline={feature.deadline}
+            windowHours={windowHours}
+            now={now}
+          />
+        ) : null}
+
         {!isDeclined ? (
           <CountdownCard
             s={s}
@@ -163,6 +202,13 @@ export default function TaskScreen(): JSX.Element {
             noDeadlineNote="Set when an admin approves it"
           />
         ) : null}
+        {canUpdate ? (
+          <OwnerActions
+            canExtend={!hasPending && task.deadline !== undefined}
+            onUpdate={() => setOpen("update")}
+            onExtend={() => setOpen("extend")}
+          />
+        ) : null}
         {task.description !== "" ? <DescriptionCard s={s} text={task.description} /> : null}
         {people.length > 0 ? <PeopleCards width={content} s={s} people={people} /> : null}
         <CriteriaCard
@@ -179,6 +225,25 @@ export default function TaskScreen(): JSX.Element {
           isLocked={isPlanLocked(task.status)}
           onEdit={edit}
         />
+        <TaskHistory s={s} taskId={task._id} canComment={!isDeclined} />
+
+        {open === "update" ? <UpdateSheet task={task} onClose={() => setOpen(null)} /> : null}
+        {open === "extend" && task.deadline !== undefined ? (
+          <ExtensionSheet
+            taskId={task._id}
+            deadline={task.deadline}
+            featureDeadline={feature.deadline}
+            windowHours={windowHours}
+            decidedBy={
+              extensions === undefined || extensions.decider.kind === "admins"
+                ? "An admin decides."
+                : extensions.decider.name !== null
+                  ? `${extensions.decider.name}, the admin task reviewer, decides.`
+                  : "The admin task reviewer decides; none is set yet."
+            }
+            onClose={() => setOpen(null)}
+          />
+        ) : null}
       </View>
     );
   }

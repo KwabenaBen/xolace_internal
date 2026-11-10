@@ -86,7 +86,8 @@ export function DescriptionCard({
 
 /**
  * A short notice above the countdown: "declined" in the late red with the admin's reason,
- * "waiting" (a member's own proposal) in lavender.
+ * "waiting" (a member's own proposal) in lavender, "late" (an extension that counted as late)
+ * in yellow.
  */
 export function TaskBanner({
   s,
@@ -95,12 +96,13 @@ export function TaskBanner({
   body,
 }: {
   s: number;
-  tone: "declined" | "waiting";
+  tone: "declined" | "waiting" | "late";
   title: string;
   body: string;
 }): JSX.Element {
   const declined = tone === "declined";
   const ink = declined ? colors.white : colors.ink;
+  const fill = declined ? colors.lateCard : tone === "late" ? colors.yellow : colors.lavender;
   return (
     <View
       accessible
@@ -110,7 +112,7 @@ export function TaskBanner({
         flexDirection: "row",
         gap: 12,
         borderRadius: 24 * s,
-        backgroundColor: declined ? colors.lateCard : colors.lavender,
+        backgroundColor: fill,
         padding: 16 * s,
       }}
     >

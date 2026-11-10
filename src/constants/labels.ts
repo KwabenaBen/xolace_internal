@@ -1,4 +1,5 @@
 import type {
+  ExtensionType,
   FeatureStatus,
   LiveTaskStatus,
   Role,
@@ -61,3 +62,8 @@ export const TASK_KIND_LABELS: Record<TaskKind, string> = {
   other: "Other",
 };
 export const KIND_ORDER: readonly TaskKind[] = ["code", "design", "content", "operations", "other"];
+
+export const EXTENSION_TYPE_LABELS: Record<ExtensionType, string> = {
+  scope_change: "Scope change",
+  other: "Other",
+};

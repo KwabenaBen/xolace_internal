@@ -16,7 +16,7 @@ export type TimePickerProps = {
 };
 
 /**
- * A time of day, inside a RuleSheet. iOS: the system time wheel (dragging it never moves the
+ * A time of day, inside a SaveSheet. iOS: the system time wheel (dragging it never moves the
  * sheet). Android: the time, big, opening the system clock dialog. (Web: time-picker.web.tsx.)
  */
 export function TimePicker({ value, onChange, label }: TimePickerProps): JSX.Element {

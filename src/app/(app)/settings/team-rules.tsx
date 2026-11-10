@@ -6,12 +6,7 @@ import { api } from "@convex/_generated/api";
 
 import { Avatar, pastelFor } from "@/components/people/avatar";
 import { RuleRow } from "@/components/team-rules/rule-row";
-import {
-  LateWindowSheet,
-  ReviewerSheet,
-  RuleWarning,
-  TimeRuleSheet,
-} from "@/components/team-rules/rule-sheets";
+import { LateWindowSheet, ReviewerSheet, TimeRuleSheet } from "@/components/team-rules/rule-sheets";
 import {
   clock,
   firstName,
@@ -26,6 +21,7 @@ import {
 } from "@/components/team-rules/rules";
 import { DetailPage, PageLoading, useGoBack, usePageSize } from "@/components/ui/detail-page";
 import { PageHeader } from "@/components/ui/page-header";
+import { WarningNote } from "@/components/ui/save-sheet";
 import { Panel } from "@/components/ui/panel";
 import { Sym, symbols } from "@/components/ui/sym";
 import { fonts, usePageColors } from "@/components/ui/theme";
@@ -171,7 +167,7 @@ export default function TeamRulesScreen(): JSX.Element {
           <Text maxFontSizeMultiplier={1.4} style={muted}>
             Verifies the tasks an admin owns, so nobody approves their own work.
           </Text>
-          {warning !== undefined ? <RuleWarning text={warning} /> : null}
+          {warning !== undefined ? <WarningNote text={warning} /> : null}
         </Panel>
 
         <Panel s={s} title="Times">

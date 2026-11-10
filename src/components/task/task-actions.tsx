@@ -11,8 +11,8 @@ import { getErrorMessage } from "@/lib/errors";
 
 /**
  * The admin's buttons, as the sign-in screens' big pills: edit a live task, or approve (opens the
- * plan form) or decline a proposal, with a reason. Members get none (until Phase 4's status
- * updates), so this renders nothing for them.
+ * plan form) or decline a proposal, with a reason. Members get none here (an owner's own buttons
+ * are OwnerActions), so this renders nothing for them.
  */
 export function TaskActions({
   taskId,
@@ -44,6 +44,31 @@ export function TaskActions({
   return (
     <PillRow>
       <PillButton label="Edit task" onPress={onEdit} />
+    </PillRow>
+  );
+}
+
+/**
+ * The owner's buttons while the task is in their hands: post an update (status, progress, a
+ * note) and ask for more time. Asking is hidden while a request is already waiting.
+ */
+export function OwnerActions({
+  canExtend,
+  onUpdate,
+  onExtend,
+}: {
+  canExtend: boolean;
+  onUpdate: () => void;
+  onExtend: () => void;
+}): JSX.Element {
+  return canExtend ? (
+    <PillRow>
+      <PillButton label="Ask for more time" variant="secondary" onPress={onExtend} />
+      <PillButton label="Post an update" onPress={onUpdate} />
+    </PillRow>
+  ) : (
+    <PillRow>
+      <PillButton label="Post an update" onPress={onUpdate} />
     </PillRow>
   );
 }

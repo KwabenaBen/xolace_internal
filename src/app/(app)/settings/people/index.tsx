@@ -4,7 +4,7 @@ import { useState, type JSX } from "react";
 import { Text, View } from "react-native";
 
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import { formatDeadline } from "@convex/lib/dates";
 import { formatInviteCode } from "@convex/lib/inviteCodes";
 
@@ -24,7 +24,11 @@ import { ROLE_LABELS } from "@/constants/labels";
 import { useSignedInUser } from "@/lib/use-current-user";
 import { useNow } from "@/lib/use-now";
 
-type Open = { kind: "person"; id: Id<"users"> } | { kind: "invite"; id: Id<"invites"> } | null;
+type Open =
+  | { kind: "person"; id: Id<"users"> }
+  // The invite as opened, so its sheet can play its exit after it's revoked.
+  | { kind: "invite"; id: Id<"invites">; invite: Doc<"invites"> }
+  | null;
 
 /**
  * Settings → People, after the "Select experts" reference: the team as a grid of round avatars,
@@ -107,7 +111,8 @@ export default function PeopleScreen(): JSX.Element {
       .join(", ");
 
   const openPerson = open?.kind === "person" ? users.find((u) => u._id === open.id) : undefined;
-  const openInvite = open?.kind === "invite" ? pending.find((i) => i._id === open.id) : undefined;
+  const openInvite =
+    open?.kind === "invite" ? (pending.find((i) => i._id === open.id) ?? open.invite) : undefined;
   const muted = { fontFamily: fonts.medium, fontSize: 14 * s, lineHeight: 20 * s, color: c.muted };
 
   return (
@@ -178,7 +183,7 @@ export default function PeopleScreen(): JSX.Element {
                         : `${line}.`
                     }`}
                     hint="Share the code, make a new one, or revoke the invite"
-                    onPress={() => setOpen({ kind: "invite", id: inv._id })}
+                    onPress={() => setOpen({ kind: "invite", id: inv._id, invite: inv })}
                   />
                 );
               })
@@ -257,6 +262,7 @@ export default function PeopleScreen(): JSX.Element {
             invite: openInvite,
             now,
             canShare: process.env.EXPO_OS !== "web",
+            canCopy: process.env.EXPO_OS === "web",
             renew: async () => {
               await renew({ inviteId: openInvite._id });
             },

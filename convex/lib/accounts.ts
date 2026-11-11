@@ -1,3 +1,4 @@
+import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { logActivity } from "./activity";
@@ -105,20 +106,52 @@ export async function assertUserCanSignIn(ctx: QueryCtx, userId: Id<"users">): P
   }
 }
 
-/** Ends every session for a user (used when deactivating), so they're signed out everywhere. */
-export async function revokeUserSessions(ctx: MutationCtx, userId: Id<"users">): Promise<void> {
+const SESSION_BATCH = 25;
+const TOKEN_BATCH = 100;
+
+/** Deletes up to a batch of a session's refresh tokens; true once none are left. */
+export async function deleteSessionTokens(
+  ctx: MutationCtx,
+  sessionId: Id<"authSessions">
+): Promise<boolean> {
+  const tokens = await ctx.db
+    .query("authRefreshTokens")
+    .withIndex("sessionId", (q) => q.eq("sessionId", sessionId))
+    .take(TOKEN_BATCH);
+  for (const token of tokens) await ctx.db.delete("authRefreshTokens", token._id);
+  return tokens.length < TOKEN_BATCH;
+}
+
+/**
+ * Ends every session a user had when deactivated, so they're signed out everywhere: the newest
+ * first (the ones in use), a batch at a time; the rest, and any leftover refresh tokens, in a
+ * scheduled follow-up (users.finishSigningOut), so a long history never fails the change. Only
+ * sessions from before `before` go, so if they're reactivated meanwhile their new sessions stay
+ * (and none of the old ones come back). Deleting a session ends it at once: its tokens can't be
+ * refreshed without it.
+ */
+export async function revokeUserSessions(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  // +1 ms: a session made in the same millisecond still counts (none can start while they're
+  // deactivated: beforeSessionCreation refuses).
+  before: number = Date.now() + 1
+): Promise<void> {
   const sessions = await ctx.db
     .query("authSessions")
-    .withIndex("userId", (q) => q.eq("userId", userId))
-    .take(100);
+    .withIndex("userId", (q) => q.eq("userId", userId).lt("_creationTime", before))
+    .order("desc")
+    .take(SESSION_BATCH);
+  const leftoverTokens: Id<"authSessions">[] = [];
   for (const session of sessions) {
-    const refreshTokens = await ctx.db
-      .query("authRefreshTokens")
-      .withIndex("sessionId", (q) => q.eq("sessionId", session._id))
-      .take(1000);
-    for (const token of refreshTokens) {
-      await ctx.db.delete("authRefreshTokens", token._id);
-    }
     await ctx.db.delete("authSessions", session._id);
+    if (!(await deleteSessionTokens(ctx, session._id))) leftoverTokens.push(session._id);
+  }
+  if (sessions.length === SESSION_BATCH || leftoverTokens.length > 0) {
+    await ctx.scheduler.runAfter(0, internal.users.finishSigningOut, {
+      userId,
+      before,
+      sessionIds: leftoverTokens,
+    });
   }
 }

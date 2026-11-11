@@ -7,6 +7,7 @@ import { logActivity } from "./lib/activity";
 import { countActiveAdmins } from "./lib/auth";
 import { DAY_MS, endOfDayGmt, toDateOnly } from "./lib/dates";
 import { appError } from "./lib/errors";
+import { getUserSetting } from "./lib/settings";
 import {
   roleValidator,
   type FeatureStatus,
@@ -332,12 +333,64 @@ export const seed = internalMutation({
   },
 });
 
+/**
+ * demo:clear won't leave the real app broken: it refuses while no real (non-demo) admin is
+ * active, or while real work or a team rule still points at a demo person. The reply says what
+ * to change first.
+ */
+async function refuseIfStillNeeded(
+  ctx: MutationCtx,
+  demoFeatures: Doc<"features">[],
+  demoPeople: Doc<"users">[]
+): Promise<void> {
+  const demoIds = new Set(demoPeople.map((p) => p._id));
+  const realAdmins = (
+    await ctx.db
+      .query("users")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .take(500)
+  ).filter((u) => u.role === "admin" && !demoIds.has(u._id));
+  if (realAdmins.length === 0) {
+    throw appError(
+      "INVALID_ARGUMENT",
+      "Make a real account an admin first (demo:setRole), so clearing the demo doesn't leave Cadence without one."
+    );
+  }
+  const demoFeatureIds = new Set(demoFeatures.map((f) => f._id));
+  const realWork: string[] = [];
+  for (const person of demoPeople) {
+    const owned = await ctx.db
+      .query("tasks")
+      .withIndex("by_ownerId_and_status", (q) => q.eq("ownerId", person._id))
+      .take(200);
+    const reviewing = await ctx.db
+      .query("tasks")
+      .withIndex("by_peerReviewerId_and_status", (q) => q.eq("peerReviewerId", person._id))
+      .take(200);
+    for (const task of [...owned, ...reviewing]) {
+      if (!demoFeatureIds.has(task.featureId)) realWork.push(`"${task.title}" (${person.name})`);
+    }
+  }
+  const reviewer = await getUserSetting(ctx, "adminTaskReviewer");
+  if (reviewer !== null && demoIds.has(reviewer._id)) {
+    realWork.push(`the admin task reviewer (${reviewer.name})`);
+  }
+  if (realWork.length > 0) {
+    throw appError(
+      "INVALID_ARGUMENT",
+      `Demo people are still in real use; reassign these first: ${[...new Set(realWork)].join(", ")}.`
+    );
+  }
+}
+
 export const clear = internalMutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => {
     requireDemoDeployment();
     const features = await findDemoFeatures(ctx);
+    const people = await findDemoUsers(ctx);
+    await refuseIfStillNeeded(ctx, features, people);
     for (const feature of features) {
       const tasks = await ctx.db
         .query("tasks")
@@ -359,7 +412,7 @@ export const clear = internalMutation({
       }
       await ctx.db.delete("features", feature._id);
     }
-    const users = await findDemoUsers(ctx);
+    const users = people;
     for (const user of users) {
       await ctx.db.delete("users", user._id);
     }

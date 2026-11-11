@@ -81,11 +81,37 @@ describe("invite-only sign-up", () => {
     await seedInvites(t, [{ email: "cmo@cadence.test", title: "CMO/CDO", role: "member" }]);
     await signUp(t, { email: "cmo@cadence.test" });
 
-    await expect(
-      signUp(t, { email: "cmo@cadence.test", password: "a-different-password" })
-    ).rejects.toThrow();
+    await expectAppError(
+      signUp(t, { email: "cmo@cadence.test", password: "a-different-password" }),
+      "NOT_INVITED"
+    );
     const users = await t.run(async (ctx) => ctx.db.query("users").collect());
     expect(users).toHaveLength(1);
+  });
+
+  test("sign-up never checks an existing account's password (no guessing, no sign-in)", async () => {
+    const t = createTestConvex();
+    await seedInvites(t, [{ email: "coo@cadence.test", title: "COO", role: "admin" }]);
+    await signUp(t, { email: "coo@cadence.test" });
+    const sessionsBefore = await t.run(async (ctx) => ctx.db.query("authSessions").collect());
+
+    // The right password, a junk code: refused like any other sign-up, and no session.
+    await expectAppError(
+      signUp(t, { email: "COO@cadence.test ", inviteCode: "JUNK-CODE" }),
+      "NOT_INVITED"
+    );
+    // A wrong one reads exactly the same, so sign-up doesn't reveal who has an account.
+    const wrong = await expectAppError(
+      signUp(t, { email: "coo@cadence.test", password: "guess-number-one", inviteCode: "JUNK" }),
+      "NOT_INVITED"
+    );
+    const stranger = await expectAppError(
+      signUp(t, { email: "nobody@cadence.test" }),
+      "NOT_INVITED"
+    );
+    expect(wrong?.message).toBe(stranger?.message);
+    const sessionsAfter = await t.run(async (ctx) => ctx.db.query("authSessions").collect());
+    expect(sessionsAfter).toHaveLength(sessionsBefore.length);
   });
 
   test("sign-up requires a name and an 8+ character password", async () => {

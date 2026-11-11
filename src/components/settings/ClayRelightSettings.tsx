@@ -150,6 +150,8 @@ export function ClayRelightSettings({
   // Cadence: the status bar and the switch's state for VoiceOver follow the app's theme, which the
   // switch itself changes (through onDarkChange) when the chrome steps to night or day.
   const dark = isDark;
+  // The state VoiceOver reads: what was just asked for, until the app's theme changes.
+  const [asked, setAsked] = useState<{ value: boolean; from: boolean } | null>(null);
   const reported = useRef(isDark);
 
   /* ------------------------------------------------------------ state */
@@ -189,7 +191,7 @@ export function ClayRelightSettings({
   }, [isDark, m, theme, themeOn, on, knob]);
 
   /* ------------------------------------------------------------ clock */
-  useFrameCallback((f) => {
+  const frame = useFrameCallback((f) => {
     const dt = Math.min(0.05, (f.timeSincePreviousFrame ?? 16) / 1000);
     clock.set(clock.get() + dt);
     if (!reduced) drift.set(drift.get() + dt);
@@ -231,7 +233,10 @@ export function ClayRelightSettings({
       autoStart.set(clock.get());
       mode.set(0);
     }
-  }, active);
+  }, false);
+  useEffect(() => {
+    frame.setActive(active);
+  }, [active, frame]);
 
   useEffect(() => {
     mode.set(auto ? 0 : 1);
@@ -274,7 +279,9 @@ export function ClayRelightSettings({
   // the status bar and VoiceOver's value follow the chrome; Cadence: so does the app's theme
   const report = useCallback(
     (next: boolean) => {
-      if (auto) return;
+      // A change that came from the app (the phone's appearance, before the switch was ever
+      // used) is already the app's theme: saving it would pin Cadence to it for good.
+      if (auto || next === reported.current) return;
       reported.current = next;
       onDarkChange(next);
     },
@@ -470,6 +477,7 @@ export function ClayRelightSettings({
       {isFocused ? <StatusBar style={dark ? "light" : "dark"} /> : null}
       <ScrollView contentContainerStyle={{ height: L.contentH }}>
         <Animated.Text
+          maxFontSizeMultiplier={1.3}
           style={[styles.title, inkStyle, { top: L.titleTop, left: L.side + SPACE.xs }]}
           accessibilityRole="header"
         >
@@ -507,12 +515,17 @@ export function ClayRelightSettings({
           </GestureDetector>
           <View style={styles.band}>
             <View style={styles.bandText}>
-              <Animated.Text style={[styles.bandTitle, inkStyle]}>Dark mode</Animated.Text>
+              <Animated.Text maxFontSizeMultiplier={1.3} style={[styles.bandTitle, inkStyle]}>
+                Dark mode
+              </Animated.Text>
               <View>
-                <Animated.Text style={[styles.sub, muteStyle, subDay]}>
+                <Animated.Text maxFontSizeMultiplier={1.3} style={[styles.sub, muteStyle, subDay]}>
                   Off · Cadence in day colours
                 </Animated.Text>
-                <Animated.Text style={[styles.sub, styles.over, muteStyle, subNight]}>
+                <Animated.Text
+                  maxFontSizeMultiplier={1.3}
+                  style={[styles.sub, styles.over, muteStyle, subNight]}
+                >
                   On · Cadence in night colours
                 </Animated.Text>
               </View>
@@ -524,11 +537,15 @@ export function ClayRelightSettings({
                 accessible
                 accessibilityRole="switch"
                 accessibilityLabel="Dark mode"
-                accessibilityState={{ checked: dark }}
+                accessibilityState={{
+                  checked: asked !== null && asked.from === dark ? asked.value : dark,
+                }}
                 accessibilityActions={[{ name: "activate" }]}
                 onAccessibilityAction={() => {
+                  const next = on.get() !== 1;
+                  setAsked({ value: next, from: dark });
                   takeOver();
-                  setTarget(on.get() === 1 ? 0 : 1, null);
+                  setTarget(next ? 1 : 0, null);
                 }}
               >
                 <Animated.View style={[styles.knob, knobStyle]} />
@@ -539,6 +556,7 @@ export function ClayRelightSettings({
 
         {/* the list */}
         <Animated.Text
+          maxFontSizeMultiplier={1.3}
           style={[styles.section, muteStyle, { top: L.sectionTop, left: L.side + SPACE.l }]}
         >
           {section}
@@ -611,7 +629,11 @@ function SettingsRow({ index, row, m, inkStyle, muteStyle, lineStyle, last }: Ro
       accessibilityHint={hint}
     >
       <View style={styles.rowBody}>
-        <Animated.Text style={[styles.rowTitle, inkStyle]} numberOfLines={1}>
+        <Animated.Text
+          maxFontSizeMultiplier={1.3}
+          style={[styles.rowTitle, inkStyle]}
+          numberOfLines={1}
+        >
           {title}
         </Animated.Text>
         <View style={styles.rowEnd}>
@@ -619,6 +641,7 @@ function SettingsRow({ index, row, m, inkStyle, muteStyle, lineStyle, last }: Ro
             <View>
               {/* sized by the longer value; the two values crossfade over it */}
               <Text
+                maxFontSizeMultiplier={1.3}
                 style={[styles.value, styles.hidden]}
                 accessibilityElementsHidden
                 importantForAccessibility="no"
@@ -626,12 +649,14 @@ function SettingsRow({ index, row, m, inkStyle, muteStyle, lineStyle, last }: Ro
                 {day.length > nightValue.length ? day : nightValue}
               </Text>
               <Animated.Text
+                maxFontSizeMultiplier={1.3}
                 style={[styles.value, styles.stack, muteStyle, dayStyle]}
                 numberOfLines={1}
               >
                 {day}
               </Animated.Text>
               <Animated.Text
+                maxFontSizeMultiplier={1.3}
                 style={[styles.value, styles.stack, muteStyle, nightStyle]}
                 numberOfLines={1}
               >

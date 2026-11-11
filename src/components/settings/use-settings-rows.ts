@@ -48,7 +48,8 @@ export function useSettingsRows({ onEditTime }: { onEditTime: (key: TimeKey) => 
       title: "Notifications",
       day: digest,
       night: digest,
-      onPress: isAdmin ? () => onEditTime("morningDigestTime") : undefined,
+      onPress:
+        isAdmin && settings !== undefined ? () => onEditTime("morningDigestTime") : undefined,
       hint: isAdmin
         ? "Change the morning digest's time. Notifications arrive in a later update."
         : "The morning digest's time. Notifications arrive in a later update.",
@@ -57,7 +58,8 @@ export function useSettingsRows({ onEditTime }: { onEditTime: (key: TimeKey) => 
       title: "Daily log reminder",
       day: reminder,
       night: reminder,
-      onPress: isAdmin ? () => onEditTime("dailyLogReminderTime") : undefined,
+      onPress:
+        isAdmin && settings !== undefined ? () => onEditTime("dailyLogReminderTime") : undefined,
       hint: isAdmin ? "Change the weekday reminder's time" : undefined,
     },
     {

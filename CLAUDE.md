@@ -168,8 +168,15 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 - **Sign-up** needs the invited email **and** its one-time code (`convex/lib/inviteCodes.ts`),
   before the invite's `expiresAt` (`INVITE_DAYS`). Every refusal — no invite, wrong or expired
   code, already registered — shows the same `INVITE_REJECTED_MESSAGE`, so sign-up never reveals
-  who is invited. Codes are cleared once used and never written to the activity log. The repos
-  are public: never commit secrets, real emails or deployment names/URLs.
+  who is invited. An email that already has an account is refused before Convex Auth sees the
+  sign-up (`refuseSignUpForExistingAccounts`, convex/auth.ts): the library would otherwise check
+  the password there with no attempt limit and sign the person in on a match. It wraps the
+  provider's `options.authorize` (a library internal): re-run convex/tests/auth.test.ts after any
+  Convex Auth upgrade. Codes are cleared once used and never written to the activity log; never
+  set `AUTH_LOG_LEVEL=DEBUG` on prod (the library would log the sign-up profile, code included).
+  Deactivating someone ends every session they had (newest first; the rest by
+  `users.finishSigningOut`). The team time zone can't be changed from the app (dates are GMT).
+  The repos are public: never commit secrets, real emails or deployment names/URLs.
 - **Ids from URLs:** queries that take an id from a route (`tasks.get`, `features.get`) accept
   `v.string()` and use `ctx.db.normalizeId`, returning null for a bad id instead of throwing.
 - **Tasks:** `kind` (code/design/content/operations/other); code tasks need a peer reviewer who
@@ -314,7 +321,8 @@ UX, security) and write the findings up before moving on.
    commands refuse). Then `bunx convex run demo:seed` (3 demo people with `@demo.cadence.test`
    emails and no login, 3 features titled "Demo: …", 12 tasks across every status, spread over
    real users too) and `bunx convex run demo:clear` to remove it (only features a demo person
-   created; the activity log is kept). To try the app as an admin or a member:
+   created; the activity log is kept; it refuses while no real account is an active admin, or
+   while real work or the reviewer rule points at a demo person). To try the app as an admin or a member:
    `bunx convex run demo:setRole "{email:'you@example.com',role:'admin'}"` (and back with
    `role:'member'`).
 
@@ -351,15 +359,18 @@ UX, security) and write the findings up before moving on.
       blurred page: `cadence-phase-3-peoplescreen`. Team rules page (admin task reviewer,
       digest/reminder times on a time wheel, read-only time zone, late window) and the
       Notifications / Daily log reminder time sheets: `cadence-phase-3-teamrulesscreen`.
-      _Built. Tick once an admin and a member have walked through it on iPhone and web._
+      End-of-phase audit done 10 Nov (System audit doc, "Phase 3 audit" tab); fixes on
+      `cadence-phase-3-audit`, also brought into `cadence-phase-4`. _Built; iPhone checks done
+      10 Nov. Tick once a member has walked through it too._
 - [ ] **Phase 4 — Progress & extensions:** owners' updates (status, a drag bar for progress, a
       note; blocked needs one), comments and each task's history, the hourly overdue flag,
-      requests for more time (admins decide; the admin task reviewer for an admin's own task;
-      withdraw) with the late rule, direct deadline moves judged by the same rule, the Activity
-      page (from the Board's red tile), and requests on the Admin tab, My Tasks and the waiting
-      tile. Branch `cadence-phase-4`; end-of-phase audit in the System audit doc's "Phase 4
-      audit" tab. _Built; iPhone checks of the drag bar and the update card with the keyboard
-      done 10 Nov. Tick once an admin and a member have walked through it on iPhone and web._
+      requests for more time (admins decide; the admin task reviewer for an admin's own task, or
+      the other admins when the reviewer can't; withdraw) with the late rule, direct deadline
+      moves judged by the same rule, the Activity page (from the Board's red tile), and requests
+      on the Admin tab, My Tasks and the waiting tile. Branch `cadence-phase-4` (includes Phase
+      3's audit fixes); end-of-phase audit in the System audit doc's "Phase 4 audit" tab.
+      _Built; iPhone checks of the drag bar and the update card with the keyboard done 10 Nov.
+      Tick once an admin and a member have walked through it on iPhone and web._
 - [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.
 - [ ] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
       verification queue (admin task reviewer for admin-owned tasks), feature status rollup.

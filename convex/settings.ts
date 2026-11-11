@@ -59,6 +59,11 @@ export const set = mutation({
   returns: v.null(),
   handler: async (ctx, { key, value }) => {
     const admin = await requireAdmin(ctx);
+    if (key === "timeZone") {
+      // Shown read-only in Team rules: dates in Cadence are counted in GMT, and every new
+      // account takes this zone, so it isn't changed from the app.
+      throw appError("INVALID_ARGUMENT", "The team time zone is fixed: dates in Cadence are GMT.");
+    }
     validateSettingValue(key, value);
 
     let normalized = value;

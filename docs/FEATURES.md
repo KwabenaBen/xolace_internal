@@ -406,7 +406,8 @@ Settings → People is the team, after a "pick an expert" design: a dark panel o
   deactivate themselves, and the last active admin stays an admin.
 - **Waiting to join** (admins only). Each pending invite as a row: the email, its code (or "No
   code yet" / "Code expired", with a yellow dot) and until when the code works. Tap one for
-  **Share code** (the phone's share sheet: Messages, mail, WhatsApp), **New code** (the old one
+  **Share code** (the phone's share sheet: Messages, mail, WhatsApp; on the web **Copy invite**,
+  to paste into an email or chat), **New code** (the old one
   stops working; the card stays open so the new code can be shared straight away) and **Revoke
   invite**.
 - **Deactivated.** Anyone deactivated, dimmed, with "Signed out"; an admin can reactivate them
@@ -440,8 +441,8 @@ rule as it was.
 - **Times.** The morning digest (8:00 AM) and the weekday daily log reminder (8:00 PM), set on
   the phone's time wheel (the browser's time box on the web). The pushes themselves arrive in
   Phase 7. The same times can be changed from their rows on Settings.
-- **Time zone.** Africa/Accra (GMT), shown but not changed here: deadlines and daily logs are
-  counted in GMT.
+- **Time zone.** Africa/Accra (GMT), shown but not changed (the server refuses too): deadlines
+  and daily logs are counted in GMT.
 - **Late window.** How close to a deadline an extension request has to be to count as late,
   even once approved: 6, 12, 24 (the default), 48 or 72 hours.
 

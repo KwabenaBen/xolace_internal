@@ -80,6 +80,12 @@ export function SheetScrollView({ style, ...props }: ScrollViewProps): JSX.Eleme
   const sheet = use(SheetContext);
   if (sheet === null) throw new Error("SheetScrollView is only for content inside a <Sheet>.");
   const { scrollTop } = sheet;
+  // A new list starts at its top, and a list that goes (e.g. swapped for a confirmation) leaves
+  // nothing behind that would stop the card being swiped down.
+  useEffect(() => {
+    scrollTop.set(0);
+    return () => scrollTop.set(0);
+  }, [scrollTop]);
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       scrollTop.set(e.contentOffset.y);

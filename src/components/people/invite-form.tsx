@@ -14,6 +14,7 @@ import { FormError } from "@/components/planning/form-error";
 import { useUnsavedGuard } from "@/components/planning/use-unsaved-guard";
 import { Screen } from "@/components/screen";
 import { fonts, usePageColors } from "@/components/ui/theme";
+import { copyText } from "@/lib/copy-text";
 import { getErrorMessage } from "@/lib/errors";
 import { useNow } from "@/lib/use-now";
 
@@ -113,6 +114,7 @@ export function InviteForm({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdId, setCreatedId] = useState<Id<"invites"> | null>(null);
+  const [copied, setCopied] = useState(false);
   const guard = useUnsavedGuard(EMPTY, values);
   // After creating, the new invite (with its code) from the admin's invite list.
   const invites = useQuery(api.invites.list, createdId !== null ? {} : "skip");
@@ -147,19 +149,26 @@ export function InviteForm({
         withHeader
         footer={
           <View className="gap-3">
-            {created !== undefined && live && process.env.EXPO_OS !== "web" ? (
-              <Button
-                onPress={() => {
-                  Share.share({ message: inviteMessage(created, now) }).catch(() => {});
-                }}
-              >
-                Share code
-              </Button>
+            {created !== undefined && live ? (
+              process.env.EXPO_OS !== "web" ? (
+                <Button
+                  onPress={() => {
+                    Share.share({ message: inviteMessage(created, now) }).catch(() => {});
+                  }}
+                >
+                  Share code
+                </Button>
+              ) : (
+                <Button
+                  onPress={() => {
+                    void copyText(inviteMessage(created, now)).then(setCopied);
+                  }}
+                >
+                  {copied ? "Copied" : "Copy invite"}
+                </Button>
+              )
             ) : null}
-            <Button
-              variant={process.env.EXPO_OS === "web" ? "primary" : "secondary"}
-              onPress={onDone}
-            >
+            <Button variant={live ? "secondary" : "primary"} onPress={onDone}>
               Done
             </Button>
           </View>

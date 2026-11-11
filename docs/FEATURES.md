@@ -247,10 +247,12 @@ Pinterest, instead of the phone's tiles. Everything on the phone's Board is stil
   Settings and you. Its arrow collapses it to icons and back, after a "hoverable sidebar" the
   team picked: it slides the moment you click, the words slip out (or slide in one after another
   as it opens), the icons stay where they are, and the choice is remembered on that browser.
-  Collapsed, pointing at (or tabbing to) an icon slides its name out beside it. With Reduce Motion
-  on, it all switches at once. (Browsers turn Reduce Motion on when Windows' "Animation effects"
-  is off or the Mac's "Reduce motion" is on, so check those if nothing moves.)
-  Collapsing or opening it only stretches the page; nothing rearranges.
+  Collapsed, pointing at (or tabbing to) an icon slides its name out beside it. Collapsing or
+  opening it only stretches the page; nothing rearranges.
+- **Motion, for now:** while the team reviews the website's animations, they play in full even
+  when the computer asks for less motion (Windows' "Animation effects" off, or the Mac's "Reduce
+  motion" on): the sidebar's slide, the cards lifting and the liquid buttons. Before release,
+  Reduce Motion will switch them instantly again. The iPhone app still follows Reduce Motion.
 - **The top** shows the date and a welcome, a search box (tasks, features and people; press **/**
   to jump to it, **Esc** to clear it), a bell that opens Activity, and you (your account).
 - **The title row** has **New feature** for admins or **Propose a task** for members. Under it, a

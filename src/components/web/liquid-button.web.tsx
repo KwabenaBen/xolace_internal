@@ -1,7 +1,7 @@
 import { gsap } from "gsap";
 import { useId, useLayoutEffect, useRef, type JSX } from "react";
-import { useReducedMotion } from "react-native-reanimated";
 
+import { useWebReducedMotion } from "./motion";
 import { webFont } from "./web-theme";
 
 /** Same props as the native fallback (liquid-button.tsx). */
@@ -34,7 +34,7 @@ export function LiquidButton({
   size = 36,
 }: LiquidButtonProps): JSX.Element {
   const filterId = `goo-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useWebReducedMotion();
   const blob = useRef<HTMLDivElement>(null);
   const dot = useRef<HTMLDivElement>(null);
   const arrow = useRef<SVGSVGElement>(null);

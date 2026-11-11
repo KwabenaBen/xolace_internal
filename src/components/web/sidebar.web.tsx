@@ -13,7 +13,6 @@ import {
   type RefObject,
 } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useReducedMotion } from "react-native-reanimated";
 
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
@@ -24,6 +23,7 @@ import { fonts, usePageColors } from "@/components/ui/theme";
 import { ROLE_LABELS } from "@/constants/labels";
 import { useSignedInUser, type CurrentUser } from "@/lib/use-current-user";
 
+import { useWebReducedMotion } from "./motion";
 import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH, webType } from "./web-theme";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
@@ -222,7 +222,7 @@ export function SidebarView({
   const router = useRouter();
   const pathname = usePathname();
   const isAdmin = user.role === "admin";
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useWebReducedMotion();
   // `initial` never changes: it's only the starting look, before GSAP owns the styles.
   const [initial] = useState(readCollapsed);
   const [collapsed, setCollapsed] = useState(initial);

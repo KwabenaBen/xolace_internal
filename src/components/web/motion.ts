@@ -17,3 +17,11 @@ export function useHoverLift(
   _active: boolean,
   _options?: LiftOptions
 ): void {}
+
+/**
+ * Whether the website layout should hold back its motion (motion.web.ts has the real one, switched
+ * off for now). Only website code calls it; the app keeps React Native's own `useReducedMotion`.
+ */
+export function useWebReducedMotion(): boolean {
+  return false;
+}

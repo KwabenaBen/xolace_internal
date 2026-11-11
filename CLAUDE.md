@@ -287,7 +287,10 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   starting value and must not change it. One `gsap.context()` per component, reverted on
   unmount; start motion in the event handler, not after React re-renders; prefer ease-outs (an
   ease-in-out's slow start reads as lag). Every web screen must feel interactive: hover, focus
-  and press states that ease in, never snap. Reduce Motion: set the end state at once.
+  and press states that ease in, never snap. Reduce Motion: read it with `useWebReducedMotion()`
+  (`./motion`), never Reanimated's hook directly, and set the end state at once when it's true.
+  **For now it's always false** (`RESPECT_REDUCE_MOTION_ON_WEB`, motion.web.ts): the user asked
+  to see every animation in full while reviewing (11 Nov); see Open decisions.
 - **The feature, person, task and tile pages** hide the stack header and use `DetailPage` +
   `PageHeader` (back button, then the title; the task and person pages' grey line links to the
   feature). A feature's progress is
@@ -402,6 +405,11 @@ UX, security) and write the findings up before moving on.
       crons, empty/loading/error states, EAS build to TestFlight, web deploy.
 
 ## Open decisions (carry forward)
+
+- **Reduce Motion on the website is off for now** (the user's call, 11 Nov, to review the motion
+  in full): `RESPECT_REDUCE_MOTION_ON_WEB = false` in `src/components/web/motion.web.ts`. Set it
+  back to `true` before release (Phase 7) so the sidebar, cards and buttons honour it again. The
+  iPhone app is unaffected.
 
 - **App identity:** `app.json` still has the template's name/slug (`xolace_internal`) and scheme
   (`heroui-native-app`); the product name is "Cadence". An iOS bundle identifier is needed

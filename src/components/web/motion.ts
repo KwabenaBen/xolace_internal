@@ -49,3 +49,19 @@ export function usePressScale(_ref: RefObject<unknown>): {
 } {
   return {};
 }
+
+/** Plays an element in from `from` (e.g. off to the right, transparent) when it first appears. Website only. */
+export function useEnterFrom(
+  _ref: RefObject<unknown>,
+  _from: TweenValues,
+  _duration?: number
+): void {}
+
+/** Plays elements out to `to`, then resolves (e.g. before closing a panel). The app: at once. */
+export function playOut(
+  _targets: RefObject<unknown>[],
+  _to: TweenValues,
+  _duration?: number
+): Promise<void> {
+  return Promise.resolve();
+}

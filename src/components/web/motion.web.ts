@@ -129,3 +129,45 @@ export function usePressScale(ref: RefObject<unknown>): {
     onPressOut: () => to(1, 0.45, "elastic.out(1, 0.5)"),
   };
 }
+
+/** Plays an element in from `from` (e.g. off to the right, transparent) when it first appears. */
+export function useEnterFrom(ref: RefObject<unknown>, from: TweenValues, duration = 0.5): void {
+  const reduceMotion = useWebReducedMotion();
+  const fromKey = JSON.stringify(from);
+  useLayoutEffect(() => {
+    const el = ref.current as HTMLElement | null;
+    if (el === null || reduceMotion) return;
+    const tween = gsap.from(el, {
+      ...(JSON.parse(fromKey) as TweenValues),
+      duration,
+      ease: "power3.out",
+    });
+    return () => {
+      tween.revert();
+    };
+  }, [ref, fromKey, duration, reduceMotion]);
+}
+
+/** Plays elements out to `to`, then resolves (e.g. before closing a panel). */
+export function playOut(
+  targets: RefObject<unknown>[],
+  to: TweenValues,
+  duration = 0.3
+): Promise<void> {
+  const els = targets.map((t) => t.current as HTMLElement | null).filter((el) => el !== null);
+  if (
+    els.length === 0 ||
+    (RESPECT_REDUCE_MOTION_ON_WEB && matchMedia("(prefers-reduced-motion: reduce)").matches)
+  ) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    gsap.to(els, {
+      ...to,
+      duration,
+      ease: "power2.in",
+      overwrite: "auto",
+      onComplete: () => resolve(),
+    });
+  });
+}

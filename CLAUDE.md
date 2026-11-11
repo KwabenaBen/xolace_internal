@@ -93,7 +93,9 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          task-history.tsx (the task's history + comment box),
                          week-strip.tsx (unused; parked for Phase 5's daily logs),
                          task-dates.ts (countdown maths), task-theme.ts (holo words),
-                         task-symbols.ts
+                         task-symbols.ts, use-task-state.ts (useTaskData + taskFacts: what a
+                         task page loads and what the user can do; shared by the phone page
+                         and the website's panel)
   activity/              describe.ts (an activity entry as a sentence; timeAgo), activity-row.tsx
                          (one entry: avatar, sentence, comment bubble or quote); the task folder's
                          extension-row.tsx lists waiting requests (Admin, My Tasks, waiting page)
@@ -103,9 +105,10 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          tooltips; sidebar.tsx is the app's empty stub), liquid-button.web.tsx
                          (the "liquid arrow" Open button: SVG goo filter + GSAP; .tsx = plain
                          fallback), motion.web.ts (useHoverLift, useTweenTo, useGrowIn,
-                         usePressScale, useWebReducedMotion; motion.ts = no-ops), page.tsx
-                         (WebPage, Breadcrumb, ActionButton, SlidingTabs), task-table.tsx
-                         (TaskTable), feature/web-feature.tsx (the computer's feature page),
+                         usePressScale, useEnterFrom, playOut, useWebReducedMotion; motion.ts
+                         = no-ops), page.tsx (WebPage, Breadcrumb, ActionButton, SlidingTabs),
+                         task-table.tsx (TaskTable), feature/web-feature.tsx (the computer's
+                         feature page), task/web-task.tsx (the task's side panel),
                          use-hover.ts, board/ (the computer's Board, after the
                          "Learnify" Pinterest dashboard: web-board.tsx, board-header.tsx (search),
                          feature-card.tsx, coming-up-table.tsx, next-up-card.tsx, glance-card.tsx,
@@ -280,7 +283,9 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 - **The website layout** (`useIsDesktop()`: web and ≥ 1000 px; phones and the iPhone app are
   unchanged): `(app)/_layout.tsx` puts the `Sidebar` beside the stack and hides the tab bar; form
   screens open as dialogs (`Screen`'s `dialogTitle`; `transparentModal` keeps the page visible);
-  a `Sheet` becomes a centred dialog; the Board route renders `WebBoard`. Layout breakpoints read
+  a `Sheet` becomes a centred dialog; the Board route renders `WebBoard`, the feature route
+  `WebFeature`, and the task route (also a `transparentModal` there) `WebTaskPanel`, a side panel
+  over the page it was opened from. Layout breakpoints read
   the **window** width, never the sidebar's, and sizes are percentages/flex: the sidebar's glide
   then reflows the page in CSS alone. Don't drive layout from `onLayout` there (it re-renders React
   on every frame of the glide). **Web motion uses GSAP** (`gsap`, the user's choice), only in

@@ -395,6 +395,27 @@ reason. A declined proposal shows the reason in a red note.
 With Reduce Motion on, the card doesn't wobble, the digits change without rolling and the
 sticker doesn't pop.
 
+On a computer a task opens as a **side panel**: it slides in from the right over the page you
+opened it from (the Board, a feature page…), which stays put, dimmed, so you don't lose your
+place. **Esc**, the **✕** or a click on the dimmed page slides it away; the expand button grows it
+to the whole page (the reading on the left, the facts on the right) and back. At the top, the
+feature it belongs to as a chip in the feature's colour (it closes the panel and opens the
+feature). Then, in the Board's style:
+
+- its status, type and priority (urgent in red), and its title;
+- what you can do: the owner's **Post an update** and **Ask for more time**, the admin's **Edit
+  task** (or **Review & approve** and **Decline** for a proposal, with the reason asked for in
+  place);
+- the same notes as on the phone (waiting for review, declined, counts as late) and a request for
+  more time waiting for a decision, with its buttons;
+- a card in the feature's colour with how far along it is (the bar fills in), when it's due (red
+  when late; "moved from" when its deadline moved), the feature's deadline, or when it was
+  verified;
+- the people on it (the owner and peer reviewer open their work on the feature), what it's about,
+  the acceptance criteria, and the updates and comments.
+
+A link to a task (or a refresh on one) opens the panel over the Board.
+
 ### Planning a feature (admin)
 
 Title, description, expected result, where it was agreed (optional) and the deadline, which

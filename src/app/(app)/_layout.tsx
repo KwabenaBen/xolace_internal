@@ -75,7 +75,11 @@ export default function AppLayout(): JSX.Element {
         name="features/[featureId]/people/[userId]"
         options={{ title: "Person", ...ownHeader }}
       />
-      <Stack.Screen name="tasks/[taskId]/index" options={{ title: "Task", ...ownHeader }} />
+      {/* On the website layout a task opens as a side panel over the page it came from. */}
+      <Stack.Screen
+        name="tasks/[taskId]/index"
+        options={{ title: "Task", ...(desktop ? form : ownHeader) }}
+      />
       <Stack.Screen name="settings/account" options={{ title: "Account", ...ownHeader }} />
       <Stack.Screen name="settings/people/index" options={{ title: "People", ...ownHeader }} />
       <Stack.Screen name="settings/team-rules" options={{ title: "Team rules", ...ownHeader }} />

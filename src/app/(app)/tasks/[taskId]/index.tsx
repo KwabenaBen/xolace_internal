@@ -1,11 +1,9 @@
-import { useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState, type JSX } from "react";
 import { Text, View } from "react-native";
 
-import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { isOwnerWorking, isPlanLocked } from "@convex/lib/validators";
+import { isPlanLocked } from "@convex/lib/validators";
 
 import type { UserSummary } from "@convex/lib/views";
 
@@ -20,18 +18,20 @@ import {
 } from "@/components/ui/detail-page";
 import { HoloCard } from "@/components/task/holo-card";
 import { PeopleCards, type PersonCard } from "@/components/task/people-cards";
-import { decidedBy, nobodyDecides } from "@/components/task/deciders";
+import { decidedBy } from "@/components/task/deciders";
 import { ExtensionPanel } from "@/components/task/extension-panel";
 import { ExtensionSheet } from "@/components/task/extension-sheet";
 import { OwnerActions, TaskActions } from "@/components/task/task-actions";
 import { TaskHistory } from "@/components/task/task-history";
 import { UpdateSheet } from "@/components/task/update-sheet";
-import { ruleValue } from "@/components/team-rules/rules";
+import { taskFacts, useTaskData } from "@/components/task/use-task-state";
+import { WebTaskPanel } from "@/components/web/task/web-task";
 import { PageHeader } from "@/components/ui/page-header";
 import { CriteriaCard, DescriptionCard, TaskBanner } from "@/components/task/task-panels";
 import { STATUS_WORDS } from "@/components/task/task-theme";
 import { TASK_KIND_LABELS, TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/constants/labels";
 import { useSignedInUser } from "@/lib/use-current-user";
+import { useIsDesktop } from "@/lib/use-desktop";
 import { useNow } from "@/lib/use-now";
 
 /**
@@ -42,11 +42,17 @@ import { useNow } from "@/lib/use-now";
  * admin's pill buttons, and its history with comments. While it's in the owner's hands, the
  * owner posts updates (status, progress, a note) and asks for more time from buttons under the
  * countdown; a request waiting for a decision shows above it, where the decider answers it.
- * Black or off-white, following the phone's theme.
+ * Black or off-white, following the phone's theme. On a wide browser window the task opens as the
+ * website layout's side panel instead (src/components/web/task/).
  */
 export default function TaskScreen(): JSX.Element {
   const { taskId } = useLocalSearchParams<{ taskId: Id<"tasks"> }>();
-  const data = useQuery(api.tasks.get, { taskId });
+  return useIsDesktop() ? <WebTaskPanel taskId={taskId} /> : <PhoneTask taskId={taskId} />;
+}
+
+/** The phone's task page (described above the default export). */
+function PhoneTask({ taskId }: { taskId: Id<"tasks"> }): JSX.Element {
+  const { data, extensions, windowHours } = useTaskData(taskId);
   const user = useSignedInUser();
   const router = useRouter();
   const goBack = useGoBack();
@@ -54,15 +60,7 @@ export default function TaskScreen(): JSX.Element {
   const isAdmin = user.role === "admin";
   const c = usePageColors();
   const now = useNow();
-  const rules = useQuery(api.settings.list);
-  const loadedId = data?.task._id;
-  const extensions = useQuery(
-    api.extensions.forTask,
-    loadedId !== undefined ? { taskId: loadedId } : "skip"
-  );
   const [open, setOpen] = useState<"update" | "extend" | null>(null);
-  const windowValue = ruleValue(rules, "extensionLateWindowHours");
-  const windowHours = typeof windowValue === "number" ? windowValue : 24;
 
   let body: JSX.Element;
   if (data === undefined) {
@@ -71,29 +69,16 @@ export default function TaskScreen(): JSX.Element {
     body = <PageNotFound s={s} message="This task doesn't exist." onBack={goBack} />;
   } else {
     const { task, feature } = data;
-    const isProposal = task.status === "proposed";
-    const isDeclined = task.status === "declined";
-    const isLive = !isProposal && !isDeclined;
-    const canUpdate = isLive && task.ownerId === user._id && isOwnerWorking(task.status);
-    const pending = extensions?.requests.find((r) => r.status === "pending");
-    // While loading, assume a request may be waiting (no Ask button flashing in and out).
-    const hasPending = extensions === undefined || pending !== undefined;
-    const cantAsk =
-      extensions !== undefined && !extensions.canRequest
-        ? nobodyDecides(extensions.decider, true)
-        : null;
-    // The server only approves while the task is in its owner's hands, its feature hasn't
-    // shipped, and the request came from its current owner.
-    const approveBlock =
-      pending === undefined
-        ? null
-        : pending.requestedBy !== task.ownerId
-          ? "It came from the task's previous owner, so it can only be declined."
-          : !isOwnerWorking(task.status)
-            ? "The task is with its reviewer or verified now, so it can only be declined."
-            : feature.status === "shipped"
-              ? "The feature has shipped, so it can only be declined."
-              : null;
+    const {
+      isProposal,
+      isDeclined,
+      isLive,
+      canUpdate,
+      pending,
+      hasPending,
+      cantAsk,
+      approveBlock,
+    } = taskFacts(task, feature, extensions, user._id);
     const edit = () =>
       router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId: task._id } });
     // Owner and reviewer cards open that person's work on this feature.

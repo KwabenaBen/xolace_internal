@@ -1,13 +1,16 @@
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 import { useThemeColor } from "heroui-native";
 import type { JSX } from "react";
+import { View } from "react-native";
 
 import { fonts } from "@/components/ui/theme";
 import { AccountUnavailable } from "@/components/account-unavailable";
 import { ErrorScreen } from "@/components/error-screen";
 import { HeaderCancel } from "@/components/planning/header-cancel";
 import { LoadingScreen } from "@/components/loading-screen";
+import { Sidebar } from "@/components/web/sidebar";
 import { useCurrentUser } from "@/lib/use-current-user";
+import { useIsDesktop } from "@/lib/use-desktop";
 
 /**
  * The tabs always sit under every pushed page and modal, even when the app opens straight onto
@@ -22,23 +25,34 @@ export function ErrorBoundary(props: ErrorBoundaryProps): JSX.Element {
 
 /**
  * Signed-in area: the tabs, plus feature/task pages pushed over them and create/edit forms
- * shown as modals. Renders only once the user's profile is loaded and active.
+ * shown as modals. Renders only once the user's profile is loaded and active. On a wide browser
+ * window (the website layout, src/components/web/) the sidebar sits beside every page and the
+ * forms open as dialogs over the page they came from.
  */
 export default function AppLayout(): JSX.Element {
   const user = useCurrentUser();
   const [background, foreground] = useThemeColor(["background", "foreground"]);
+  const desktop = useIsDesktop();
 
   // Pages that draw their own header (back button, then the title) on the theme's page colour.
   const ownHeader = { headerShown: false, contentStyle: { backgroundColor: background } };
   // Form modals: native iOS sheets (swipe down to close) with Cancel at the top left. With unsaved
   // changes, both the swipe and Cancel ask first (useUnsavedGuard blocks the native dismiss).
   // Pushed pages keep the native push and swipe back (from anywhere on the screen on iOS 26).
-  const form = { presentation: "modal" as const, headerLeft: () => <HeaderCancel /> };
+  // On a wide browser window the page underneath stays visible and the form draws its own dialog
+  // (Screen, src/components/screen.tsx).
+  const form = desktop
+    ? {
+        presentation: "transparentModal" as const,
+        headerShown: false,
+        contentStyle: { backgroundColor: "transparent" },
+      }
+    : { presentation: "modal" as const, headerLeft: () => <HeaderCancel /> };
 
   if (user === undefined) return <LoadingScreen />;
   if (user === null || !user.isActive) return <AccountUnavailable user={user} />;
 
-  return (
+  const stack = (
     <Stack
       screenOptions={{
         contentStyle: { backgroundColor: background },
@@ -72,5 +86,13 @@ export default function AppLayout(): JSX.Element {
       <Stack.Screen name="tasks/[taskId]/edit" options={{ title: "Edit task", ...form }} />
       <Stack.Screen name="settings/people/invite" options={{ title: "Invite someone", ...form }} />
     </Stack>
+  );
+
+  if (!desktop) return stack;
+  return (
+    <View style={{ flex: 1, flexDirection: "row", backgroundColor: background }}>
+      <Sidebar />
+      <View style={{ flex: 1 }}>{stack}</View>
+    </View>
   );
 }

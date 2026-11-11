@@ -7,6 +7,7 @@ import { useReducedMotion } from "react-native-reanimated";
 
 import { layout } from "@/constants/theme";
 import { useSignedInUser } from "@/lib/use-current-user";
+import { useIsDesktop } from "@/lib/use-desktop";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -20,6 +21,8 @@ function TabIcon({ name, color }: { name: IoniconName; color: ColorValue }): JSX
 export default function TabsLayout(): JSX.Element {
   const user = useSignedInUser();
   const reduceMotion = useReducedMotion();
+  // On a wide browser window the sidebar (src/components/web/sidebar.tsx) replaces the tab bar.
+  const desktop = useIsDesktop();
   const [foreground, muted, border, background] = useThemeColor([
     "foreground",
     "muted",
@@ -31,12 +34,14 @@ export default function TabsLayout(): JSX.Element {
     <Tabs
       screenOptions={{
         // Switching tabs: the new one slides in a little and fades up (none with Reduce Motion).
-        animation: reduceMotion ? "none" : "shift",
+        animation: reduceMotion || desktop ? "none" : "shift",
         headerShown: false,
         tabBarActiveTintColor: foreground,
         tabBarInactiveTintColor: muted,
         // The bar is the page's colour (black or off-white) on every tab, with a hairline above.
-        tabBarStyle: { backgroundColor: background, borderTopColor: border },
+        tabBarStyle: desktop
+          ? { display: "none" }
+          : { backgroundColor: background, borderTopColor: border },
         sceneStyle: { backgroundColor: background },
       }}
     >

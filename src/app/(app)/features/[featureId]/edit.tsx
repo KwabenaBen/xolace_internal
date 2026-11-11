@@ -24,6 +24,7 @@ export default function EditFeatureScreen(): JSX.Element {
   return (
     <AdminOnly>
       <FeatureForm
+        dialogTitle="Edit feature"
         initial={{
           title: feature.title,
           description: feature.description,

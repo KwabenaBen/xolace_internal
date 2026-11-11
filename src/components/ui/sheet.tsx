@@ -27,6 +27,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
+import { useIsDesktop } from "@/lib/use-desktop";
 import { useReduceTransparency } from "@/lib/use-reduce-transparency";
 
 import { usePageColors } from "./theme";
@@ -123,7 +124,9 @@ export function SheetNoSwipe({ children }: { children: ReactNode }): JSX.Element
 
 /**
  * An overlay card that rises from the bottom (see the note at the top of this file). Mount it to
- * open it; `onClose` runs after the exit, when the parent should unmount it.
+ * open it; `onClose` runs after the exit, when the parent should unmount it. On the website layout
+ * (a wide browser window) it's a dialog instead: centred over a dimmed page, fading in and out,
+ * closed by a click outside, Esc or its own buttons (no swipe, no grab bar).
  */
 export function Sheet({
   onClose,
@@ -144,10 +147,14 @@ export function Sheet({
   const c = usePageColors();
   const { height: screenH } = useWindowDimensions();
   const reduced = useReducedMotion();
-  const plain = useReduceTransparency();
+  const desktop = useIsDesktop();
+  // The website layout dims without blurring (a dialog, after Notion).
+  const plain = useReduceTransparency() || desktop;
+  // Where the card starts and leaves: below the screen, or just under its place as a dialog.
+  const offscreen = desktop ? 16 : screenH;
   // Where the card sits: 0 = open, screenH = below the screen. `shown` is the page's blur and dim
   // (and, with Reduce Motion, the card's opacity).
-  const y = useSharedValue(reduced ? 0 : screenH);
+  const y = useSharedValue(reduced ? 0 : offscreen);
   const shown = useSharedValue(0);
   const scrollTop = useSharedValue(0);
   const dragging = useSharedValue(false);
@@ -164,7 +171,7 @@ export function Sheet({
   function close() {
     if (closing.get()) return;
     closing.set(true);
-    if (!reduced) y.set(withTiming(screenH, EXIT));
+    if (!reduced) y.set(withTiming(offscreen, EXIT));
     shown.set(
       withTiming(0, { duration: EXIT.duration }, (finished) => {
         if (finished === true) scheduleOnRN(onClose);
@@ -179,6 +186,7 @@ export function Sheet({
 
   const scrollGesture = Gesture.Native();
   const swipe = Gesture.Pan()
+    .enabled(!desktop) // a dialog isn't swiped
     .activeOffsetY(10) // downward only: an upward drag is the content's scroll
     .failOffsetX([-24, 24])
     .simultaneousWithExternalGesture(scrollGesture)
@@ -218,7 +226,7 @@ export function Sheet({
   const dimStyle = useAnimatedStyle(() => ({ opacity: cover() }));
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: y.get() }],
-    opacity: reduced ? shown.get() : 1,
+    opacity: reduced || desktop ? shown.get() : 1,
   }));
 
   const api: SheetApi = { close, setLocked: (next) => locked.set(next) };
@@ -253,23 +261,35 @@ export function Sheet({
         {/* Rises above the keyboard when a field in the card is typed in. */}
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.stage}
+          style={desktop ? styles.stageCentered : styles.stage}
         >
           <GestureDetector gesture={swipe}>
             <Animated.View
               accessibilityViewIsModal
               onAccessibilityEscape={requestClose}
               style={[
-                {
-                  width: "100%",
-                  maxWidth,
-                  maxHeight: "92%",
-                  borderTopLeftRadius: 30,
-                  borderTopRightRadius: 30,
-                  borderCurve: "continuous",
-                  overflow: "hidden",
-                  backgroundColor: backgroundColor ?? c.panel,
-                },
+                desktop
+                  ? {
+                      width: "100%",
+                      maxWidth: Math.min(maxWidth, 520),
+                      maxHeight: "85%",
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: c.hairline,
+                      overflow: "hidden",
+                      backgroundColor: backgroundColor ?? c.panel,
+                      boxShadow: "0 24px 60px rgba(0,0,0,0.28)",
+                    }
+                  : {
+                      width: "100%",
+                      maxWidth,
+                      maxHeight: "92%",
+                      borderTopLeftRadius: 30,
+                      borderTopRightRadius: 30,
+                      borderCurve: "continuous",
+                      overflow: "hidden",
+                      backgroundColor: backgroundColor ?? c.panel,
+                    },
                 cardStyle,
               ]}
             >
@@ -278,21 +298,23 @@ export function Sheet({
                   {typeof children === "function" ? children(api) : children}
                 </View>
               </SheetContext>
-              {/* the grab bar: says the card can be pulled down */}
-              <View
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  alignSelf: "center",
-                  width: 40,
-                  height: 5,
-                  borderRadius: 3,
-                  backgroundColor: grabberColor ?? c.muted,
-                  opacity: grabberColor === undefined ? 0.5 : 1,
-                  pointerEvents: "none",
-                }}
-              />
+              {/* the grab bar: says the card can be pulled down (not on a dialog) */}
+              {desktop ? null : (
+                <View
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    alignSelf: "center",
+                    width: 40,
+                    height: 5,
+                    borderRadius: 3,
+                    backgroundColor: grabberColor ?? c.muted,
+                    opacity: grabberColor === undefined ? 0.5 : 1,
+                    pointerEvents: "none",
+                  }}
+                />
+              )}
             </Animated.View>
           </GestureDetector>
         </KeyboardAvoidingView>
@@ -305,4 +327,12 @@ const styles = StyleSheet.create({
   // Lets taps outside the card through to the dim behind it (closes the sheet). In a StyleSheet,
   // not inline: React Native Web only translates "box-none" for StyleSheet styles.
   stage: { flex: 1, justifyContent: "flex-end", alignItems: "center", pointerEvents: "box-none" },
+  // The website layout: the card as a dialog in the middle.
+  stageCentered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
+    pointerEvents: "box-none",
+  },
 });

@@ -16,7 +16,7 @@ import {
 import { clampPercent, ProgressBar } from "./progress-bar";
 import { colors, fonts, STATUS_COLORS, usePageColors } from "./theme";
 
-const FEATURE_COLORS: Record<FeatureStatus, { fill: string; ink: string }> = {
+export const FEATURE_COLORS: Record<FeatureStatus, { fill: string; ink: string }> = {
   planned: { fill: colors.cream, ink: colors.black },
   in_progress: { fill: colors.blue, ink: colors.black },
   internal_testing: { fill: colors.yellow, ink: colors.black },

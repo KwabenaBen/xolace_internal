@@ -97,6 +97,13 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
   activity/              describe.ts (an activity entry as a sentence; timeAgo), activity-row.tsx
                          (one entry: avatar, sentence, comment bubble or quote); the task folder's
                          extension-row.tsx lists waiting requests (Admin, My Tasks, waiting page)
+  web/                   The website layout (a browser window ≥ 1000 px wide: `useIsDesktop`,
+                         src/lib/use-desktop.ts): web-theme.ts (type sizes, sidebar widths),
+                         sidebar.tsx (replaces the tab bar; collapses with a gliding CSS
+                         transition), use-hover.ts, board/ (the computer's Board, after the
+                         "Learnify" Pinterest dashboard: web-board.tsx, board-header.tsx (search),
+                         feature-card.tsx, coming-up-table.tsx, next-up-card.tsx, glance-card.tsx,
+                         board-filter.ts (owner/status/search filters, in the browser))
 src/constants/           theme.ts (spacing/layout/type tokens), labels.ts (enum display labels)
 src/lib/                 Convex client, auth token storage, theme-preference (the Dark mode
                          switch's choice, remembered per device), error messages, hooks (useNow, useDeviceFlag for
@@ -264,6 +271,14 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   multiplied by `s = width / 402` (capped at 520 wide). Read Reanimated shared values with
   `.get()` / `.set()` (React Compiler friendly). The pit stop plays once when the Board first
   loads and when the feed is pulled past its top (iOS overscroll); Reduce Motion turns it off.
+- **The website layout** (`useIsDesktop()`: web and ≥ 1000 px; phones and the iPhone app are
+  unchanged): `(app)/_layout.tsx` puts the `Sidebar` beside the stack and hides the tab bar; form
+  screens open as dialogs (`Screen`'s `dialogTitle`; `transparentModal` keeps the page visible);
+  a `Sheet` becomes a centred dialog; the Board route renders `WebBoard`. Layout breakpoints read
+  the **window** width, never the sidebar's, and sizes are percentages/flex: the sidebar's glide
+  then reflows the page in CSS alone. Don't drive layout from `onLayout` there (it re-renders React
+  on every frame of the glide). Web motion uses Reanimated's CSS transitions (`transitionProperty`
+  / `transitionDuration` in the style, `cubicBezier` easing), off with Reduce Motion.
 - **The feature, person, task and tile pages** hide the stack header and use `DetailPage` +
   `PageHeader` (back button, then the title; the task and person pages' grey line links to the
   feature). A feature's progress is

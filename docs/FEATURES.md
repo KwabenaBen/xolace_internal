@@ -25,6 +25,11 @@ warm off-white. It follows the phone's dark or light setting until someone flips
 Settings; from then on that choice sticks on that phone; the coloured tiles, status pills
 and cards keep their colours in both.
 
+On a computer (a browser window at least 1,000 pixels wide) the web version is laid out like a
+website rather than a phone: a sidebar instead of the tab bar, forms that open as dialogs over the
+page, and its own Board ([The Board on a computer](#the-board-on-a-computer)). In a narrower
+window, or in a phone's browser, it looks like the app.
+
 Built so far: sign-in and roles (Phase 1), and features, tasks, proposals and the Board
 (Phase 2). Progress updates, daily logs, reviews and notifications come in Phases 4 to 7 (see
 [Coming next](#coming-next)).
@@ -231,6 +236,36 @@ A shipped feature leaves the Board; pick it in the Feature filter to see it agai
 style: a big title, how many tasks it holds, and the matching tasks grouped under their
 features, in the same rows as the Board. Tap a feature or task to open it; the back arrow
 returns to the Board. On the waiting page each row says who proposed it.
+
+### The Board on a computer
+
+On a computer the Board is a dashboard page, after a learning-dashboard design the team picked on
+Pinterest, instead of the phone's tiles. Everything on the phone's Board is still there.
+
+- **The sidebar** (on every page) lists Board, My Tasks, Logs, Activity and Admin (admins), then
+  the features in progress (each with its stage's colour; admins also get **New feature**), then
+  Settings and you. Its arrow collapses it to icons and back: it glides, the icons stay where they
+  are, and the choice is remembered on that browser. With Reduce Motion on, it switches at once.
+  (Browsers turn Reduce Motion on when Windows' "Animation effects" or the Mac's "Reduce motion"
+  setting is on.) Collapsing or opening it only stretches the page; nothing rearranges.
+- **The top** shows the date and a welcome, a search box (tasks, features and people; press **/**
+  to jump to it, **Esc** to clear it), a bell that opens Activity, and you (your account).
+- **The title row** has **New feature** for admins or **Propose a task** for members. Under it, a
+  chip per person (**Everyone**, **You**, then each teammate) and a **Status** filter; **Clear**
+  resets them. The filters and the search work together.
+- **Features** shows every feature that hasn't shipped as a coloured card: its stage, when it's
+  due (in red when it's late), its name, how far along it is with "1/4 verified" and a bar, who's
+  working on it, and **Open**. The whole card opens the feature page. Three cards to a row in a
+  wide window, two in a narrower one. With a filter on, only features with matching tasks show.
+- **Coming up** is a table of the open tasks, soonest deadline first (so late ones lead): the
+  task and its feature, the owner, the status, and when it's due ("tomorrow", "2 days late" in
+  red). It shows six, then **View all**. Click a row to open the task. Verified tasks only show
+  when the Status filter is set to Verified.
+- **Next up** is the dark card: the feature due next (or the most overdue), its due date, how far
+  along it is, who's on it and **Open feature**. **At a glance** lists Overdue, Due this week,
+  Waiting for a decision and Your open tasks, each opening its page. These two always count the
+  whole team, whatever the filters. In a very wide window (1,400 pixels or more) they sit beside
+  the table; otherwise they sit side by side above it.
 
 ## Features, tasks and proposals
 

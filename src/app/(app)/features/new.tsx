@@ -16,6 +16,7 @@ export default function NewFeatureScreen(): JSX.Element {
       <FeatureForm
         initial={EMPTY_FEATURE}
         submitLabel="Create feature"
+        dialogTitle="New feature"
         onSubmit={async (values) => {
           const featureId = await createFeature(values);
           router.replace({ pathname: "/features/[featureId]", params: { featureId } });

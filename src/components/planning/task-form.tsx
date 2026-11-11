@@ -88,6 +88,14 @@ export function taskToFormValues(task: Doc<"tasks">): TaskFormValues {
  */
 export type TaskFormMode = "create" | "edit" | "approve" | "propose";
 
+/** The dialog's title on the website layout. */
+const DIALOG_TITLES: Record<TaskFormMode, string> = {
+  create: "New task",
+  edit: "Edit task",
+  approve: "Approve proposal",
+  propose: "Propose a task",
+};
+
 const SUBMIT_LABELS: Record<TaskFormMode, string> = {
   create: "Create task",
   edit: "Save changes",
@@ -200,6 +208,7 @@ export function TaskForm({
   return (
     <Screen
       withHeader
+      dialogTitle={DIALOG_TITLES[mode]}
       footer={
         // The error sits right above the button, where the eye is after tapping it.
         <View className="gap-3">

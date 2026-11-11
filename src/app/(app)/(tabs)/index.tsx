@@ -23,8 +23,10 @@ import { FeatureFeed } from "@/components/board/feature-feed";
 import { PIT, PIT_DURATION, PULL_TRIGGER } from "@/components/board/pit-stop";
 import { OptionPicker } from "@/components/planning/option-picker";
 import { fonts, usePageColors } from "@/components/ui/theme";
+import { WebBoard } from "@/components/web/board/web-board";
 import { LIVE_STATUS_ORDER, TASK_STATUS_LABELS } from "@/constants/labels";
 import { useSignedInUser } from "@/lib/use-current-user";
+import { useIsDesktop } from "@/lib/use-desktop";
 import { useDeviceFlag } from "@/lib/use-device-flag";
 import { useNow } from "@/lib/use-now";
 
@@ -32,10 +34,18 @@ import { useNow } from "@/lib/use-now";
 const INTRO_START = PIT.brace + PIT.exit;
 
 /**
- * The shared board, styled after the "Paddock Widget Bento" block: a bento of live stats on
- * black, then every feature and its tasks. Pull down past the top to replay the pit stop.
+ * The shared board. On a wide browser window it's the website layout's Board
+ * (src/components/web/board/); everywhere else, the phone's bento.
  */
 export default function BoardScreen(): JSX.Element {
+  return useIsDesktop() ? <WebBoard /> : <PhoneBoard />;
+}
+
+/**
+ * The phone's Board, styled after the "Paddock Widget Bento" block: a bento of live stats on
+ * black, then every feature and its tasks. Pull down past the top to replay the pit stop.
+ */
+function PhoneBoard(): JSX.Element {
   const user = useSignedInUser();
   const isAdmin = user.role === "admin";
   const router = useRouter();

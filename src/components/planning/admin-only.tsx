@@ -12,7 +12,7 @@ export function AdminOnly({ children }: { children: ReactNode }): JSX.Element {
   const user = useSignedInUser();
   if (user.role === "admin") return <>{children}</>;
   return (
-    <Screen withHeader>
+    <Screen withHeader dialogTitle="Admins only">
       <Typography type="body" color="muted">
         Only admins can do this.
       </Typography>

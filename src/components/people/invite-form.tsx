@@ -147,6 +147,7 @@ export function InviteForm({
     return (
       <Screen
         withHeader
+        dialogTitle="Invite ready"
         footer={
           <View className="gap-3">
             {created !== undefined && live ? (
@@ -194,6 +195,7 @@ export function InviteForm({
   return (
     <Screen
       withHeader
+      dialogTitle="Invite someone"
       footer={
         <View className="gap-3">
           <FormError message={error} />

@@ -32,10 +32,13 @@ export const EMPTY_FEATURE: FeatureFormValues = {
 export function FeatureForm({
   initial,
   submitLabel,
+  dialogTitle,
   onSubmit,
 }: {
   initial: FeatureFormValues;
   submitLabel: string;
+  /** The dialog's title on the website layout ("New feature", "Edit feature"). */
+  dialogTitle: string;
   onSubmit: (values: FeatureFormValues) => Promise<void>;
 }): JSX.Element {
   const [values, setValues] = useState(initial);
@@ -76,6 +79,7 @@ export function FeatureForm({
   return (
     <Screen
       withHeader
+      dialogTitle={dialogTitle}
       footer={
         // The error sits right above the button, where the eye is after tapping it.
         <View className="gap-3">

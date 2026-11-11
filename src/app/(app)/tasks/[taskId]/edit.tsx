@@ -34,7 +34,7 @@ export default function EditTaskScreen(): JSX.Element {
   const isProposal = task.status === "proposed";
   if (isPlanLocked(task.status)) {
     return (
-      <Screen withHeader>
+      <Screen withHeader dialogTitle="Edit task">
         <Typography type="body" color="muted">
           This task is in review, submitted or verified, so its plan is locked. It can change again
           once it&apos;s sent back to its owner.

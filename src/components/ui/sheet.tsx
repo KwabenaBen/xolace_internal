@@ -184,11 +184,16 @@ export function Sheet({
   const closing = useSharedValue(false);
   const noSwipe = useAnimatedRef<View>();
   const hasNoSwipe = useSharedValue(false);
+  // iOS presents a modal a moment after it mounts. The rise, the dim and above all the blur start
+  // only once it's on screen: a blur set up before then was ignored until something on the card
+  // changed (the page wasn't blurred until you touched the card). Elsewhere it's on screen at once.
+  const [presented, setPresented] = useState(Platform.OS !== "ios");
 
   useEffect(() => {
+    if (!presented) return;
     if (!reduced) y.set(withSpring(0, RISE));
     shown.set(withTiming(1, { duration: reduced ? 160 : 280 }));
-  }, [reduced, shown, y]);
+  }, [presented, reduced, shown, y]);
 
   function close() {
     if (closing.get()) return;
@@ -253,10 +258,18 @@ export function Sheet({
   const api: SheetApi = { close, setLocked: (next) => locked.set(next) };
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={requestClose}>
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      onRequestClose={requestClose}
+      onShow={() => setPresented(true)}
+    >
       {/* A modal sits outside the app's gesture root on iOS, so it needs its own. */}
       <GestureHandlerRootView style={{ flex: 1 }}>
-        {plain ? null : <PageBlur cover={cover} tint={c.scheme === "dark" ? "dark" : "light"} />}
+        {plain || !presented ? null : (
+          <PageBlur cover={cover} tint={c.scheme === "dark" ? "dark" : "light"} />
+        )}
         <Animated.View
           style={[
             { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
@@ -277,6 +290,14 @@ export function Sheet({
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={desktop ? styles.stageCentered : styles.stage}
         >
+          {/* A tap anywhere around the card closes it. It sits inside the stage, behind the card:
+              on iOS the stage caught taps meant for the dim's close button underneath it. */}
+          <Pressable
+            accessible={false}
+            importantForAccessibility="no"
+            onPress={requestClose}
+            style={StyleSheet.absoluteFill}
+          />
           <GestureDetector gesture={swipe}>
             <Animated.View
               accessibilityViewIsModal

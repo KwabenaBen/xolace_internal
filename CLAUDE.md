@@ -384,14 +384,14 @@ UX, security) and write the findings up before moving on.
       (email + password, invite-only), admin/member roles, permission helpers, settings, seed,
       app shell with tabs, offline banner, welcome screen (dots spell "cadence"). Real invites
       seeded on dev; real sign-up done; runs on iPhone via Expo Go. Branch `cadence-phase-1`.
-- [ ] **Phase 2 — Features & tasks:** create/edit features and tasks with acceptance criteria
+- [x] **Phase 2 — Features & tasks:** create/edit features and tasks with acceptance criteria
       (admin, web + phone), proposals + approval, owner/peer reviewer/deadline, shared board with
       filters, task detail. Branch `cadence-phase-2`; the bento Board + demo data on
       `cadence-phase-2-boardscreen`; the black task page on `cadence-phase-2-taskscreen`; the
       black feature + person pages and the feature "next up" on `cadence-phase-2-featurescreen`.
-      _Built; server rules covered by tests. Tick once an admin and a member have walked through
-      it on iPhone and web._
       _Audit fixes: batches 1–3 on `cadence-phase-2-hardening`, `-themes`, `-fixes`._
+      _Ticked 11 Nov: walked through by an admin (a demo admin account) and a member on iPhone
+      and web, every check passed (walkthrough fixes on `cadence-phase-2-4-walkthrough`)._
 - [ ] **Phase 3 — Settings:** the Settings tab built from Native Cook's "Clay Relight Settings"
       block (`src/components/settings/`): the Dark mode switch is the app theme (overrides the
       phone, remembered per device); five rows (Notifications, Daily log reminder, People, Team
@@ -403,16 +403,18 @@ UX, security) and write the findings up before moving on.
       Notifications / Daily log reminder time sheets: `cadence-phase-3-teamrulesscreen`.
       End-of-phase audit done 10 Nov (System audit doc, "Phase 3 audit" tab); fixes on
       `cadence-phase-3-audit`, also brought into `cadence-phase-4`. _Built; iPhone checks done
-      10 Nov. Tick once a member has walked through it too._
-- [ ] **Phase 4 — Progress & extensions:** owners' updates (status, a drag bar for progress, a
+      10 Nov. Member walkthrough 11 Nov: one fail (the page wasn't blurred behind a card on
+      iPhone), fixed on `cadence-phase-2-4-walkthrough`; tick once that's confirmed on iPhone._
+- [x] **Phase 4 — Progress & extensions:** owners' updates (status, a drag bar for progress, a
       note; blocked needs one), comments and each task's history, the hourly overdue flag,
       requests for more time (admins decide; the admin task reviewer for an admin's own task, or
       the other admins when the reviewer can't; withdraw) with the late rule, direct deadline
       moves judged by the same rule, the Activity page (from the Board's red tile), and requests
       on the Admin tab, My Tasks and the waiting tile. Branch `cadence-phase-4` (includes Phase
       3's audit fixes); end-of-phase audit in the System audit doc's "Phase 4 audit" tab.
-      _Built; iPhone checks of the drag bar and the update card with the keyboard done 10 Nov.
-      Tick once an admin and a member have walked through it on iPhone and web._
+      _Ticked 11 Nov: walked through by an admin and a member on iPhone and web, every check
+      passed; the team's notes (confirmations after saves, the "Ask for more time" button and
+      calendar, the red tile now "team activity") fixed on `cadence-phase-2-4-walkthrough`._
 - [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.
 - [ ] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
       verification queue (admin task reviewer for admin-owned tasks), feature status rollup.

@@ -306,6 +306,23 @@ From top to bottom:
 - **Buttons.** Admins get **Add task** and **Edit feature**; members get **Propose a task**. A
   shipped feature takes no new work, so only **Edit feature** remains.
 
+On a computer the feature page is laid out in the Board's style:
+
+- **The top** shows where you are ("Board › the feature"; **Board** goes back) and the buttons
+  (**Edit feature** and **Add task** for admins, **Propose a task** for members; none to add once
+  it's shipped). They give a little when pressed.
+- **The hero** is a wide card in the feature's colour (the same as its Board card): its stage,
+  where it was agreed and who planned it, its name and description, and, on the right, how far
+  along it is (the bar fills in as the page opens), how many tasks are verified, and when it's due
+  (red when late, green once shipped).
+- **By status**, a bar split into the tasks' statuses, in their colours, with counts.
+- **Tasks** is a table (task with its type and priority, owner, status, progress, due) with tabs
+  for **All**, **Open** and **Verified**; the highlight slides to the tab you pick. Pointing at a
+  row shades it and slides an arrow in; clicking opens the task.
+- **Beside the tasks** (under them in a narrower window): **What done looks like** (the expected
+  result) on the dark card, the **Team** (each person's role, tasks and progress; click for their
+  work on the feature) and, if any, proposals **Waiting for approval**.
+
 ### A person's work on a feature
 
 Tap someone in **Who's on it** (on the feature page, or the owner or reviewer card on a task page)

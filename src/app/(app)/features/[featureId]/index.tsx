@@ -25,9 +25,24 @@ import { SectionTitle } from "@/components/ui/panel";
 import { DescriptionCard } from "@/components/task/task-panels";
 import { FEATURE_STATUS_WORDS } from "@/components/task/task-theme";
 import { FEATURE_STATUS_LABELS } from "@/constants/labels";
+import { WebFeature } from "@/components/web/feature/web-feature";
 import { useSignedInUser } from "@/lib/use-current-user";
+import { useIsDesktop } from "@/lib/use-desktop";
 import { colors, fonts, usePageColors } from "@/components/ui/theme";
 import { useNow } from "@/lib/use-now";
+
+/**
+ * A feature. On a wide browser window it's the website layout's page (src/components/web/feature/);
+ * everywhere else, the phone's.
+ */
+export default function FeatureScreen(): JSX.Element {
+  const { featureId } = useLocalSearchParams<{ featureId: Id<"features"> }>();
+  return useIsDesktop() ? (
+    <WebFeature featureId={featureId} />
+  ) : (
+    <PhoneFeature featureId={featureId} />
+  );
+}
 
 /**
  * A feature, in the app's black/off-white style (the Board's "next up" tile and feature cards open it):
@@ -35,8 +50,7 @@ import { useNow } from "@/lib/use-now";
  * its deadline with its progress, the description and expected result, Who's on it (tap a person
  * for their work on it), every task with its progress, proposals waiting, and pill buttons.
  */
-export default function FeatureScreen(): JSX.Element {
-  const { featureId } = useLocalSearchParams<{ featureId: Id<"features"> }>();
+function PhoneFeature({ featureId }: { featureId: Id<"features"> }): JSX.Element {
   const data = useQuery(api.features.get, { featureId });
   const user = useSignedInUser();
   const router = useRouter();

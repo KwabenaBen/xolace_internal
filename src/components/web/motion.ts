@@ -25,3 +25,27 @@ export function useHoverLift(
 export function useWebReducedMotion(): boolean {
   return false;
 }
+
+/** Style values a website element eases to (motion.web.ts): numbers (px, opacity) or strings. */
+export type TweenValues = Record<string, number | string>;
+
+/**
+ * Eases an element to `values` whenever they change (the first time, it just sets them): a
+ * hover wash fading in, a tab highlight sliding under the chosen tab. Website only.
+ */
+export function useTweenTo(
+  _ref: RefObject<unknown>,
+  _values: TweenValues,
+  _duration?: number
+): void {}
+
+/** Grows an element in from its left edge when it first appears (a progress bar). Website only. */
+export function useGrowIn(_ref: RefObject<unknown>, _delay?: number): void {}
+
+/** Press feedback: the element sinks a little while pressed. Website only (the app: no handlers). */
+export function usePressScale(_ref: RefObject<unknown>): {
+  onPressIn?: () => void;
+  onPressOut?: () => void;
+} {
+  return {};
+}

@@ -65,3 +65,67 @@ export function useHoverLift(
     };
   }, [ref]);
 }
+
+type TweenValues = Record<string, number | string>;
+
+/**
+ * Eases an element to `values` whenever they change, from wherever it is (so a quick change
+ * mid-way turns around smoothly); the first time it just sets them. GSAP then owns those styles.
+ */
+export function useTweenTo(ref: RefObject<unknown>, values: TweenValues, duration = 0.32): void {
+  const reduceMotion = useWebReducedMotion();
+  const key = JSON.stringify(values);
+  const shown = useRef<string | null>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current as HTMLElement | null;
+    if (el === null || shown.current === key) return;
+    const instant = shown.current === null || reduceMotion;
+    shown.current = key;
+    if (instant) gsap.set(el, values);
+    else gsap.to(el, { ...values, duration, ease: "power3.out", overwrite: "auto" });
+  });
+
+  useLayoutEffect(() => {
+    const el = ref.current as HTMLElement | null;
+    return () => {
+      if (el !== null) gsap.killTweensOf(el);
+    };
+  }, [ref]);
+}
+
+/** Grows an element in from its left edge when it first appears (a progress bar filling up). */
+export function useGrowIn(ref: RefObject<unknown>, delay = 0): void {
+  const reduceMotion = useWebReducedMotion();
+  useLayoutEffect(() => {
+    const el = ref.current as HTMLElement | null;
+    if (el === null || reduceMotion) return;
+    const tween = gsap.from(el, {
+      scaleX: 0,
+      transformOrigin: "0% 50%",
+      duration: 0.9,
+      delay,
+      ease: "power3.out",
+    });
+    return () => {
+      tween.revert();
+    };
+  }, [ref, delay, reduceMotion]);
+}
+
+/** Press feedback: the element sinks a little while pressed and springs back when let go. */
+export function usePressScale(ref: RefObject<unknown>): {
+  onPressIn?: () => void;
+  onPressOut?: () => void;
+} {
+  const reduceMotion = useWebReducedMotion();
+  const to = (scale: number, duration: number, ease: string) => {
+    const el = ref.current as HTMLElement | null;
+    if (el === null || reduceMotion) return;
+    gsap.to(el, { scale, duration, ease, overwrite: "auto" });
+  };
+  return {
+    onPressIn: () => to(0.96, 0.12, "power2.out"),
+    onPressOut: () => to(1, 0.45, "elastic.out(1, 0.5)"),
+  };
+}

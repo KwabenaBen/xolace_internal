@@ -102,7 +102,10 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          sidebar.web.tsx (replaces the tab bar; GSAP slide and collapsed
                          tooltips; sidebar.tsx is the app's empty stub), liquid-button.web.tsx
                          (the "liquid arrow" Open button: SVG goo filter + GSAP; .tsx = plain
-                         fallback), motion.web.ts (useHoverLift; motion.ts = no-op),
+                         fallback), motion.web.ts (useHoverLift, useTweenTo, useGrowIn,
+                         usePressScale, useWebReducedMotion; motion.ts = no-ops), page.tsx
+                         (WebPage, Breadcrumb, ActionButton, SlidingTabs), task-table.tsx
+                         (TaskTable), feature/web-feature.tsx (the computer's feature page),
                          use-hover.ts, board/ (the computer's Board, after the
                          "Learnify" Pinterest dashboard: web-board.tsx, board-header.tsx (search),
                          feature-card.tsx, coming-up-table.tsx, next-up-card.tsx, glance-card.tsx,

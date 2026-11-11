@@ -99,8 +99,11 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          extension-row.tsx lists waiting requests (Admin, My Tasks, waiting page)
   web/                   The website layout (a browser window ≥ 1000 px wide: `useIsDesktop`,
                          src/lib/use-desktop.ts): web-theme.ts (type sizes, sidebar widths),
-                         sidebar.tsx (replaces the tab bar; collapses with a gliding CSS
-                         transition), use-hover.ts, board/ (the computer's Board, after the
+                         sidebar.web.tsx (replaces the tab bar; GSAP slide and collapsed
+                         tooltips; sidebar.tsx is the app's empty stub), liquid-button.web.tsx
+                         (the "liquid arrow" Open button: SVG goo filter + GSAP; .tsx = plain
+                         fallback), motion.web.ts (useHoverLift; motion.ts = no-op),
+                         use-hover.ts, board/ (the computer's Board, after the
                          "Learnify" Pinterest dashboard: web-board.tsx, board-header.tsx (search),
                          feature-card.tsx, coming-up-table.tsx, next-up-card.tsx, glance-card.tsx,
                          board-filter.ts (owner/status/search filters, in the browser))
@@ -277,8 +280,14 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   a `Sheet` becomes a centred dialog; the Board route renders `WebBoard`. Layout breakpoints read
   the **window** width, never the sidebar's, and sizes are percentages/flex: the sidebar's glide
   then reflows the page in CSS alone. Don't drive layout from `onLayout` there (it re-renders React
-  on every frame of the glide). Web motion uses Reanimated's CSS transitions (`transitionProperty`
-  / `transitionDuration` in the style, `cubicBezier` easing), off with Reduce Motion.
+  on every frame of the glide). **Web motion uses GSAP** (`gsap`, the user's choice), only in
+  `*.web.ts(x)` files with a plain `.ts(x)` twin for the app, so GSAP never reaches the iPhone
+  bundle (check the iOS export). On the web a React Native view's ref is its DOM node, which GSAP
+  animates; once GSAP owns a style (a width, a transform, a shadow), React's style gives only its
+  starting value and must not change it. One `gsap.context()` per component, reverted on
+  unmount; start motion in the event handler, not after React re-renders; prefer ease-outs (an
+  ease-in-out's slow start reads as lag). Every web screen must feel interactive: hover, focus
+  and press states that ease in, never snap. Reduce Motion: set the end state at once.
 - **The feature, person, task and tile pages** hide the stack header and use `DetailPage` +
   `PageHeader` (back button, then the title; the task and person pages' grey line links to the
   feature). A feature's progress is

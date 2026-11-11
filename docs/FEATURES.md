@@ -244,10 +244,13 @@ Pinterest, instead of the phone's tiles. Everything on the phone's Board is stil
 
 - **The sidebar** (on every page) lists Board, My Tasks, Logs, Activity and Admin (admins), then
   the features in progress (each with its stage's colour; admins also get **New feature**), then
-  Settings and you. Its arrow collapses it to icons and back: it glides, the icons stay where they
-  are, and the choice is remembered on that browser. With Reduce Motion on, it switches at once.
-  (Browsers turn Reduce Motion on when Windows' "Animation effects" or the Mac's "Reduce motion"
-  setting is on.) Collapsing or opening it only stretches the page; nothing rearranges.
+  Settings and you. Its arrow collapses it to icons and back, after a "hoverable sidebar" the
+  team picked: it slides the moment you click, the words slip out (or slide in one after another
+  as it opens), the icons stay where they are, and the choice is remembered on that browser.
+  Collapsed, pointing at (or tabbing to) an icon slides its name out beside it. With Reduce Motion
+  on, it all switches at once. (Browsers turn Reduce Motion on when Windows' "Animation effects"
+  is off or the Mac's "Reduce motion" is on, so check those if nothing moves.)
+  Collapsing or opening it only stretches the page; nothing rearranges.
 - **The top** shows the date and a welcome, a search box (tasks, features and people; press **/**
   to jump to it, **Esc** to clear it), a bell that opens Activity, and you (your account).
 - **The title row** has **New feature** for admins or **Propose a task** for members. Under it, a
@@ -255,14 +258,19 @@ Pinterest, instead of the phone's tiles. Everything on the phone's Board is stil
   resets them. The filters and the search work together.
 - **Features** shows every feature that hasn't shipped as a coloured card: its stage, when it's
   due (in red when it's late), its name, how far along it is with "1/4 verified" and a bar, who's
-  working on it, and **Open**. The whole card opens the feature page. Three cards to a row in a
-  wide window, two in a narrower one. With a filter on, only features with matching tasks show.
+  working on it, and **Open**. The whole card opens the feature page. Pointing at a card (or
+  tabbing to it) lifts it onto a hard ink shadow. Its **Open** button, after a "liquid arrow
+  button" the team picked, rests as one liquid shape (the pill with a ↗ arrow fused to its end);
+  pointing at the card pulls the arrow away, a neck stretching and snapping, and it turns to →;
+  moving away draws it back in. Three cards to a row in a wide window, two in a narrower one.
+  With a filter on, only features with matching tasks show.
 - **Coming up** is a table of the open tasks, soonest deadline first (so late ones lead): the
   task and its feature, the owner, the status, and when it's due ("tomorrow", "2 days late" in
   red). It shows six, then **View all**. Click a row to open the task. Verified tasks only show
   when the Status filter is set to Verified.
 - **Next up** is the dark card: the feature due next (or the most overdue), its due date, how far
-  along it is, who's on it and **Open feature**. **At a glance** lists Overdue, Due this week,
+  along it is, who's on it and **Open feature** (the same liquid button, in off-white).
+  **At a glance** lists Overdue, Due this week,
   Waiting for a decision and Your open tasks, each opening its page. These two always count the
   whole team, whatever the filters. In a very wide window (1,400 pixels or more) they sit beside
   the table; otherwise they sit side by side above it.

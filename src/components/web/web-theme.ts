@@ -23,6 +23,6 @@ export const webType = {
 };
 
 export const SIDEBAR_WIDTH = 248;
-export const SIDEBAR_COLLAPSED_WIDTH = 56;
+export const SIDEBAR_COLLAPSED_WIDTH = 64;
 /** The widest a page's content gets (tables can use it all). */
 export const PAGE_MAX_WIDTH = 1080;

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import type { JSX } from "react";
+import { useRef, useState, type ComponentRef, type JSX } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { calendarDaysBetween, formatDeadline, relativeDay } from "@convex/lib/dates";
@@ -10,17 +10,26 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { colors, fonts } from "@/components/ui/theme";
 import { FEATURE_STATUS_LABELS } from "@/constants/labels";
 
+import { LiquidButton } from "../liquid-button";
+import { useHoverLift } from "../motion";
 import { useHover } from "../use-hover";
 import { webType } from "../web-theme";
 
 import { AvatarStack } from "./avatar-stack";
 import { ownersOf } from "./board-filter";
 
+/** The card's hard ink shadow: none at rest, offset under it while it's lifted. */
+const SHADOW = {
+  rest: `0px 0px 0px ${colors.ink}`,
+  lifted: `5px 6px 0px ${colors.ink}`,
+};
+
 /**
  * One feature on the web Board, after the reference's course cards: a pastel sticker with an ink
  * outline, its stage and deadline, the title, how many tasks are verified with a progress bar,
- * who's on it, and an orange "Open". The whole card opens the feature page. Stickers keep their
- * colours in both themes, with ink text.
+ * who's on it, and the liquid "Open" button. The whole card opens the feature page: hovering or
+ * focusing it lifts it (its hard ink shadow growing) and pulls the button's arrow away. Stickers
+ * keep their colours in both themes, with ink text.
  */
 export function FeatureCard({
   group,
@@ -33,6 +42,10 @@ export function FeatureCard({
 }): JSX.Element {
   const { feature, tasks } = group;
   const [hovered, hover] = useHover();
+  const [focused, setFocused] = useState(false);
+  const active = hovered || focused;
+  const card = useRef<ComponentRef<typeof Pressable>>(null);
+  useHoverLift(card, active, { y: -4, shadow: SHADOW });
   const progress = featureProgress(tasks);
   const owners = ownersOf(tasks);
   const late = feature.status !== "shipped" && calendarDaysBetween(now, feature.deadline) < 0;
@@ -42,7 +55,10 @@ export function FeatureCard({
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={`${feature.title}: ${FEATURE_STATUS_LABELS[feature.status]}, due ${formatDeadline(feature.deadline, now)} (${due}), ${progress.verified} of ${plural(progress.total, "task")} verified`}
+      ref={card}
       onPress={onOpen}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       {...hover}
       style={{
         flex: 1,
@@ -53,7 +69,6 @@ export function FeatureCard({
         backgroundColor: pastelFor(feature._id),
         padding: 20,
         gap: 14,
-        boxShadow: hovered ? `4px 4px 0 ${colors.ink}` : "0 0 0 transparent",
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -143,24 +158,7 @@ export function FeatureCard({
         ) : (
           <Text style={{ ...webType.small, color: colors.ink }}>No tasks yet</Text>
         )}
-        <View
-          importantForAccessibility="no-hide-descendants"
-          accessibilityElementsHidden
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 6,
-            borderRadius: 999,
-            paddingHorizontal: 16,
-            paddingVertical: 9,
-            backgroundColor: colors.orange,
-            borderWidth: 1.5,
-            borderColor: colors.ink,
-          }}
-        >
-          <Text style={{ ...webType.small, fontWeight: "700", color: colors.ink }}>Open</Text>
-          <Ionicons name="arrow-forward" size={14} color={colors.ink} />
-        </View>
+        <LiquidButton label="Open" fill={colors.ink} ink={colors.white} active={active} size={36} />
       </View>
     </Pressable>
   );

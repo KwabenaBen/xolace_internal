@@ -21,7 +21,7 @@ function TabIcon({ name, color }: { name: IoniconName; color: ColorValue }): JSX
 export default function TabsLayout(): JSX.Element {
   const user = useSignedInUser();
   const reduceMotion = useReducedMotion();
-  // On a wide browser window the sidebar (src/components/web/sidebar.tsx) replaces the tab bar.
+  // On a wide browser window the sidebar (src/components/web/sidebar.web.tsx) replaces the tab bar.
   const desktop = useIsDesktop();
   const [foreground, muted, border, background] = useThemeColor([
     "foreground",

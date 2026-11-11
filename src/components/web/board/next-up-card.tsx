@@ -1,5 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
-import type { ComponentProps, JSX } from "react";
+import { useState, type JSX } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { calendarDaysBetween, formatDeadline, relativeDay } from "@convex/lib/dates";
@@ -7,8 +6,9 @@ import type { FeatureSummary, TaskView } from "@convex/lib/views";
 
 import type { FeatureProgress } from "@/components/board/board-stats";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { colors, fonts, usePageColors } from "@/components/ui/theme";
+import { colors, fonts, PAPER, usePageColors } from "@/components/ui/theme";
 
+import { LiquidButton } from "../liquid-button";
 import { useHover } from "../use-hover";
 import { webType } from "../web-theme";
 
@@ -18,7 +18,7 @@ import { ownersOf } from "./board-filter";
 /**
  * The feature that needs attention next, after the reference's dark "new course" card: the near-
  * black card in both themes, a yellow tag with when it's due (red when late), the title, its
- * progress, who's on it, and an orange button to the feature page. With nothing planned, it says
+ * progress, who's on it, and the liquid arrow button to the feature page. With nothing planned, it says
  * so (and admins get "New feature").
  */
 export function NextUpCard({
@@ -88,7 +88,7 @@ export function NextUpCard({
               ? "Add a feature after the meeting, then its tasks."
               : "The admin adds features after each meeting."}
           </Text>
-          {isAdmin ? <OrangeButton label="New feature" icon="add" onPress={onNewFeature} /> : null}
+          {isAdmin ? <CardButton label="New feature" onPress={onNewFeature} /> : null}
         </>
       ) : (
         <>
@@ -123,42 +123,35 @@ export function NextUpCard({
             <Text style={{ ...webType.small, color: colors.ink75White }}>On it</Text>
             <AvatarStack people={ownersOf(tasks)} size={30} max={4} countColor={colors.white} />
           </View>
-          <OrangeButton label="Open feature" icon="arrow-forward" onPress={onOpen} />
+          <CardButton label="Open feature" onPress={onOpen} />
         </>
       )}
     </View>
   );
 }
 
-function OrangeButton({
-  label,
-  icon,
-  onPress,
-}: {
-  label: string;
-  icon: ComponentProps<typeof Ionicons>["name"];
-  onPress: () => void;
-}): JSX.Element {
+/** The card's button: the liquid arrow button in off-white (the reference's look on the dark card). */
+function CardButton({ label, onPress }: { label: string; onPress: () => void }): JSX.Element {
   const [hovered, hover] = useHover();
+  const [focused, setFocused] = useState(false);
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       {...hover}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        height: 48,
-        borderRadius: 999,
-        backgroundColor: colors.orange,
-        opacity: hovered ? 0.9 : 1,
-      }}
-      className="active:opacity-70"
+      style={{ alignSelf: "flex-start", borderRadius: 999 }}
+      className="active:opacity-80"
     >
-      <Text style={{ ...webType.body, fontWeight: "700", color: colors.black }}>{label}</Text>
-      <Ionicons name={icon} size={16} color={colors.black} />
+      <LiquidButton
+        label={label}
+        fill={PAPER}
+        ink={colors.ink}
+        active={hovered || focused}
+        size={44}
+      />
     </Pressable>
   );
 }

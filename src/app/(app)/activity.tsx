@@ -29,7 +29,7 @@ function dayLabel(ms: number, now: number): string {
 
 /**
  * The team's activity: every change, who made it and when, newest first, grouped by day, from
- * the Board's red "every task, one owner" tile. Everyone sees it (invite entries only reach
+ * the Board's red "team activity" tile. Everyone sees it (invite entries only reach
  * admins: the server leaves them out for members). Pick someone at the top to see only what they
  * did; tap an entry about a task or a feature to open it. Loads 30 at a time.
  */

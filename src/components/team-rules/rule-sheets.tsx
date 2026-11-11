@@ -9,6 +9,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { Avatar, pastelFor } from "@/components/people/avatar";
 import { SheetScrollView } from "@/components/ui/sheet";
 import { SaveSheet, WarningNote } from "@/components/ui/save-sheet";
+import { useToast } from "@/components/ui/toast";
 import { Sym, symbols } from "@/components/ui/sym";
 import { fonts, usePageColors } from "@/components/ui/theme";
 import { ROLE_LABELS } from "@/constants/labels";
@@ -40,6 +41,7 @@ export function TimeRuleSheet({
   onClose: () => void;
 }): JSX.Element {
   const setRule = useMutation(api.settings.set);
+  const toast = useToast();
   const [draft, setDraft] = useState(value);
   const { title, note } = TIME_RULES[settingKey];
   return (
@@ -50,6 +52,7 @@ export function TimeRuleSheet({
       saveLabel={`Save ${clock(draft)}`}
       onSave={async () => {
         await setRule({ key: settingKey, value: draft });
+        toast(`Saved: ${clock(draft)}`);
       }}
       onClose={onClose}
       footer={
@@ -77,6 +80,7 @@ export function ReviewerSheet({
 }): JSX.Element {
   const c = usePageColors();
   const setRule = useMutation(api.settings.set);
+  const toast = useToast();
   const currentId = current.kind === "person" ? current.person._id : undefined;
   const [chosenId, setChosenId] = useState(currentId);
   const active = people.filter((p) => p.isActive);
@@ -94,6 +98,7 @@ export function ReviewerSheet({
           key: "adminTaskReviewer",
           value: { email: chosen.email, userId: chosen._id },
         });
+        toast(`${firstName(chosen.name)} is the admin task reviewer`);
       }}
       onClose={onClose}
       footer={
@@ -186,6 +191,7 @@ export function LateWindowSheet({
 }): JSX.Element {
   const c = usePageColors();
   const setRule = useMutation(api.settings.set);
+  const toast = useToast();
   const [draft, setDraft] = useState(value);
   // A value set some other way (e.g. 36) stays on the list, so it shows as chosen.
   const choices = (LATE_WINDOW_HOURS as readonly number[]).includes(value)
@@ -200,6 +206,7 @@ export function LateWindowSheet({
       saveLabel={`Save ${hoursLabel(draft)}`}
       onSave={async () => {
         await setRule({ key: "extensionLateWindowHours", value: draft });
+        toast(`Late window saved: ${hoursLabel(draft)}`);
       }}
       onClose={onClose}
       footer={

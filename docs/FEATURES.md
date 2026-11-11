@@ -199,12 +199,12 @@ The tiles always count the whole team, even when the list below is filtered.
 | the team · Progress (dark)         | Total tasks, how many are verified, in progress and blocked, and bars for To do, Doing, Review and Done                                  | Nothing; it's a summary                                                                                |
 | assigned to me (green)             | How many of your own tasks are still open                                                                                                | Open My Tasks                                                                                          |
 | New feature or Propose task (blue) | Admins plan a feature; members suggest a task                                                                                            | Open the form                                                                                          |
-| every task / one owner (red)       | Cadence's promise, in big letters                                                                                                        | Open **Activity**: every change, who made it and when (below)                                          |
+| team activity (red)                | The way into the team's activity                                                                                                         | Open **Activity**: every change, who made it and when (below)                                          |
 | how does it work? (yellow)         | A two-line guide to the Board                                                                                                            | Its × hides it for good on this device                                                                 |
 
 ### Activity
 
-The red "every task, one owner" tile opens the team's activity: every change, who made it and
+The red "team activity" tile opens the team's activity: every change, who made it and
 when, newest first, grouped by day (Today, Yesterday, Tue 10 Nov…). Each entry is a sentence with
 the person's avatar ("Kofi asked for more time on Payments API spike: until Fri 27 Nov (scope
 change)"), with what they wrote under it: comments as bubbles, notes and reasons as quotes.
@@ -370,7 +370,8 @@ From top to bottom:
   blocked, or sent back with changes requested). **Post an update** opens a card: the status (To
   do, In progress, Blocked), the progress on a thick bar you drag (it snaps to 5%, the number
   rolls, and the iPhone gives a light tap at each step) and a note. Marking it Blocked needs a
-  note saying what's in the way. **Ask for more time** opens a card: the new date, why it moves
+  note saying what's in the way. **Ask for more time** opens a card: the new date (on iPhone the
+  calendar opens right in the card, under the date, with Cancel and Done), why it moves
   (scope change, agreed in a meeting, or other) and why you need it. It says straight away whether
   approving would count the task as late, and whether the date is past the feature's deadline.
   One request at a time. On an admin's own task, the admin task reviewer decides; if none is
@@ -569,6 +570,14 @@ A few things work without a screen of their own.
 - **Activity log.** Every change is recorded with who made it, when, and what it was before and
   after: sign-ups, invites, features, tasks, proposals and settings. Deadlines, reviews,
   verifications and logs are never deleted.
+- **Confirmations.** Every save says it worked in a short message that slides in and fades away
+  (at the top on a phone, at the bottom on a computer): "Update posted", "Request sent", "Request
+  approved. The deadline moved", "Proposal declined", "Comment posted", "Feature saved", "Invite
+  revoked" and so on. Screen readers read it out. Problems still show in the form or card, where
+  they can be fixed.
+- **Forms on a computer** open as dialogs that ease in over the page and ease out when closed
+  (Cancel, ✕, Esc or a click outside); if there are unsaved changes and you choose to keep them,
+  the dialog comes straight back.
 - **Live updates.** A change made on one device appears on everyone else's within seconds;
   nobody needs to refresh.
 - **Offline banner.** Cadence works online only. When the connection drops, an amber bar says

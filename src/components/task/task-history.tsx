@@ -10,6 +10,7 @@ import { Panel } from "@/components/ui/panel";
 import { Sym, symbols } from "@/components/ui/sym";
 import { fonts, usePageColors } from "@/components/ui/theme";
 import { getErrorMessage } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast";
 import { useAnnounce } from "@/lib/use-announce";
 import { useNow } from "@/lib/use-now";
 
@@ -33,6 +34,7 @@ export function TaskHistory({
   const now = useNow();
   const items = useQuery(api.activity.forTask, { taskId });
   const addComment = useMutation(api.comments.add);
+  const toast = useToast();
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,7 @@ export function TaskHistory({
     try {
       await addComment({ taskId, body });
       setBody("");
+      toast("Comment posted");
     } catch (e) {
       setError(getErrorMessage(e, "Couldn't post your comment. Try again."));
     } finally {

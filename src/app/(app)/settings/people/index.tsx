@@ -15,6 +15,7 @@ import { PersonCard } from "@/components/people/person-card";
 import { personActions } from "@/components/people/person-actions";
 import { TeamGrid } from "@/components/people/team-grid";
 import { ActionSheet } from "@/components/ui/action-sheet";
+import { useToast } from "@/components/ui/toast";
 import { DetailPage, PageLoading, useGoBack, usePageSize } from "@/components/ui/detail-page";
 import { PageHeader, RoundButton } from "@/components/ui/page-header";
 import { SectionTitle } from "@/components/ui/panel";
@@ -53,6 +54,7 @@ export default function PeopleScreen(): JSX.Element {
   const setActive = useMutation(api.users.setActive);
   const renew = useMutation(api.invites.renew);
   const revoke = useMutation(api.invites.revoke);
+  const toast = useToast();
   const [open, setOpen] = useState<Open>(null);
 
   const invite = isAdmin ? (
@@ -92,9 +94,11 @@ export default function PeopleScreen(): JSX.Element {
           isReviewer: person._id === reviewerId,
           setRole: async (role) => {
             await setRole({ userId: person._id, role });
+            toast(`${person.name} is now ${role === "admin" ? "an admin" : "a member"}`);
           },
           setActive: async (isActive) => {
             await setActive({ userId: person._id, isActive });
+            toast(`${person.name} ${isActive ? "reactivated" : "deactivated and signed out"}`);
           },
         })
       : [];
@@ -265,9 +269,11 @@ export default function PeopleScreen(): JSX.Element {
             canCopy: process.env.EXPO_OS === "web",
             renew: async () => {
               await renew({ inviteId: openInvite._id });
+              toast("New code made. The old one stopped working");
             },
             revoke: async () => {
               await revoke({ inviteId: openInvite._id });
+              toast("Invite revoked");
             },
           })}
           onClose={() => setOpen(null)}

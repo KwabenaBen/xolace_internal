@@ -10,6 +10,7 @@ import { isLateExtension } from "@convex/lib/lateRule";
 import type { ExtensionType } from "@convex/lib/validators";
 
 import { DateField } from "@/components/planning/date-field";
+import { useToast } from "@/components/ui/toast";
 import { SaveSheet, WarningNote } from "@/components/ui/save-sheet";
 import { SheetScrollView } from "@/components/ui/sheet";
 import { fonts, usePageColors } from "@/components/ui/theme";
@@ -59,6 +60,7 @@ export function ExtensionSheet({
   const c = usePageColors();
   const now = useNow();
   const request = useMutation(api.extensions.request);
+  const toast = useToast();
   const [date, setDate] = useState("");
   const [type, setType] = useState<ExtensionType>("scope_change");
   const [reason, setReason] = useState("");
@@ -80,6 +82,7 @@ export function ExtensionSheet({
       saveLabel="Send request"
       onSave={async () => {
         await request({ taskId, newDeadline: date, type, reason });
+        toast("Request sent");
       }}
       onClose={onClose}
       footer={
@@ -114,7 +117,13 @@ export function ExtensionSheet({
       }
     >
       <SheetScrollView contentContainerStyle={{ gap: 18, paddingHorizontal: 20, paddingTop: 16 }}>
-        <DateField label="New deadline" value={date} onChange={setDate} minimumDate={earliest} />
+        <DateField
+          label="New deadline"
+          value={date}
+          onChange={setDate}
+          minimumDate={earliest}
+          inline
+        />
 
         <View accessibilityRole="radiogroup" accessibilityLabel="Why it moves" style={{ gap: 8 }}>
           <Typography type="body-sm" weight="medium">

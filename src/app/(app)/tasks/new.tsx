@@ -6,6 +6,7 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 
 import { EMPTY_TASK, TaskForm, toTaskPlan } from "@/components/planning/task-form";
+import { useToast } from "@/components/ui/toast";
 import { useSignedInUser } from "@/lib/use-current-user";
 
 /** Admins create a live task; members propose one for the admin to approve. */
@@ -16,6 +17,7 @@ export default function NewTaskScreen(): JSX.Element {
   const createTask = useMutation(api.tasks.create);
   const proposeTask = useMutation(api.tasks.propose);
   const router = useRouter();
+  const toast = useToast();
 
   return (
     <>
@@ -36,6 +38,7 @@ export default function NewTaskScreen(): JSX.Element {
                 acceptanceCriteria: values.acceptanceCriteria,
                 priority: values.priority,
               });
+          toast(isAdmin ? "Task added" : "Proposal sent to the admins");
           // Back to where it was opened (usually the feature page, to add the next task); the new
           // task is already in that list. Opened from a link, show the task instead.
           if (router.canGoBack()) router.back();

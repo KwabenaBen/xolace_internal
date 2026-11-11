@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Typography } from "heroui-native";
-import { useEffect, type JSX, type ReactNode } from "react";
+import { useEffect, useRef, type ComponentRef, type JSX, type ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { usePageColors } from "@/components/ui/theme";
+import { playOut, useEnterFrom } from "@/components/web/motion";
 import { webType } from "@/components/web/web-theme";
 import { layout, spacing, typography } from "@/constants/theme";
 import { useIsDesktop } from "@/lib/use-desktop";
@@ -41,7 +42,9 @@ function closeForm() {
 /**
  * A form as a dialog on the website layout: a card over the dimmed page it was opened from, with
  * its title and a close button; a click outside or Esc closes it (asking first if there are
- * unsaved changes: useUnsavedGuard).
+ * unsaved changes: useUnsavedGuard). It eases in (the dim fades, the card rises and settles) and,
+ * closed that way, eases out first; if "Discard changes?" is answered no, it eases back in. After a
+ * save the form closes it straight away.
  */
 function Dialog({
   title,
@@ -53,24 +56,58 @@ function Dialog({
   children: ReactNode;
 }): JSX.Element {
   const c = usePageColors();
+  const card = useRef<ComponentRef<typeof View>>(null);
+  const dim = useRef<ComponentRef<typeof View>>(null);
+  const closing = useRef(false);
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    []
+  );
+  useEnterFrom(dim, { opacity: 0 }, 0.3);
+  useEnterFrom(card, { opacity: 0, y: 18, scale: 0.97 }, 0.42);
+
+  const close = () => {
+    if (closing.current) return;
+    closing.current = true;
+    void Promise.all([
+      playOut([card], { opacity: 0, y: 12, scale: 0.98 }, 0.2),
+      playOut([dim], { opacity: 0 }, 0.22),
+    ]).then(() => {
+      closeForm();
+      // Still here: the unsaved-changes guard kept it open, so bring it back.
+      setTimeout(() => {
+        if (!mounted.current) return;
+        closing.current = false;
+        void playOut([card], { opacity: 1, y: 0, scale: 1 }, 0.25);
+        void playOut([dim], { opacity: 1 }, 0.25);
+      }, 80);
+    });
+  };
+
   useEffect(() => {
     if (Platform.OS !== "web") return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeForm();
+      if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  });
 
   return (
     <View style={styles.backdrop}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Close"
-        onPress={closeForm}
-        style={StyleSheet.absoluteFill}
-      />
+      <View ref={dim} style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.35)" }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          onPress={close}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
       <View
+        ref={card}
         accessibilityViewIsModal
         aria-modal
         role="dialog"
@@ -108,7 +145,7 @@ function Dialog({
             accessibilityRole="button"
             accessibilityLabel="Close"
             hitSlop={8}
-            onPress={closeForm}
+            onPress={close}
             className="active:opacity-60"
           >
             <Ionicons name="close" size={20} color={c.muted} />
@@ -214,6 +251,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 40,
-    backgroundColor: "rgba(0,0,0,0.35)",
   },
 });

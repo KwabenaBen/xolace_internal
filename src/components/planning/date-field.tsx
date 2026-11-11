@@ -1,7 +1,7 @@
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Typography, useThemeColor } from "heroui-native";
 import { useState, type JSX } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Keyboard, Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { formatDeadline } from "@convex/lib/dates";
@@ -20,6 +20,12 @@ export type DateFieldProps = {
   hint?: string;
   /** Shown but not changeable (the hint should say why). */
   isDisabled?: boolean;
+  /**
+   * iOS: open the calendar right under the field instead of in a sheet of its own. For a field
+   * that's already inside a Sheet (e.g. asking for more time): a sheet opened from a sheet sits
+   * badly, worst when the keyboard was up. Only inside a `<Sheet>`. The web ignores it.
+   */
+  inline?: boolean;
 };
 
 /** "YYYY-MM-DD" ↔ a local Date at midnight of that calendar day (what the native picker uses). */
@@ -51,6 +57,7 @@ export function DateField({
   maximumDate,
   hint,
   isDisabled = false,
+  inline = false,
 }: DateFieldProps): JSX.Element {
   const [accent, surface, foreground] = useThemeColor(["accent", "surface", "foreground"]);
   const { scheme } = usePageColors();
@@ -68,6 +75,8 @@ export function DateField({
   }
 
   function open() {
+    // The keyboard (e.g. from a note typed above) would otherwise cover or shift the calendar.
+    Keyboard.dismiss();
     if (Platform.OS === "ios") {
       setDraft(startingDate());
       return;
@@ -104,7 +113,23 @@ export function DateField({
         </Typography>
       ) : null}
 
-      {Platform.OS === "ios" && draft !== null ? (
+      {Platform.OS === "ios" && draft !== null && inline ? (
+        <InlineCalendar
+          draft={draft}
+          scheme={scheme}
+          accent={accent}
+          foreground={foreground}
+          minimumDate={min}
+          maximumDate={max}
+          onDraft={setDraft}
+          onCancel={() => setDraft(null)}
+          onDone={() => {
+            onChange(fromLocalDate(draft));
+            setDraft(null);
+          }}
+        />
+      ) : null}
+      {Platform.OS === "ios" && draft !== null && !inline ? (
         <Sheet onClose={() => setDraft(null)} backgroundColor={surface}>
           {({ close }) => (
             <View style={{ paddingBottom: insets.bottom + 8 }}>
@@ -152,6 +177,67 @@ export function DateField({
           )}
         </Sheet>
       ) : null}
+    </View>
+  );
+}
+
+/** The calendar opened in place under the field (`inline`), with Cancel and Done above it. */
+function InlineCalendar({
+  draft,
+  scheme,
+  accent,
+  foreground,
+  minimumDate,
+  maximumDate,
+  onDraft,
+  onCancel,
+  onDone,
+}: {
+  draft: Date;
+  scheme: "dark" | "light";
+  accent: string;
+  foreground: string;
+  minimumDate?: Date;
+  maximumDate?: Date;
+  onDraft: (date: Date) => void;
+  onCancel: () => void;
+  onDone: () => void;
+}): JSX.Element {
+  return (
+    <View className="gap-2 rounded-2xl border border-border bg-surface px-2 pb-2 pt-3">
+      <View
+        style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 10 }}
+      >
+        <Pressable
+          accessibilityRole="button"
+          hitSlop={10}
+          onPress={onCancel}
+          className="active:opacity-60"
+        >
+          <Text style={{ fontSize: 17, color: foreground }}>Cancel</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          hitSlop={10}
+          onPress={onDone}
+          className="active:opacity-60"
+        >
+          <Text style={{ fontSize: 17, fontWeight: "600", color: foreground }}>Done</Text>
+        </Pressable>
+      </View>
+      {/* Dragging across the calendar picks dates; it never pulls the card down. */}
+      <SheetNoSwipe>
+        <DateTimePicker
+          value={draft}
+          mode="date"
+          display="inline"
+          themeVariant={scheme}
+          accentColor={accent}
+          minimumDate={minimumDate}
+          maximumDate={maximumDate}
+          onValueChange={(_event, date) => onDraft(date)}
+        />
+      </SheetNoSwipe>
     </View>
   );
 }

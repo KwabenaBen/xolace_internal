@@ -8,6 +8,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { PillButton, PillRow } from "@/components/ui/pill-button";
 import { fonts, usePageColors } from "@/components/ui/theme";
 import { getErrorMessage } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast";
 
 /**
  * The admin's buttons, as the sign-in screens' big pills: edit a live task, or approve (opens the
@@ -81,6 +82,7 @@ function ProposalActions({
   onApprove: () => void;
 }): JSX.Element {
   const declineProposal = useMutation(api.tasks.declineProposal);
+  const toast = useToast();
   const [isDeclining, setIsDeclining] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +98,7 @@ function ProposalActions({
     setIsSubmitting(true);
     try {
       await declineProposal({ taskId, reason });
+      toast("Proposal declined");
       setIsDeclining(false);
     } catch (e) {
       setError(getErrorMessage(e));

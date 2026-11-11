@@ -10,6 +10,7 @@ import type { TaskView } from "@convex/lib/views";
 
 import { SaveSheet } from "@/components/ui/save-sheet";
 import { SheetScrollView } from "@/components/ui/sheet";
+import { useToast } from "@/components/ui/toast";
 import { fonts, usePageColors } from "@/components/ui/theme";
 import { TASK_STATUS_LABELS } from "@/constants/labels";
 
@@ -35,6 +36,7 @@ export function UpdateSheet({
 }): JSX.Element {
   const c = usePageColors();
   const postUpdate = useMutation(api.tasks.postUpdate);
+  const toast = useToast();
   const [status, setStatus] = useState<OwnerStatus>(asOwnerStatus(task.status));
   const [progress, setProgress] = useState(task.progress);
   const [note, setNote] = useState("");
@@ -53,6 +55,7 @@ export function UpdateSheet({
       saveLabel="Post update"
       onSave={async () => {
         await postUpdate({ taskId: task._id, status, progress, note });
+        toast("Update posted");
       }}
       onClose={onClose}
     >

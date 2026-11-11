@@ -1,5 +1,5 @@
 import { BlurView } from "expo-blur";
-import { createContext, use, useEffect, type JSX, type ReactNode } from "react";
+import { createContext, use, useEffect, useState, type JSX, type ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -14,7 +14,7 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-g
 import Animated, {
   Easing,
   measure,
-  useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -48,7 +48,29 @@ const EXIT = { duration: 240, easing: Easing.in(Easing.cubic) } as const;
 const DISMISS_AT = 110;
 const BLUR = 55;
 
-const AnimatedBlur = Animated.createAnimatedComponent(BlurView);
+/**
+ * The page's blur behind a card. Its strength follows how much of the page the card covers, set
+ * as React state each frame rather than as a Reanimated animated prop: on iOS (the new
+ * architecture) expo-blur's animated `intensity` only showed after something on the card
+ * re-rendered, so the page wasn't blurred until you touched the card. This small view is all that
+ * re-renders.
+ */
+function PageBlur({ cover, tint }: { cover: () => number; tint: "dark" | "light" }): JSX.Element {
+  const [intensity, setIntensity] = useState(0);
+  useAnimatedReaction(
+    () => Math.round(BLUR * cover()),
+    (now, before) => {
+      if (now !== before) scheduleOnRN(setIntensity, now);
+    }
+  );
+  return (
+    <BlurView
+      intensity={intensity}
+      tint={tint}
+      style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
+    />
+  );
+}
 
 export type SheetApi = {
   /** Play the exit, then call the sheet's onClose. Works even while locked (e.g. after a save). */
@@ -222,7 +244,6 @@ export function Sheet({
     "worklet";
     return shown.get() * Math.max(0, 1 - y.get() / (screenH * 0.6));
   };
-  const blurProps = useAnimatedProps(() => ({ intensity: BLUR * cover() }));
   const dimStyle = useAnimatedStyle(() => ({ opacity: cover() }));
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: y.get() }],
@@ -235,14 +256,7 @@ export function Sheet({
     <Modal visible transparent animationType="none" onRequestClose={requestClose}>
       {/* A modal sits outside the app's gesture root on iOS, so it needs its own. */}
       <GestureHandlerRootView style={{ flex: 1 }}>
-        {plain ? null : (
-          <AnimatedBlur
-            animatedProps={blurProps}
-            intensity={0}
-            tint={c.scheme === "dark" ? "dark" : "light"}
-            style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
-          />
-        )}
+        {plain ? null : <PageBlur cover={cover} tint={c.scheme === "dark" ? "dark" : "light"} />}
         <Animated.View
           style={[
             { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },

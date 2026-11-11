@@ -33,13 +33,17 @@ export function PillButton({
       accessibilityState={{ disabled, busy: isLoading }}
       disabled={disabled}
       onPress={onPress}
-      className={`h-14 w-full flex-row items-center justify-center gap-2 rounded-full px-6 active:opacity-80 disabled:opacity-50 ${
+      className={`h-14 w-full flex-row items-center justify-center gap-2 rounded-full px-5 active:opacity-80 disabled:opacity-50 ${
         isPrimary ? "bg-accent" : "bg-default"
       }`}
     >
       {isLoading ? <ActivityIndicator color={spinner} /> : null}
+      {/* One line, shrinking a little when two pills share a row (e.g. "Ask for more time"). */}
       <Text
-        className={`text-base font-semibold ${
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.78}
+        className={`shrink text-base font-semibold ${
           isPrimary ? "text-accent-foreground" : "text-default-foreground"
         }`}
       >

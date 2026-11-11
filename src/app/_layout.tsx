@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { FONT_FILES } from "@/components/ui/theme";
 import { LoadingScreen } from "@/components/loading-screen";
 import { OfflineBanner } from "@/components/offline-banner";
+import { ToastProvider } from "@/components/ui/toast";
 import { authStorage } from "@/lib/auth-storage";
 import { convex } from "@/lib/convex";
 import { applySavedTheme } from "@/lib/theme-preference";
@@ -25,9 +26,11 @@ export default function RootLayout(): JSX.Element {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ConvexAuthProvider client={convex} storage={authStorage}>
         <HeroUINativeProvider>
-          <OfflineBanner>
-            <RootNavigator />
-          </OfflineBanner>
+          <ToastProvider>
+            <OfflineBanner>
+              <RootNavigator />
+            </OfflineBanner>
+          </ToastProvider>
           <StatusBar style="auto" />
         </HeroUINativeProvider>
       </ConvexAuthProvider>

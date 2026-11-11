@@ -42,7 +42,7 @@ type BentoProps = {
   /** Open the page listing a quick tile's tasks. */
   onOpenList: (view: BoardListView) => void;
   onOpenMyTasks: () => void;
-  /** The red "every task, one owner" tile: the team's activity. */
+  /** The red "team activity" tile: opens the team's activity. */
   onOpenActivity: () => void;
   onAction: () => void;
 };
@@ -723,8 +723,9 @@ function ProgressTile({
 }
 
 /**
- * The red "every task, one owner" tile: Cadence's promise, and the way into the team's activity
- * (every change, who made it and when), which is where that promise is kept.
+ * The red "team activity" tile: the way into the team's activity (every change, who made it and
+ * when). It used to carry Cadence's motto ("every task, one owner"); the team asked for it to say
+ * what it opens.
  */
 function HeroTile({
   s,
@@ -745,11 +746,11 @@ function HeroTile({
       s={s}
       pit={pit}
       fill={colors.red}
-      label="Every task, one owner. Activity: every change, who made it and when."
+      label="Activity: every change, who made it and when."
       onPress={onPress}
     >
       <Line
-        text="every task"
+        text="team"
         x={space.heroFirstX}
         baseline={54}
         fontSize={type.heroGlyph}
@@ -759,7 +760,7 @@ function HeroTile({
         s={s}
       />
       <Line
-        text="one owner"
+        text="activity"
         x={space.heroSecondX}
         baseline={108.8}
         fontSize={type.heroGlyph}

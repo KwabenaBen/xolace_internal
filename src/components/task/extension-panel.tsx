@@ -12,6 +12,7 @@ import { PillButton, PillRow } from "@/components/ui/pill-button";
 import { colors, fonts, usePageColors } from "@/components/ui/theme";
 import { EXTENSION_TYPE_LABELS } from "@/constants/labels";
 import { getErrorMessage } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast";
 import { useAnnounce } from "@/lib/use-announce";
 
 import { waitingFor } from "./deciders";
@@ -54,6 +55,7 @@ export function ExtensionPanel({
   const c = usePageColors();
   const decide = useMutation(api.extensions.decide);
   const withdraw = useMutation(api.extensions.withdraw);
+  const toast = useToast();
   const [mode, setMode] = useState<"approve" | "decline" | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -72,11 +74,12 @@ export function ExtensionPanel({
   const who = pending.requester?.name.split(" ")[0] ?? "The owner";
   const until = shortDay(pending.requestedDeadline, now);
 
-  async function run(work: () => Promise<unknown>) {
+  async function run(work: () => Promise<unknown>, done: string) {
     setError(null);
     setBusy(true);
     try {
       await work();
+      toast(done);
       setMode(null);
       setNote("");
     } catch (e) {
@@ -91,7 +94,10 @@ export function ExtensionPanel({
       setError(`Say why, so ${who} knows.`);
       return;
     }
-    void run(() => decide({ requestId: pending._id, approve, note }));
+    void run(
+      () => decide({ requestId: pending._id, approve, note }),
+      approve ? "Request approved. The deadline moved" : "Request declined"
+    );
   }
 
   const ink = colors.ink;
@@ -160,7 +166,9 @@ export function ExtensionPanel({
               label="Withdraw request"
               variant="secondary"
               isLoading={busy}
-              onPress={() => void run(() => withdraw({ requestId: pending._id }))}
+              onPress={() =>
+                void run(() => withdraw({ requestId: pending._id }), "Request withdrawn")
+              }
             />
           ) : null}
         </View>

@@ -9,6 +9,7 @@ import { isPlanLocked } from "@convex/lib/validators";
 
 import { LoadingScreen } from "@/components/loading-screen";
 import { AdminOnly } from "@/components/planning/admin-only";
+import { useToast } from "@/components/ui/toast";
 import { NotFound } from "@/components/planning/not-found";
 import { TaskForm, taskToFormValues, toTaskPlan } from "@/components/planning/task-form";
 import { Screen } from "@/components/screen";
@@ -26,6 +27,7 @@ export default function EditTaskScreen(): JSX.Element {
   const updateTask = useMutation(api.tasks.update);
   const approveProposal = useMutation(api.tasks.approveProposal);
   const router = useRouter();
+  const toast = useToast();
   const user = useSignedInUser();
 
   if (data === undefined || users === undefined) return <LoadingScreen />;
@@ -79,6 +81,7 @@ export default function EditTaskScreen(): JSX.Element {
           const plan = toTaskPlan(values);
           if (isProposal) await approveProposal({ taskId, ...plan });
           else await updateTask({ taskId, ...plan, deadlineChangeType });
+          toast(isProposal ? "Proposal approved. It's live on the Board" : "Task saved");
           // Opened straight from a link or a web refresh, there may be nothing to go back to.
           if (router.canGoBack()) router.back();
           else router.replace({ pathname: "/tasks/[taskId]", params: { taskId } });

@@ -33,6 +33,7 @@ import { StatusPill } from "@/components/ui/task-row";
 import { colors, fonts, usePageColors } from "@/components/ui/theme";
 import { TASK_KIND_LABELS, TASK_PRIORITY_LABELS } from "@/constants/labels";
 import { getErrorMessage } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast";
 import { useSignedInUser } from "@/lib/use-current-user";
 import { useNow } from "@/lib/use-now";
 
@@ -840,6 +841,7 @@ function AdminActions({
 }): JSX.Element | null {
   const c = usePageColors();
   const declineProposal = useMutation(api.tasks.declineProposal);
+  const toast = useToast();
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -855,6 +857,7 @@ function AdminActions({
     try {
       await declineProposal({ taskId, reason });
       setDeclining(false);
+      toast("Proposal declined");
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {

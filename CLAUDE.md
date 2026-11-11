@@ -52,7 +52,9 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          task-row.tsx (TaskRow,
                          StatusPill, FeatureStatusPill), progress-bar.tsx, sym.tsx (SF Symbol /
                          Material icon), sheet.tsx (Sheet: every overlay card; SheetScrollView,
-                         SheetNoSwipe, useSheet), save-sheet.tsx (SaveSheet: fields, then Save),
+                         SheetNoSwipe, useSheet), toast.tsx (ToastProvider in the root layout,
+                         useToast: "it worked" after a save), save-sheet.tsx (SaveSheet: fields,
+                         then Save),
                          action-sheet.tsx (ActionSheet), use-sheet-actions.ts
                          (confirm-in-sheet), role-pill.tsx (RolePill)
   settings/              The Settings tab: ClayRelightSettings.tsx (Native Cook's "Clay Relight
@@ -275,6 +277,11 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
 - **Forms** (modals): `HeaderCancel` top left; `useUnsavedGuard(initial, values)` asks before
   discarding changes (Expo Router's `usePreventRemove`; call `markSaving()` before saving);
   errors show above the save button.
+- **Feedback:** every save that succeeds confirms it with `useToast()` ("Update posted",
+  "Request approved…"; short, past tense, no "successfully"). Errors stay where they can be
+  fixed (the form, the card). Inside a Sheet, call it once the save is done: on iOS the closing
+  card sits above the toast. A date field inside a Sheet uses `DateField inline` (a sheet opened
+  from a sheet sits badly on iOS).
 - **The Board**: Montserrat stickers on the theme's page (`src/components/board/`). Bento tile
   sizes are reference points
   multiplied by `s = width / 402` (capped at 520 wide). Read Reanimated shared values with

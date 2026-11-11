@@ -57,15 +57,26 @@ const BLUR = 55;
  */
 function PageBlur({ cover, tint }: { cover: () => number; tint: "dark" | "light" }): JSX.Element {
   const [intensity, setIntensity] = useState(0);
+  const [nudges, setNudges] = useState(0);
   useAnimatedReaction(
     () => Math.round(BLUR * cover()),
     (now, before) => {
       if (now !== before) scheduleOnRN(setIntensity, now);
     }
   );
+  // iOS: expo-blur draws its blur only when its intensity changes (BlurEffectView.draw), and the
+  // changes made while the card's window was still coming up were lost: the page stayed sharp until
+  // something on the card changed it again (the team saw it blur once they touched the card). So
+  // once the card has settled, change it by a hair (invisible) to make it draw again, twice to be
+  // sure. Elsewhere the blur already draws.
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    const timers = [360, 720].map((ms) => setTimeout(() => setNudges((n) => n + 1), ms));
+    return () => timers.forEach(clearTimeout);
+  }, []);
   return (
     <BlurView
-      intensity={intensity}
+      intensity={intensity + (nudges % 2) * 0.01}
       tint={tint}
       style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
     />

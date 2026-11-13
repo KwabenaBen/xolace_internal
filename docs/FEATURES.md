@@ -467,9 +467,38 @@ Besides the Board there are four tabs; the Admin tab appears only for admins.
 | Tab                 | What it's for             | What's on it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | My Tasks            | Your own work at a glance | **Waiting on you**: requests for more time that are yours to decide (admins, and the admin task reviewer for an admin's own task). **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| Logs                | Daily work logs           | A placeholder for now; the log form arrives in Phase 5.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Logs                | Daily work logs           | Today's log, your week and the team's day: see **Logs** below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Settings            | You and the team          | The **Dark mode** switch on a clay scene of a house on a hill: turning it on plays a sunset (the sun goes down, lights come on, the icons light up one by one) and switches the whole app to black; off brings the day and the off-white back. You can also drag across the sky to move the sun. Your choice is kept on this phone. Then five rows: Notifications (the morning digest time), Daily log reminder (its time), People (how many), Team rules (who verifies the admin's tasks) and **Account & security**, which opens your name, title, role, email and time zone, and **Sign out**. An admin taps Notifications or Daily log reminder to change that time on a time wheel. **People** and **Team rules** open their pages (below). |
 | Admin (admins only) | Running the team          | **More time to decide** (requests for more time that are yours to decide), **Proposals to review** and a **New feature** button. Invites live on the People page (Settings → People).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+
+## Logs
+
+Everyone writes a short log each weekday; weekends are optional. Everyone can read everyone's
+logs.
+
+- **Today's log.** On a weekday: _what I did_ (required), _what's next_, _anything in my way_, and
+  the tasks it was about (your open tasks and the ones you peer-review, ticked on and off). At the
+  weekend: one optional line, never counted as missed. Write it from the Logs tab ("Write today's
+  log"); it opens as a sheet on the phone and as a dialog on a computer. Its **Save log** button
+  plays as it saves: the words roll up to "Saving", the arrow collapses and the circle fills like
+  a glass of water, then "Saved" with a check, and the form closes. You can edit it until midnight
+  (GMT); then that day is locked. Logs are never deleted, and there's no delete button.
+- **Missed weekdays.** A weekday that ends without a log is recorded as missed just after
+  midnight, and it can't be filled in afterwards. The day someone joined, and days they were
+  deactivated, never count.
+- **On the phone**, the Logs tab shows the date and "logs", then **your week** as seven pills
+  (green: logged; rose: missed; today ringed until you log; days to come faded), today on a
+  lavender card (your log with **Edit**, or a prompt and **Write today's log**), and **the team**
+  on one day: everyone's row with how their day went, the start of their log and anything
+  blocking them. Tap a pill, or step back with the arrows, to see the team on an earlier day.
+- **On a computer**, the Logs page puts today on a lavender hero beside your week (pick a day to
+  see the team's), then the team on that day, a row each with their whole log and its tasks
+  (tap a task to open it), and beside it **this week** for the whole team at a glance: a dot per
+  person per day. Rows and pills ease in on hover, as across the website.
+- **A person's logs.** Tap anyone (on the Logs tab, or **Daily logs** on their card on People)
+  for their week, how the last four weeks went ("12 logs and 1 missed weekday in the last 4
+  weeks"), and every log and missed weekday, newest first, four weeks at a time (**Show
+  earlier** goes further back, to the day they joined).
 
 ## People
 
@@ -483,7 +512,8 @@ Settings → People is the team, after a "pick an expert" design: a dark panel o
   a magazine page: their pastel with big initials and stickers (a seal with their role, an
   envelope, a heart on your own card, a green stamp if they're the admin task reviewer), then
   "Kofi is a MEMBER" with the role underlined in pen and their title circled, when they joined,
-  their email and time zone. Admins see their options beneath: **Make admin** / **Make member**,
+  their email and time zone, and **Daily logs** (their logs and missed weekdays; it closes the
+  card and opens them). Admins see their options beneath: **Make admin** / **Make member**,
   **Deactivate** / **Reactivate**. Each asks first, inside the card, and says what will happen
   (e.g. a deactivated person is signed out everywhere; if they're the admin task reviewer, choose
   someone else in Team rules). The page never offers what the server would refuse: nobody can
@@ -601,9 +631,8 @@ A few things work without a screen of their own.
 
 ## Coming next
 
-Phases 3 (Settings) and 4 (progress and extensions) are built; three more phases complete
-version 1. Each starts once the
-previous one runs on a phone.
+Phases 1 to 4 are done, and Phase 5 (daily logs, above) is being built and checked; two more
+phases complete version 1. Each starts once the previous one runs on a phone.
 
 | Phase                           | What it adds                                                                                                                                                                                                                                                                                                                                                             |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

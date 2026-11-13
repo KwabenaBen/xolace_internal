@@ -91,6 +91,7 @@ export const save = mutation({
     }
     if (date > today) throw appError("INVALID_ARGUMENT", "You can only log today.");
 
+    const existing = await findLog(ctx, user._id, date);
     const isWeekend = isWeekendDate(date);
     let fields: Pick<Doc<"dailyLogs">, "isWeekend" | "done" | "next" | "blockers" | "taskIds">;
     if (isWeekend) {
@@ -123,13 +124,15 @@ export const save = mutation({
           `Link at most ${DAILY_LOG_LIMITS.taskIds} tasks to one log.`
         );
       }
+      // A task this log already links stays linkable (e.g. it was reassigned during the day).
+      const alreadyLinked = new Set(existing?.taskIds ?? []);
       for (const taskId of taskIds) {
         const task = await ctx.db.get("tasks", taskId);
-        const yours =
+        const allowed =
           task !== null &&
-          isLiveTask(task) &&
-          (task.ownerId === user._id || task.peerReviewerId === user._id);
-        if (!yours) {
+          (alreadyLinked.has(taskId) ||
+            (isLiveTask(task) && (task.ownerId === user._id || task.peerReviewerId === user._id)));
+        if (!allowed) {
           throw appError("INVALID_ARGUMENT", "You can only link tasks you own or review.");
         }
       }
@@ -142,7 +145,6 @@ export const save = mutation({
       };
     }
 
-    const existing = await findLog(ctx, user._id, date);
     if (existing === null) {
       const logId = await ctx.db.insert("dailyLogs", { userId: user._id, date, ...fields });
       await logActivity(ctx, {

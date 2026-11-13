@@ -99,6 +99,8 @@ export function PersonCard({
   isYou: boolean;
   isReviewer: boolean;
   actions: readonly SheetAction[];
+  /** "Daily logs": called before the card closes; the page opens their logs once it has. */
+  onOpenLogs: () => void;
   onClose: () => void;
 }): JSX.Element {
   const c = usePageColors();
@@ -114,11 +116,13 @@ function PersonCardBody({
   isYou,
   isReviewer,
   actions,
+  onOpenLogs,
 }: {
   person: CardPerson;
   isYou: boolean;
   isReviewer: boolean;
   actions: readonly SheetAction[];
+  onOpenLogs: () => void;
 }): JSX.Element {
   const c = usePageColors();
   const insets = useSafeAreaInsets();
@@ -314,9 +318,20 @@ function PersonCardBody({
             />
             <CardButton label="Not now" tone="quiet" isDisabled={busy} onPress={back} />
           </View>
-        ) : actions.length > 0 ? (
+        ) : (
           <View style={{ gap: 10 }}>
-            <FormError message={error} />
+            {/* Everyone can read everyone's logs. */}
+            <CardButton
+              label={isYou ? "Your daily logs" : "Daily logs"}
+              hint={isYou ? undefined : `${first}'s logs and missed weekdays`}
+              tone="quiet"
+              isDisabled={busy}
+              onPress={() => {
+                onOpenLogs();
+                close();
+              }}
+            />
+            {actions.length > 0 ? <FormError message={error} /> : null}
             {actions.map((action) => (
               <CardButton
                 key={action.key}
@@ -328,7 +343,7 @@ function PersonCardBody({
               />
             ))}
           </View>
-        ) : null}
+        )}
       </View>
     </SheetScrollView>
   );

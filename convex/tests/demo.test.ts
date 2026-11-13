@@ -38,6 +38,15 @@ describe("demo data", () => {
     expect(records.logs.length).toBeGreaterThan(0);
     expect(records.missed.length).toBeGreaterThan(0);
     expect(records.logs.some((log) => log.userId === real.userId)).toBe(false);
+    // Demo data from before logs existed: seeding again adds just the logs.
+    await t.run(async (ctx) => {
+      for (const log of await ctx.db.query("dailyLogs").collect()) {
+        await ctx.db.delete("dailyLogs", log._id);
+      }
+    });
+    expect(await t.mutation(internal.demo.seed, {})).toContain(
+      `added ${records.logs.length} daily logs`
+    );
 
     await t.mutation(internal.demo.clear, {});
     expect(await real.asUser.query(api.tasks.board, {})).toHaveLength(0);

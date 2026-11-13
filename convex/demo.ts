@@ -273,7 +273,10 @@ export const seed = internalMutation({
   handler: async (ctx) => {
     requireDemoDeployment();
     if ((await findDemoFeatures(ctx)).length > 0) {
-      return "Demo data is already there. Run demo:clear first to reseed.";
+      const added = await topUpDemoLogs(ctx, Date.now());
+      return `Demo data is already there (run demo:clear first to reseed)${
+        added > 0 ? `; added ${added} daily logs for the demo people` : ""
+      }.`;
     }
     const now = Date.now();
 
@@ -360,46 +363,95 @@ export const seed = internalMutation({
       }
     }
 
-    // Daily logs for the demo people over the past week (not today, so their "today" is still
-    // open), with a missed weekday each and one weekend line. Real people's logs are theirs.
-    let logCount = 0;
-    for (const [index, person] of DEMO_PEOPLE.entries()) {
-      const userId = who(person.key);
-      for (let daysAgo = 1; daysAgo <= 7; daysAgo++) {
-        const date = toDateOnly(now - daysAgo * DAY_MS);
-        if (isWeekendDate(date)) {
-          if (person.key === "kofi" && daysAgo <= 2) {
-            await ctx.db.insert("dailyLogs", {
-              userId,
-              date,
-              isWeekend: true,
-              done: DEMO_WEEKEND_LINE,
-              taskIds: [],
-            });
-            logCount++;
-          }
-          continue;
-        }
-        if ((index + daysAgo) % 5 === 0) {
-          await ctx.db.insert("missedDays", { userId, date });
-          continue;
-        }
-        const entry = DEMO_LOGS[(index + daysAgo) % DEMO_LOGS.length];
-        await ctx.db.insert("dailyLogs", {
-          userId,
-          date,
-          isWeekend: false,
-          done: entry.done,
-          next: entry.next,
-          blockers: entry.blockers,
-          taskIds: (openTasks.get(person.key) ?? []).slice(0, 1 + (daysAgo % 2)),
-        });
-        logCount++;
-      }
-    }
+    const logCount = await seedDemoLogs(ctx, who, openTasks, now);
     return `Added ${DEMO_PEOPLE.length} demo people, ${DEMO_FEATURES.length} features, ${taskCount} tasks and ${logCount} daily logs.`;
   },
 });
+
+/**
+ * Daily logs for the demo people over the past week (not today, so their "today" is still open),
+ * with a missed weekday each and one weekend line. Days that already have a log or a missed day
+ * are left alone, so it can run again (e.g. on demo data seeded before logs existed). Real
+ * people's logs are theirs: never seeded.
+ */
+async function seedDemoLogs(
+  ctx: MutationCtx,
+  who: (key: (typeof DEMO_PEOPLE)[number]["key"]) => Id<"users">,
+  openTasks: Map<PersonKey, Id<"tasks">[]>,
+  now: number
+): Promise<number> {
+  let logCount = 0;
+  for (const [index, person] of DEMO_PEOPLE.entries()) {
+    const userId = who(person.key);
+    for (let daysAgo = 1; daysAgo <= 7; daysAgo++) {
+      const date = toDateOnly(now - daysAgo * DAY_MS);
+      const logged = await ctx.db
+        .query("dailyLogs")
+        .withIndex("by_userId_and_date", (q) => q.eq("userId", userId).eq("date", date))
+        .first();
+      const missed = await ctx.db
+        .query("missedDays")
+        .withIndex("by_userId_and_date", (q) => q.eq("userId", userId).eq("date", date))
+        .first();
+      if (logged !== null || missed !== null) continue;
+      if (isWeekendDate(date)) {
+        if (person.key === "kofi" && daysAgo <= 2) {
+          await ctx.db.insert("dailyLogs", {
+            userId,
+            date,
+            isWeekend: true,
+            done: DEMO_WEEKEND_LINE,
+            taskIds: [],
+          });
+          logCount++;
+        }
+        continue;
+      }
+      if ((index + daysAgo) % 5 === 0) {
+        await ctx.db.insert("missedDays", { userId, date });
+        continue;
+      }
+      const entry = DEMO_LOGS[(index + daysAgo) % DEMO_LOGS.length];
+      await ctx.db.insert("dailyLogs", {
+        userId,
+        date,
+        isWeekend: false,
+        done: entry.done,
+        next: entry.next,
+        blockers: entry.blockers,
+        taskIds: (openTasks.get(person.key) ?? []).slice(0, 1 + (daysAgo % 2)),
+      });
+      logCount++;
+    }
+  }
+  return logCount;
+}
+
+/**
+ * On demo data that's already there: the demo people's open tasks (for their logs to link), and
+ * their logs for the past week where missing.
+ */
+async function topUpDemoLogs(ctx: MutationCtx, now: number): Promise<number> {
+  const demoUsers = await findDemoUsers(ctx);
+  const ids = new Map<PersonKey, Id<"users">>();
+  const openTasks = new Map<PersonKey, Id<"tasks">[]>();
+  for (const person of DEMO_PEOPLE) {
+    const user = demoUsers.find((u) => u.email === `${person.key}${DEMO_EMAIL_DOMAIN}`);
+    if (user === undefined) return 0;
+    ids.set(person.key, user._id);
+    const owned = await ctx.db
+      .query("tasks")
+      .withIndex("by_ownerId_and_status", (q) => q.eq("ownerId", user._id))
+      .take(100);
+    openTasks.set(
+      person.key,
+      owned
+        .filter((t) => !["proposed", "declined", "verified"].includes(t.status))
+        .map((t) => t._id)
+    );
+  }
+  return await seedDemoLogs(ctx, (key) => ids.get(key)!, openTasks, now);
+}
 
 /**
  * demo:clear won't leave the real app broken: it refuses while no real (non-demo) admin is

@@ -84,11 +84,13 @@ export default function AppLayout(): JSX.Element {
       <Stack.Screen name="settings/people/index" options={{ title: "People", ...ownHeader }} />
       <Stack.Screen name="settings/team-rules" options={{ title: "Team rules", ...ownHeader }} />
       <Stack.Screen name="activity" options={{ title: "Activity", ...ownHeader }} />
+      <Stack.Screen name="logs/[userId]" options={{ title: "Logs", ...ownHeader }} />
       <Stack.Screen name="features/new" options={{ title: "New feature", ...form }} />
       <Stack.Screen name="features/[featureId]/edit" options={{ title: "Edit feature", ...form }} />
       <Stack.Screen name="tasks/new" options={{ title: "New task", ...form }} />
       <Stack.Screen name="tasks/[taskId]/edit" options={{ title: "Edit task", ...form }} />
       <Stack.Screen name="settings/people/invite" options={{ title: "Invite someone", ...form }} />
+      <Stack.Screen name="logs/write" options={{ title: "Today's log", ...form }} />
     </Stack>
   );
 

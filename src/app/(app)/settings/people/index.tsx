@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
-import { useState, type JSX } from "react";
+import { useRef, useState, type JSX } from "react";
 import { Text, View } from "react-native";
 
 import { api } from "@convex/_generated/api";
@@ -56,6 +56,8 @@ export default function PeopleScreen(): JSX.Element {
   const revoke = useMutation(api.invites.revoke);
   const toast = useToast();
   const [open, setOpen] = useState<Open>(null);
+  // Whose logs to open once their card has closed ("Daily logs" on the card).
+  const logsAfterClose = useRef<Id<"users"> | null>(null);
 
   const invite = isAdmin ? (
     <RoundButton
@@ -231,7 +233,16 @@ export default function PeopleScreen(): JSX.Element {
           isYou={openPerson._id === me._id}
           isReviewer={openPerson._id === reviewerId}
           actions={actionsFor(openPerson)}
-          onClose={() => setOpen(null)}
+          onOpenLogs={() => {
+            logsAfterClose.current = openPerson._id;
+          }}
+          onClose={() => {
+            setOpen(null);
+            // "Daily logs": the card has played its exit; now open their logs.
+            const userId = logsAfterClose.current;
+            logsAfterClose.current = null;
+            if (userId !== null) router.push({ pathname: "/logs/[userId]", params: { userId } });
+          }}
         />
       ) : null}
 

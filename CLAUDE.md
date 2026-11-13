@@ -42,7 +42,9 @@ src/app/                 Expo Router routes
                          [taskId]/edit (modal: edit a live task, or approve a proposal)
   (app)/board/[view].tsx The Board's tile pages: due-this-week, overdue, waiting
   (app)/activity.tsx     The team's activity (from the Board's red hero tile), by day, by person
-src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, ErrorScreen (the signed-in
+  (app)/logs/            write (modal: today's log, write or edit), [userId] (a person's logs);
+                         the Logs tab itself is (tabs)/logs.tsx
+src/components/          Shared UI (Screen, OfflineBanner, ErrorScreen (the signed-in
                          area's error boundary), ...)
   ui/                    The shared kit, used across screens: theme.ts (usePageColors: the
                          theme's page colours; `colors`: sticker palette; fonts, FONT_FILES,
@@ -56,7 +58,11 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          useToast: "it worked" after a save), save-sheet.tsx (SaveSheet: fields,
                          then Save),
                          action-sheet.tsx (ActionSheet), use-sheet-actions.ts
-                         (confirm-in-sheet), role-pill.tsx (RolePill)
+                         (confirm-in-sheet), role-pill.tsx (RolePill), save-button.tsx
+                         (SaveButton, after the user's "Download buttons" video: words roll Save
+                         → Saving → Saved, the arrow collapses, liquid fills the disc, a check
+                         draws; Skia + Reanimated; .web.tsx = SVG + GSAP; shapes in
+                         save-button-shapes.ts; onDone at the latest 2.5 s after the save)
   settings/              The Settings tab: ClayRelightSettings.tsx (Native Cook's "Clay Relight
                          Settings": a Skia ray-marched clay scene relit from noon to night by the
                          Dark mode switch, crs-hero-shader.ts / crs-icon-shader.ts / crs-motion.ts /
@@ -93,11 +99,16 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          extension-panel.tsx (a waiting request; the decider's buttons,
                          Withdraw for the asker), deciders.ts (who decides, in words),
                          task-history.tsx (the task's history + comment box),
-                         week-strip.tsx (unused; parked for Phase 5's daily logs),
                          task-dates.ts (countdown maths), task-theme.ts (holo words),
                          task-symbols.ts, use-task-state.ts (useTaskData + taskFacts: what a
                          task page loads and what the user can do; shared by the phone page
                          and the website's panel)
+  logs/                  Daily logs (Phase 5), shared by phone and website: log-days.ts (today,
+                         the week's dates, useTeamWeek (7 `day` queries), markFor: logged /
+                         missed / open / future / off), mark-colors.ts, use-history.ts (a
+                         person's history in 4-week windows), log-form.tsx (the form modal);
+                         the phone's: phone-logs.tsx (the tab), phone-person-logs.tsx,
+                         phone-parts.tsx (LogBody, WeekPills, MarkPill, PersonDayRow)
   activity/              describe.ts (an activity entry as a sentence; timeAgo), activity-row.tsx
                          (one entry: avatar, sentence, comment bubble or quote); the task folder's
                          extension-row.tsx lists waiting requests (Admin, My Tasks, waiting page)
@@ -111,6 +122,8 @@ src/components/          Shared UI (Screen, PlaceholderScreen, OfflineBanner, Er
                          = no-ops), page.tsx (WebPage, Breadcrumb, ActionButton, SlidingTabs),
                          task-table.tsx (TaskTable), feature/web-feature.tsx (the computer's
                          feature page), task/web-task.tsx (the task's side panel),
+                         logs/ (the computer's Logs page and a person's logs: web-logs.tsx,
+                         web-person-logs.tsx, log-parts.tsx),
                          use-hover.ts, board/ (the computer's Board, after the
                          "Learnify" Pinterest dashboard: web-board.tsx, board-header.tsx (search),
                          feature-card.tsx, coming-up-table.tsx, next-up-card.tsx, glance-card.tsx,
@@ -430,7 +443,8 @@ UX, security) and write the findings up before moving on.
       calendar, the red tile now "team activity") fixed on `cadence-phase-2-4-walkthrough`._
 - [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays;
       the Logs tab with its website design too. Branch `cadence-phase-5` (from `main`, 13 Nov).
-      _Server rules, `missedDays` and the nightly job done; the screens next._
+      _Server rules, `missedDays` and the nightly job; the Logs tab (phone) and page (website),
+      a person's logs, the log form, "Daily logs" on People cards. To check on iPhone and web._
 - [ ] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
       verification queue (admin task reviewer for admin-owned tasks), feature status rollup.
 - [ ] **Phase 7 — Notifications & release:** push tokens, immediate pushes, digest + reminder

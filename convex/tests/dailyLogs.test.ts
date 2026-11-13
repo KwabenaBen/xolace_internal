@@ -215,6 +215,19 @@ describe("writing a log", () => {
 
     const linkable = await cto.asUser.query(api.dailyLogs.linkableTasks, {});
     expect(linkable.map((task) => task._id).sort()).toEqual([own, reviewing].sort());
+
+    // Reassigned later that day: the log can keep it, but a new log couldn't link it.
+    await t.run(async (ctx) => ctx.db.patch("tasks", own, { ownerId: ceo.userId }));
+    await cto.asUser.mutation(api.dailyLogs.save, {
+      date: THU,
+      done: "Work, and more.",
+      taskIds: [own, reviewing],
+    });
+    expect((await logsOf(t, cto.userId))[0].taskIds).toEqual([own, reviewing]);
+    await expectAppError(
+      coo.asUser.mutation(api.dailyLogs.save, { date: THU, done: "Mine.", taskIds: [own] }),
+      "INVALID_ARGUMENT"
+    );
   });
 
   test("signed-out and deactivated people can't write a log", async () => {

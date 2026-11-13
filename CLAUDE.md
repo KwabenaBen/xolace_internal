@@ -392,7 +392,7 @@ UX, security) and write the findings up before moving on.
       _Audit fixes: batches 1–3 on `cadence-phase-2-hardening`, `-themes`, `-fixes`._
       _Ticked 11 Nov: walked through by an admin (a demo admin account) and a member on iPhone
       and web, every check passed (walkthrough fixes on `cadence-phase-2-4-walkthrough`)._
-- [ ] **Phase 3 — Settings:** the Settings tab built from Native Cook's "Clay Relight Settings"
+- [x] **Phase 3 — Settings:** the Settings tab built from Native Cook's "Clay Relight Settings"
       block (`src/components/settings/`): the Dark mode switch is the app theme (overrides the
       phone, remembered per device); five rows (Notifications, Daily log reminder, People, Team
       rules, Account & security) with clay icons; Account page (profile, sign out). Branch
@@ -402,9 +402,10 @@ UX, security) and write the findings up before moving on.
       digest/reminder times on a time wheel, read-only time zone, late window) and the
       Notifications / Daily log reminder time sheets: `cadence-phase-3-teamrulesscreen`.
       End-of-phase audit done 10 Nov (System audit doc, "Phase 3 audit" tab); fixes on
-      `cadence-phase-3-audit`, also brought into `cadence-phase-4`. _Built; iPhone checks done
-      10 Nov. Member walkthrough 11 Nov: one fail (the page wasn't blurred behind a card on
-      iPhone), fixed on `cadence-phase-2-4-walkthrough`; tick once that's confirmed on iPhone._
+      `cadence-phase-3-audit`, also brought into `cadence-phase-4`. _Ticked 13 Nov: iPhone
+      checks 10 Nov, member walkthrough 11 Nov, re-check 13 Nov passed except the page blur
+      behind a card on iPhone (it dims but stays sharp), parked by the user (see Open
+      decisions)._
 - [x] **Phase 4 — Progress & extensions:** owners' updates (status, a drag bar for progress, a
       note; blocked needs one), comments and each task's history, the hourly overdue flag,
       requests for more time (admins decide; the admin task reviewer for an admin's own task, or
@@ -427,6 +428,14 @@ UX, security) and write the findings up before moving on.
   in full): `RESPECT_REDUCE_MOTION_ON_WEB = false` in `src/components/web/motion.web.ts`. Set it
   back to `true` before release (Phase 7) so the sidebar, cards and buttons honour it again. The
   iPhone app is unaffected.
+- **The page blur behind a card doesn't show on iPhone** (parked by the user, 13 Nov): cards
+  open, dim the page and close as they should; the page just stays sharp. Three tries on
+  `cadence-phase-2-4-walkthrough` didn't fix it (blur strength as React state, the blur created on
+  the Modal's `onShow`, a tiny intensity nudge once the card settles). Likely cause: expo-blur's
+  iOS view applies its blur in `draw(_:)`, which UIKit skips while the view is 0×0 and doesn't
+  repeat once it's sized; expo/expo PR #52291 (merged 26 Oct) moves it to `layoutSubviews`, but
+  it isn't in expo-blur 58.0.6, the version Expo Go ships. Revisit when a release has it, or
+  with the Phase 7 dev build; web is fine.
 
 - **App identity:** `app.json` still has the template's name/slug (`xolace_internal`) and scheme
   (`heroui-native-app`); the product name is "Cadence". An iOS bundle identifier is needed

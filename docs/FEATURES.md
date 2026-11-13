@@ -506,7 +506,8 @@ Settings → People is the team, after a "pick an expert" design: a dark panel o
 pickers) rise from the bottom over the page, which blurs and dims so the card is all you look
 at. Swipe a card down to close it (the blur clears as it goes), or tap outside it. With Reduce
 Motion on, cards fade instead of sliding; with Reduce Transparency, the page dims without the
-blur. Forms (new feature, new task, invite) open as the phone's own sheets: swipe down to close,
+blur. (On iPhone the page dims but doesn't blur yet: a known issue, waiting on a fix in the blur
+library.) Forms (new feature, new task, invite) open as the phone's own sheets: swipe down to close,
 and if you've typed something it asks before throwing it away. Pages slide in from the right and
 swipe back; switching tabs slides the new one in gently; signing in or out fades.
 

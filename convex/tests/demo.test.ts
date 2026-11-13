@@ -30,11 +30,24 @@ describe("demo data", () => {
     const mine = await real.asUser.query(api.tasks.mine, {});
     expect(mine.owned.length).toBeGreaterThan(0);
     expect(mine.proposals).toHaveLength(1);
+    // The demo people have a week of logs (and missed days); the real user has none.
+    const records = await t.run(async (ctx) => ({
+      logs: await ctx.db.query("dailyLogs").collect(),
+      missed: await ctx.db.query("missedDays").collect(),
+    }));
+    expect(records.logs.length).toBeGreaterThan(0);
+    expect(records.missed.length).toBeGreaterThan(0);
+    expect(records.logs.some((log) => log.userId === real.userId)).toBe(false);
 
     await t.mutation(internal.demo.clear, {});
     expect(await real.asUser.query(api.tasks.board, {})).toHaveLength(0);
     const users = await t.run(async (ctx) => ctx.db.query("users").collect());
     expect(users.map((u) => u.email)).toEqual(["real@cadence.test"]);
+    const left = await t.run(async (ctx) => ({
+      logs: await ctx.db.query("dailyLogs").collect(),
+      missed: await ctx.db.query("missedDays").collect(),
+    }));
+    expect(left).toEqual({ logs: [], missed: [] });
   });
 
   test("clear won't leave the app without a real admin, or real work pointing at nobody", async () => {

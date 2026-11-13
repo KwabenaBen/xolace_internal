@@ -139,6 +139,8 @@ export default defineSchema({
     .index("by_reviewerId_and_decision", ["reviewerId", "decision"])
     .index("by_stage_and_decision", ["stage", "decision"]),
 
+  // One per person per GMT day, written that day (convex/dailyLogs.ts). Editable until the day
+  // ends, then locked; never deleted. A weekend log is one line (`done`) with no tasks.
   dailyLogs: defineTable({
     userId: v.id("users"),
     date: v.string(), // "YYYY-MM-DD" in GMT
@@ -147,6 +149,16 @@ export default defineSchema({
     next: v.optional(v.string()),
     blockers: v.optional(v.string()),
     taskIds: v.array(v.id("tasks")),
+    updatedAt: v.optional(v.number()), // set by the last edit (ms)
+  })
+    .index("by_userId_and_date", ["userId", "date"])
+    .index("by_date", ["date"]),
+
+  // A weekday someone didn't log, recorded just after it ended (dailyLogs.recordMissed). Part of
+  // the record like the logs: never deleted, and a missed day can't be logged afterwards.
+  missedDays: defineTable({
+    userId: v.id("users"),
+    date: v.string(), // "YYYY-MM-DD" in GMT, Monday to Friday
   })
     .index("by_userId_and_date", ["userId", "date"])
     .index("by_date", ["date"]),

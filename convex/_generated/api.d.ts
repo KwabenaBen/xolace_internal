@@ -12,6 +12,7 @@ import type * as activity from "../activity.js";
 import type * as auth from "../auth.js";
 import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
+import type * as dailyLogs from "../dailyLogs.js";
 import type * as demo from "../demo.js";
 import type * as extensions from "../extensions.js";
 import type * as features from "../features.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   comments: typeof comments;
   crons: typeof crons;
+  dailyLogs: typeof dailyLogs;
   demo: typeof demo;
   extensions: typeof extensions;
   features: typeof features;

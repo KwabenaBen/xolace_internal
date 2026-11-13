@@ -48,6 +48,20 @@ export function endOfDayGmt(dateOnly: string): number | null {
   return ms;
 }
 
+/** "2026-11-15" → true on a Saturday or Sunday (GMT). False for a date that isn't real. */
+export function isWeekendDate(dateOnly: string): boolean {
+  const end = endOfDayGmt(dateOnly);
+  if (end === null) return false;
+  const weekday = new Date(end).getUTCDay();
+  return weekday === 0 || weekday === 6;
+}
+
+/** "2026-11-15" moved by `days` calendar days ("2026-11-14" for -1). Null if it isn't a date. */
+export function addDays(dateOnly: string, days: number): string | null {
+  const end = endOfDayGmt(dateOnly);
+  return end === null ? null : toDateOnly(end + days * DAY_MS);
+}
+
 /** A timestamp → its GMT calendar date, "YYYY-MM-DD". */
 export function toDateOnly(ms: number): string {
   const date = new Date(ms);

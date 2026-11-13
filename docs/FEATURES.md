@@ -569,8 +569,12 @@ A few things work without a screen of their own.
   (Africa/Accra, GMT) and the late-extension window (24 hours). Admins change them on Settings →
   Team rules.
 - **Activity log.** Every change is recorded with who made it, when, and what it was before and
-  after: sign-ups, invites, features, tasks, proposals and settings. Deadlines, reviews,
-  verifications and logs are never deleted.
+  after: sign-ups, invites, features, tasks, proposals, settings and daily logs. Deadlines,
+  reviews, verifications and logs are never deleted.
+- **Missed weekdays.** Just after midnight (GMT), Cadence notes everyone who didn't write a log
+  on the weekday that just ended, and the Activity page says so ("Cadence recorded no log from
+  Kofi on Thu 12 Nov"). A missed day stays missed: it can't be filled in later. Weekends never
+  count, and neither does the day someone joined or a day they were deactivated.
 - **Confirmations.** Every save says it worked in a short message that slides in and fades away
   (at the top on a phone, at the bottom on a computer): "Update posted", "Request sent", "Request
   approved. The deadline moved", "Proposal declined", "Comment posted", "Feature saved", "Invite
@@ -588,7 +592,8 @@ A few things work without a screen of their own.
   to the Board**, instead of a blank page. A link to a task or feature that doesn't exist shows
   "doesn't exist" with a back button.
 - **Demo data (development only).** The development copy can be filled with sample features and
-  tasks (titles start with "Demo:", sample people are marked "(demo)") to try the Board, and
+  tasks (titles start with "Demo:", sample people are marked "(demo)"), and a week of the sample
+  people's daily logs, to try the Board and the Logs tab, and
   emptied again with one command (`bunx convex run demo:seed` / `demo:clear`). A third,
   `demo:setRole`, makes an account an admin or a member, to try the app from either side. All
   three only work where demo data has been switched on, so they can't touch the live app.

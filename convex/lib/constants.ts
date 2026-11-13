@@ -4,6 +4,18 @@
  */
 export const MIN_PASSWORD_LENGTH = 8;
 
+/**
+ * Daily logs (Phase 5): how long each part may be, and how many tasks one log links. A weekday
+ * log has the four parts; a weekend log is one optional line.
+ */
+export const DAILY_LOG_LIMITS = {
+  done: 2000,
+  next: 1000,
+  blockers: 1000,
+  weekendLine: 280,
+  taskIds: 20,
+} as const;
+
 /** How long an invite (and its code) stays usable. */
 export const INVITE_DAYS = 14;
 

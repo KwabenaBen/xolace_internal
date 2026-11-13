@@ -1,7 +1,7 @@
 import type { FunctionReturnType } from "convex/server";
 
 import type { api } from "@convex/_generated/api";
-import { calendarDaysBetween, shortDay } from "@convex/lib/dates";
+import { calendarDaysBetween, endOfDayGmt, shortDay } from "@convex/lib/dates";
 import type { ExtensionType, Role, TaskStatus } from "@convex/lib/validators";
 
 import { clock, hoursLabel } from "@/components/team-rules/rules";
@@ -78,6 +78,12 @@ export function timeAgo(ms: number, now: number): string {
   const days = calendarDaysBetween(ms, now);
   if (days === 1) return "yesterday";
   return shortDay(ms, now);
+}
+
+/** A log's day ("2026-11-12") as "Wed 12 Nov"; "a day" if it isn't one. */
+function logDay(date: unknown, now: number): string {
+  const ms = typeof date === "string" ? endOfDayGmt(date) : null;
+  return ms === null ? "a day" : shortDay(ms, now);
 }
 
 function list(words: string[]): string {
@@ -211,6 +217,16 @@ export function describeActivity(
       return plain("made a new invite code");
     case "invite.revoked":
       return plain(`revoked the invite for ${text(before.email) ?? "someone"}`);
+    case "dailyLog.written":
+      return plain(
+        `wrote their ${after.isWeekend === true ? "weekend line" : "log"} for ${logDay(after.date, now)}`
+      );
+    case "dailyLog.edited":
+      return plain(`edited their log for ${logDay(after.date, now)}`);
+    case "dailyLog.missed":
+      return plain(
+        `recorded no log from ${item.person?.name ?? "someone"} on ${logDay(after.date, now)}`
+      );
     case "setting.created":
     case "setting.updated": {
       const name = SETTING_NAMES[item.entityId] ?? "a team rule";

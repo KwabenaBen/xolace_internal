@@ -69,7 +69,22 @@ async function toItem(
     const doc = lookups.features.get(featureId);
     feature = doc ? { _id: doc._id, title: doc.title } : null;
   }
-  const personId = entry.entityType === "user" ? ctx.db.normalizeId("users", entry.entityId) : null;
+  // The person it's about: a user entry's user, or the person a missed daily log was recorded
+  // for (the entry has no actor: Cadence recorded it).
+  const missedFor =
+    entry.action === "dailyLog.missed" &&
+    typeof entry.after === "object" &&
+    entry.after !== null &&
+    "userId" in entry.after &&
+    typeof entry.after.userId === "string"
+      ? entry.after.userId
+      : null;
+  const personId =
+    entry.entityType === "user"
+      ? ctx.db.normalizeId("users", entry.entityId)
+      : missedFor !== null
+        ? ctx.db.normalizeId("users", missedFor)
+        : null;
   return {
     _id: entry._id,
     timestamp: entry.timestamp,

@@ -1,12 +1,31 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  addDays,
   calendarDaysBetween,
   endOfDayGmt,
   formatDeadline,
+  isWeekendDate,
   relativeDay,
   shortDay,
 } from "../lib/dates";
+
+describe("daily-log days", () => {
+  test("weekends are Saturday and Sunday in GMT", () => {
+    expect(isWeekendDate("2026-11-13")).toBe(false); // Friday
+    expect(isWeekendDate("2026-11-14")).toBe(true);
+    expect(isWeekendDate("2026-11-15")).toBe(true);
+    expect(isWeekendDate("2026-11-16")).toBe(false); // Monday
+    expect(isWeekendDate("2026-02-30")).toBe(false); // not a date
+  });
+
+  test("days move across months and years", () => {
+    expect(addDays("2026-11-30", 1)).toBe("2026-12-01");
+    expect(addDays("2027-01-01", -1)).toBe("2026-12-31");
+    expect(addDays("2026-11-16", -7)).toBe("2026-11-09");
+    expect(addDays("nope", 1)).toBeNull();
+  });
+});
 
 // 9 Nov 2026, 10:00 GMT.
 const now = Date.UTC(2026, 10, 9, 10, 0);

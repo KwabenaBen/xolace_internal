@@ -138,6 +138,9 @@ convex/                  Backend (deployed by `bunx convex dev`)
   comments.ts            add (anyone; no edit/delete: part of the record)
   activity.ts            feed (paginated; invites hidden from members), forTask (a task's history)
   overdue.ts + crons.ts  flag: hourly job that sets tasks.overdueSince once a deadline passes
+  dailyLogs.ts           save (your log for today; edits until the day ends), day (the team on
+                         one date), range (one person's logs + missed days, ≤ 62 days),
+                         linkableTasks; internal recordMissed (cron, 00:10 GMT)
   seed.ts                Internal seed mutation (CLI only); prints each new invite's code
   demo.ts                Dev-only: demo:seed / demo:clear (demo data), demo:setRole (make an
                          account admin or member) (CLI only; refuse to run unless the deployment
@@ -221,6 +224,15 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   window saved on the request (`convex/lib/lateRule.ts`; `countsAsLate` never goes back to
   false). A change of owner closes any waiting request (status `withdrawn`). Members never see
   the email of a person a setting names before they joined (`hidePendingEmail`).
+- **Daily logs (Phase 5):** one per person per GMT day (`dailyLogs`), written for **today only**
+  (the app sends the date it shows; an ended day is refused as locked) and only your own. Edits
+  until the day ends, then locked; never deleted. Weekdays: `done` required, `next`, `blockers`,
+  up to 20 linked tasks you own or peer-review (live ones). Weekends: one line, no tasks, never
+  missed. `recordMissed` (cron, 00:10 GMT, once on purpose) writes a `missedDays` row and a
+  `dailyLog.missed` activity entry (no actor) for each active person with no log on the weekday
+  that ended, skipping their join day; a missed day can never be logged afterwards. Limits:
+  `DAILY_LOG_LIMITS` (`convex/lib/constants.ts`); weekday maths: `isWeekendDate`, `addDays`
+  (`convex/lib/dates.ts`).
 - **Activity entries about a task carry `taskId`** (its changes, comments, extension requests,
   a feature moved by its extension), which is how `activity.forTask` finds them. Comments are
   read from the activity log, not the `comments` table.
@@ -416,7 +428,9 @@ UX, security) and write the findings up before moving on.
       _Ticked 11 Nov: walked through by an admin and a member on iPhone and web, every check
       passed; the team's notes (confirmations after saves, the "Ask for more time" button and
       calendar, the red tile now "team activity") fixed on `cadence-phase-2-4-walkthrough`._
-- [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays.
+- [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays;
+      the Logs tab with its website design too. Branch `cadence-phase-5` (from `main`, 13 Nov).
+      _Server rules, `missedDays` and the nightly job done; the screens next._
 - [ ] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
       verification queue (admin task reviewer for admin-owned tasks), feature status rollup.
 - [ ] **Phase 7 — Notifications & release:** push tokens, immediate pushes, digest + reminder
@@ -444,8 +458,9 @@ UX, security) and write the findings up before moving on.
   `[colorKit.RGB] … default color "black" will be used` (its JS colour parser can't read the
   `lab()`/`color-mix()` values theme variables resolve to on web), so the press highlight is
   black. Cosmetic, web-only; iOS is unaffected. Revisit if HeroUI adds web support.
-- Phase 5 needs a way to record missed weekdays (add optional fields then; the overdue flag
-  is done: `tasks.overdueSince`, set by `convex/overdue.ts`).
+- **Password reset** ("forgot password") isn't built. The user put it in Phase 5, then, on 13
+  Nov, put Resend (an emailed code) off for later. Whether to build an admin-issued one-time
+  reset code meanwhile is undecided: ask before building a reset.
 
 <!-- convex-ai-start -->
 

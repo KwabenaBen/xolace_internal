@@ -5,7 +5,7 @@ import { env, internalMutation, type MutationCtx } from "./_generated/server";
 import { findUserByEmail, normalizeEmail } from "./lib/accounts";
 import { logActivity } from "./lib/activity";
 import { countActiveAdmins } from "./lib/auth";
-import { DAY_MS, endOfDayGmt, toDateOnly } from "./lib/dates";
+import { DAY_MS, endOfDayGmt, isWeekendDate, toDateOnly } from "./lib/dates";
 import { appError } from "./lib/errors";
 import { getUserSetting } from "./lib/settings";
 import {
@@ -20,8 +20,10 @@ import {
  * Demo data for the dev deployment, so the Board has something to show. CLI only, never prod.
  * Every command refuses to run unless the deployment has CADENCE_DEMO=on (set it on dev only:
  * `bunx convex env set CADENCE_DEMO on`), so a slip of `--prod` does nothing.
- *   bunx convex run demo:seed     adds demo people, features ("Demo: …"), tasks and proposals
- *   bunx convex run demo:clear    removes the demo people, and the demo features with their tasks
+ *   bunx convex run demo:seed     adds demo people, features ("Demo: …"), tasks, proposals and
+ *                                 the demo people's daily logs for the past week
+ *   bunx convex run demo:clear    removes the demo people (with their logs and missed days), and
+ *                                 the demo features with their tasks
  *   bunx convex run demo:setRole "{email:'you@example.com',role:'admin'}"
  *                                 makes a signed-up account an admin or a member, to try the app
  *                                 from either side (switch it back the same way)
@@ -40,6 +42,29 @@ const DEMO_PEOPLE = [
   { key: "yaw", name: "Yaw Boateng", title: "COO (demo)", role: "admin" },
 ] as const;
 type PersonKey = (typeof DEMO_PEOPLE)[number]["key"] | "you";
+
+/** What the demo people's weekday logs say (cycled through). */
+const DEMO_LOGS: { done: string; next?: string; blockers?: string }[] = [
+  {
+    done: "Finished the sign-up screen's error states and wired them to the API.",
+    next: "Hook up the invite check, then hand it over for review.",
+  },
+  {
+    done: "Went through review comments and fixed the two edge cases they found.",
+    next: "Write the tests for the expired-code path.",
+    blockers: "Waiting on the bank's sandbox keys.",
+  },
+  {
+    done: "Drafted the copy for the welcome screens and shared it for feedback.",
+    next: "Turn the feedback into a second draft.",
+  },
+  {
+    done: "Paired on the payments flow; mapped out what the partner needs from us.",
+    blockers: "Need a decision on which bank goes first.",
+  },
+];
+
+const DEMO_WEEKEND_LINE = "Read through the partner's API docs.";
 
 type DemoTask = {
   title: string;
@@ -277,6 +302,8 @@ export const seed = internalMutation({
     const who = (key: PersonKey) => people.get(key)!;
 
     let taskCount = 0;
+    // Each demo person's open tasks, for their demo logs to link.
+    const openTasks = new Map<PersonKey, Id<"tasks">[]>();
     for (const feature of DEMO_FEATURES) {
       const featureId = await ctx.db.insert("features", {
         title: `${DEMO_TITLE_PREFIX}${feature.title}`,
@@ -292,7 +319,7 @@ export const seed = internalMutation({
         const deadline = deadlineIn(task.due, now);
         const done = task.status === "verified";
         const submitted = done || task.status === "submitted";
-        await ctx.db.insert("tasks", {
+        const taskId = await ctx.db.insert("tasks", {
           featureId,
           title: task.title,
           description: task.description ?? "",
@@ -309,6 +336,9 @@ export const seed = internalMutation({
           submittedAt: submitted ? deadline - 2 * DAY_MS : undefined,
           verifiedAt: done ? deadline - DAY_MS : undefined,
         });
+        if (task.owner !== "you" && !done) {
+          openTasks.set(task.owner, [...(openTasks.get(task.owner) ?? []), taskId]);
+        }
         taskCount++;
       }
 
@@ -329,7 +359,45 @@ export const seed = internalMutation({
         taskCount++;
       }
     }
-    return `Added ${DEMO_PEOPLE.length} demo people, ${DEMO_FEATURES.length} features and ${taskCount} tasks.`;
+
+    // Daily logs for the demo people over the past week (not today, so their "today" is still
+    // open), with a missed weekday each and one weekend line. Real people's logs are theirs.
+    let logCount = 0;
+    for (const [index, person] of DEMO_PEOPLE.entries()) {
+      const userId = who(person.key);
+      for (let daysAgo = 1; daysAgo <= 7; daysAgo++) {
+        const date = toDateOnly(now - daysAgo * DAY_MS);
+        if (isWeekendDate(date)) {
+          if (person.key === "kofi" && daysAgo <= 2) {
+            await ctx.db.insert("dailyLogs", {
+              userId,
+              date,
+              isWeekend: true,
+              done: DEMO_WEEKEND_LINE,
+              taskIds: [],
+            });
+            logCount++;
+          }
+          continue;
+        }
+        if ((index + daysAgo) % 5 === 0) {
+          await ctx.db.insert("missedDays", { userId, date });
+          continue;
+        }
+        const entry = DEMO_LOGS[(index + daysAgo) % DEMO_LOGS.length];
+        await ctx.db.insert("dailyLogs", {
+          userId,
+          date,
+          isWeekend: false,
+          done: entry.done,
+          next: entry.next,
+          blockers: entry.blockers,
+          taskIds: (openTasks.get(person.key) ?? []).slice(0, 1 + (daysAgo % 2)),
+        });
+        logCount++;
+      }
+    }
+    return `Added ${DEMO_PEOPLE.length} demo people, ${DEMO_FEATURES.length} features, ${taskCount} tasks and ${logCount} daily logs.`;
   },
 });
 
@@ -414,6 +482,17 @@ export const clear = internalMutation({
     }
     const users = people;
     for (const user of users) {
+      // Their daily logs and missed days go with them (demo records only).
+      const logs = await ctx.db
+        .query("dailyLogs")
+        .withIndex("by_userId_and_date", (q) => q.eq("userId", user._id))
+        .take(1000);
+      for (const log of logs) await ctx.db.delete("dailyLogs", log._id);
+      const missed = await ctx.db
+        .query("missedDays")
+        .withIndex("by_userId_and_date", (q) => q.eq("userId", user._id))
+        .take(1000);
+      for (const day of missed) await ctx.db.delete("missedDays", day._id);
       await ctx.db.delete("users", user._id);
     }
     // The activity log is the audit trail: it is never deleted, demo entries included.

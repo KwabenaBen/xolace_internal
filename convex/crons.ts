@@ -8,4 +8,9 @@ const crons = cronJobs();
 // safety net (e.g. after a deploy). Cron times are UTC, which is GMT.
 crons.cron("flag overdue tasks", "5 * * * *", internal.overdue.flag, {});
 
+// A weekday ends at midnight GMT; at 00:10 the day before is recorded as missed for everyone who
+// didn't log it. Once a day on purpose: a later run could count a day someone was deactivated
+// for, if they'd been reactivated in between.
+crons.cron("record missed daily logs", "10 0 * * *", internal.dailyLogs.recordMissed, {});
+
 export default crons;

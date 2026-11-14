@@ -15,14 +15,17 @@ import { useSignedInUser } from "@/lib/use-current-user";
 import { useNow } from "@/lib/use-now";
 
 /**
- * Your work: requests for more time waiting on your decision (an admin's, or the admin task
- * reviewer's for an admin's own task), what you own, soonest deadline first, and what you've
- * proposed.
+ * Your work: reviews waiting on you (code to peer-review, submissions to verify), requests for
+ * more time waiting on your decision (an admin's, or the admin task reviewer's for an admin's own
+ * task), what you own, soonest deadline first, and what you've proposed.
  */
 export default function MyTasksScreen(): JSX.Element {
   const data = useQuery(api.tasks.mine);
   const extensions = useQuery(api.extensions.pending);
+  const reviews = useQuery(api.reviews.waiting);
   const waitingOnMe = (extensions ?? []).filter((e) => e.canDecide);
+  // Peer reviews of tasks you review, and submissions you can verify.
+  const toReview = [...(reviews?.peerReviews ?? []), ...(reviews?.verifications ?? [])];
   const user = useSignedInUser();
   const router = useRouter();
   const now = useNow();
@@ -51,6 +54,20 @@ export default function MyTasksScreen(): JSX.Element {
         </Button>
       }
     >
+      {toReview.length > 0 ? (
+        <View style={{ gap: 12 }}>
+          <SectionTitle s={1} title="Reviews waiting on you" count={toReview.length} />
+          {toReview.map((item) => (
+            <TaskRow
+              key={item.review._id}
+              task={item.task}
+              now={now}
+              featureTitle={item.feature?.title}
+              onPress={() => openTask(item.task._id)}
+            />
+          ))}
+        </View>
+      ) : null}
       {waitingOnMe.length > 0 ? (
         <View style={{ gap: 12 }}>
           <SectionTitle s={1} title="Waiting on you" count={waitingOnMe.length} />

@@ -120,7 +120,7 @@ export function WebBoardView({
 }: {
   user: CurrentUser;
   board: BoardGroup[] | undefined;
-  waiting: { proposals: number; extensions: number } | undefined;
+  waiting: { proposals: number; extensions: number; reviews: number } | undefined;
   users: UserSummary[] | undefined;
 }): JSX.Element {
   const isAdmin = user.role === "admin";
@@ -402,7 +402,7 @@ export function WebBoardView({
                       },
                       {
                         label: "Waiting for a decision",
-                        count: waiting.proposals + waiting.extensions,
+                        count: waiting.proposals + waiting.extensions + waiting.reviews,
                         dot: colors.lavender,
                         onOpen: () =>
                           router.push({ pathname: "/board/[view]", params: { view: "waiting" } }),

@@ -89,7 +89,8 @@ src/components/          Shared UI (Screen, OfflineBanner, ErrorScreen (the sign
                          (the fling-out/slam-back motion, worklets), bento.tsx, bento-tile.tsx,
                          board-stats.ts, board-lists.ts (the tile pages' data), feature-feed.tsx
   feature/               The feature and person pages: feature-team.ts (who's on a feature),
-                         person-work.tsx (summary card, task card with criteria)
+                         person-work.tsx (summary card, task card with criteria), ship-sheet.tsx
+                         (Mark as live: asks first, then features.markShipped)
   task/                  The task page's parts: holo-card.tsx (Skia: the tilting status card, after Native
                          Cook's "Holo Cash Card"; .web.tsx = still SVG; holo-shared.ts),
                          countdown-card.tsx + odometer.tsx (rolling digits), people-cards.tsx,
@@ -98,6 +99,11 @@ src/components/          Shared UI (Screen, OfflineBanner, ErrorScreen (the sign
                          update; the drag bar), extension-sheet.tsx (ask for more time),
                          extension-panel.tsx (a waiting request; the decider's buttons,
                          Withdraw for the asker), deciders.ts (who decides, in words),
+                         review-sheet.tsx (the owner's Ask for a peer review / Submit for
+                         verification: note + link), review-panel.tsx (the review card: a
+                         waiting review with the reviewer's or verifier's buttons and criteria
+                         to tick, Take it back for the owner; changes asked for; code approved),
+                         verifiers.ts (who verifies, in words),
                          task-history.tsx (the task's history + comment box),
                          task-dates.ts (countdown maths), task-theme.ts (holo words),
                          task-symbols.ts, use-task-state.ts (useTaskData + taskFacts: what a
@@ -159,7 +165,8 @@ convex/                  Backend (deployed by `bunx convex dev`)
                          one date), range (one person's logs + missed days, ≤ 62 days),
                          linkableTasks; internal recordMissed (cron, hourly; last 2 days)
   seed.ts                Internal seed mutation (CLI only); prints each new invite's code
-  demo.ts                Dev-only: demo:seed / demo:clear (demo data), demo:setRole (make an
+  demo.ts                Dev-only: demo:seed / demo:clear (demo data, with the reviews behind
+                         tasks in review; a re-run tops up logs and reviews), demo:setRole (make an
                          account admin or member) (CLI only; refuse to run unless the deployment
                          has CADENCE_DEMO=on)
   lib/                   Server helpers: auth (permissions), accounts, settings, activity,
@@ -473,6 +480,12 @@ UX, security) and write the findings up before moving on.
       the hover sidebar). Tick once the Logs screens are checked on iPhone._
 - [ ] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
       verification queue (admin task reviewer for admin-owned tasks), feature status rollup.
+      Branch `cadence-phase-6` (from `cadence-web-sidebar`, 14 Nov). _Server rules
+      (`convex/reviews.ts`, `lib/reviews.ts`, `features.markShipped`); the review card and the
+      owner's ask/submit sheet on the task page (phone and website panel), Reviews waiting on
+      you (My Tasks), To verify (Admin), In review on the waiting page, Mark as live on the
+      feature page. Links only as proof for now (the user's call). Still to do: the iPhone
+      check and the end-of-phase audit._
 - [ ] **Phase 7 — Notifications & release:** push tokens, immediate pushes, digest + reminder
       crons, empty/loading/error states, EAS build to TestFlight, web deploy.
 

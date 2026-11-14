@@ -71,13 +71,13 @@ flowchart LR
     G --> H["Feature ships<br/><small>all tasks verified</small>"]
 ```
 
-A rejected task loops back to its owner with a reason. Today Cadence covers planning and
-proposals; status updates arrive in Phase 4, and peer review and verification in Phase 6.
+A rejected task loops back to its owner with a reason; a code task then goes through peer review
+again. Everything here is built except notifications, which arrive in Phase 7.
 
 ### Step by step
 
-The whole system, from joining the team to shipping a feature. Steps 1 to 4 are built; the
-rest arrive in the phase shown.
+The whole system, from joining the team to shipping a feature. Steps 1 to 10 are built; the
+last arrives in Phase 7.
 
 1. **Join (built).** The admin invites an email with a role and a title (e.g. CTO). The person
    signs up with that email; nobody else can. Admins plan and decide; members do the work.
@@ -95,26 +95,31 @@ rest arrive in the phase shown.
 4. **Everyone sees everything (built).** The Board, its tile pages, feature pages, task pages,
    My Tasks and the Admin tab all show the same live data; a change appears on every device
    within seconds.
-5. **Do the work (Phase 4).** The owner moves their task to **In progress** or **Blocked**, sets
+5. **Do the work (built).** The owner moves their task to **In progress** or **Blocked**, sets
    a progress % and comments. Once a deadline passes without verification, the task is flagged
    **overdue** automatically. The owner can ask for a new deadline with a reason and a type; the
    admin decides. An extension counts as late if it was asked for within 24 hours of the
    deadline or isn't a meeting-agreed scope change. Every change goes into the activity log.
-6. **Daily logs (Phase 5).** Each weekday, everyone writes a short log: what I did, what's next,
+6. **Daily logs (built).** Each weekday, everyone writes a short log: what I did, what's next,
    blockers, and which tasks it touched. Missed weekdays are recorded. Weekends get an optional
    one-liner that is never counted as missed.
-7. **Peer review (Phase 6, code tasks only).** The owner asks for review (**In peer review**);
-   the reviewer approves it or sends it back with comments. The CTO reviews the CEO's code and
-   the CEO reviews the CTO's.
-8. **Submit (Phase 6).** The owner submits with a note and optional proof (a link, screenshot or
-   PR). The task becomes **Submitted**; the owner's part is done.
-9. **Verify (Phase 6).** The admin checks each acceptance criterion. The task becomes
-   **Verified**, or goes to **Changes requested** with a reason and back to step 5. The CEO
-   verifies the admin's own tasks, so nobody approves their own work. Only Verified counts as
-   done.
-10. **Ship the feature (Phase 6).** When every task in a feature is verified, the feature moves to
-    **Internal testing**; the admin marks it **Shipped** once it's live. A shipped feature takes
-    no new work.
+7. **Peer review (built, code tasks only).** When the code is ready, the owner asks the task's
+   peer reviewer for a review, with an optional note and link (**In peer review**). The reviewer
+   approves it (back to In progress, ready to submit) or sends it back with what needs changing
+   (**Changes requested**).
+8. **Submit (built).** The owner submits with a note (required) and a link as proof (a PR, a
+   build, a document; links only for now, no screenshots). A code task needs its reviewer's
+   approval first. The task becomes **Submitted**; the owner's part is done, though they can take
+   it back while it waits.
+9. **Verify (built).** The verifier ticks each acceptance criterion; the task is **Verified** (at
+   100%) only once every one is ticked. Otherwise it goes to **Changes requested** with a reason
+   and back to step 5, and a code task goes through peer review again. Admins verify; a task an
+   admin owns is verified by the admin task reviewer (the CEO), or by the other admins when
+   there's no reviewer who can, so nobody approves their own work. Only Verified counts as done.
+10. **Ship the feature (built).** A feature's stage follows its tasks: **In progress** once one
+    starts, **Internal testing** once every task is verified (back to In progress if that
+    changes). An admin then taps **Mark as live** and it's **Shipped**, for good. A shipped
+    feature takes no new work.
 11. **Notifications and release (Phase 7).** Instant pushes only for: a task assigned to you, a
     review or verification request, a verified or changes-requested decision, and an extension or
     proposal decision. An 8am GMT digest lists your tasks due within 48 hours, your overdue ones,
@@ -144,7 +149,7 @@ Each status says who has to act next.
 | Blocked           | Stuck on something the owner can't fix alone           | Red                 |
 | In peer review    | A code task waiting for its peer reviewer              | Violet              |
 | Submitted         | The owner says it's done; waiting for verification     | Orange              |
-| Changes requested | The verifier sent it back with a reason                | Yellow              |
+| Changes requested | The reviewer or verifier sent it back with a reason    | Yellow              |
 | Verified          | Checked against every acceptance criterion: done       | Green               |
 
 ### Feature stages
@@ -155,6 +160,8 @@ Each status says who has to act next.
 | In progress      | Work is under way                                 | Blue                |
 | Internal testing | Every task is verified and the team is testing it | Yellow              |
 | Shipped          | Live; the admin marked it shipped                 | Green               |
+
+Stages move on their own as the tasks change; only Shipped is set by hand (**Mark as live**).
 
 ## Getting in
 
@@ -190,17 +197,17 @@ following the phone's dark or light setting; the tiles keep their colours in bot
 
 The tiles always count the whole team, even when the list below is filtered.
 
-| Tile                               | What it shows                                                                                                                            | Tap it to                                                                                              |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| due this week (violet)             | How many unverified tasks are due in the next 7 days                                                                                     | Open a page of those tasks, grouped by feature                                                         |
-| overdue (orange)                   | How many unverified tasks are past their deadline                                                                                        | Open a page of those tasks, grouped by feature                                                         |
-| waiting (yellow)                   | What's waiting for a decision: "2 proposals", "1 request" (for more time), or "3 pending" when it's both                                 | Open a page of every request for more time and every proposal; each opens its task, where it's decided |
-| next up (tall, cream)              | The feature due next (not yet shipped): its name, "2 of 5 tasks verified", a progress bar, its deadline and "in 3 days" or "2 days late" | Open that feature's page                                                                               |
-| the team · Progress (dark)         | Total tasks, how many are verified, in progress and blocked, and bars for To do, Doing, Review and Done                                  | Nothing; it's a summary                                                                                |
-| assigned to me (green)             | How many of your own tasks are still open                                                                                                | Open My Tasks                                                                                          |
-| New feature or Propose task (blue) | Admins plan a feature; members suggest a task                                                                                            | Open the form                                                                                          |
-| team activity (red)                | The way into the team's activity                                                                                                         | Open **Activity**: every change, who made it and when (below)                                          |
-| how does it work? (yellow)         | A two-line guide to the Board                                                                                                            | Its × hides it for good on this device                                                                 |
+| Tile                               | What it shows                                                                                                                                 | Tap it to                                                                                                                   |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| due this week (violet)             | How many unverified tasks are due in the next 7 days                                                                                          | Open a page of those tasks, grouped by feature                                                                              |
+| overdue (orange)                   | How many unverified tasks are past their deadline                                                                                             | Open a page of those tasks, grouped by feature                                                                              |
+| waiting (yellow)                   | What's waiting for a decision: "2 proposals", "1 request" (for more time), "1 review" (in peer review or submitted), or "3 pending" for a mix | Open a page of the tasks in review, every request for more time and every proposal; each opens its task, where it's decided |
+| next up (tall, cream)              | The feature due next (not yet shipped): its name, "2 of 5 tasks verified", a progress bar, its deadline and "in 3 days" or "2 days late"      | Open that feature's page                                                                                                    |
+| the team · Progress (dark)         | Total tasks, how many are verified, in progress and blocked, and bars for To do, Doing, Review and Done                                       | Nothing; it's a summary                                                                                                     |
+| assigned to me (green)             | How many of your own tasks are still open                                                                                                     | Open My Tasks                                                                                                               |
+| New feature or Propose task (blue) | Admins plan a feature; members suggest a task                                                                                                 | Open the form                                                                                                               |
+| team activity (red)                | The way into the team's activity                                                                                                              | Open **Activity**: every change, who made it and when (below)                                                               |
+| how does it work? (yellow)         | A two-line guide to the Board                                                                                                                 | Its × hides it for good on this device                                                                                      |
 
 ### Activity
 
@@ -235,7 +242,8 @@ A shipped feature leaves the Board; pick it in the Feature filter to see it agai
 **Due this week**, **overdue** and **waiting** each open their own page in the Board's
 style: a big title, how many tasks it holds, and the matching tasks grouped under their
 features, in the same rows as the Board. Tap a feature or task to open it; the back arrow
-returns to the Board. On the waiting page each row says who proposed it.
+returns to the Board. The waiting page lists the tasks **In review** (with a peer reviewer or a
+verifier) first, then requests for more time, then proposals, each saying who proposed it.
 
 ### The Board on a computer
 
@@ -305,13 +313,16 @@ From top to bottom:
 - **Tasks.** Every task, in the Board's rows, each with its progress bar. Tap one to open it.
 - **Waiting for approval.** Proposals for this feature, if any.
 - **Buttons.** Admins get **Add task** and **Edit feature**; members get **Propose a task**. A
-  shipped feature takes no new work, so only **Edit feature** remains.
+  shipped feature takes no new work, so only **Edit feature** remains. Once every task is verified
+  (Internal testing), admins also get **Mark as live**: a card asks first (it can't be undone),
+  then the feature moves to Shipped ("Feature is live").
 
 On a computer the feature page is laid out in the Board's style:
 
 - **The top** shows where you are ("Board › the feature"; **Board** goes back) and the buttons
   (**Edit feature** and **Add task** for admins, **Propose a task** for members; none to add once
-  it's shipped). They give a little when pressed.
+  it's shipped; **Mark as live** for admins once it's in Internal testing). They give a little
+  when pressed.
 - **The hero** is a wide card in the feature's colour (the same as its Board card): its stage,
   where it was agreed and who planned it, its name and description, and, on the right, how far
   along it is (the bar fills in as the page opens), how many tasks are verified, and when it's due
@@ -335,8 +346,8 @@ to see what they're doing for that feature:
   and the acceptance criteria they have to deliver, ticked once the task is verified. Tap one to
   open it.
 - **Reviewing**: the code tasks there they peer-review.
-- What they log each day (Phase 5) and the proof they submit (Phase 6) will be added to this page
-  when those phases are built.
+- What they log each day is on their logs page (Logs), and the proof they submit on each task's
+  page.
 
 ### The task page
 
@@ -360,6 +371,16 @@ From top to bottom:
   request**. It can only be declined once the task has gone to its reviewer, its feature has
   shipped, or it has moved to a new owner (a new owner's task closes any request the old owner
   made).
+- **Peer review (blue) or Submitted for verification (lavender).** While a review waits: who
+  asked and when, their note, and their link (tap it to open it in the browser). The peer
+  reviewer gets **Send back** (saying what needs changing) and **Approve** (with an optional
+  note). A verifier ticks each acceptance criterion, then **Verify** (only once every one is
+  ticked) or **Ask for changes** (with a reason). Everyone else sees whom it's waiting for, and
+  the owner can **Take it back** (it returns to In progress, e.g. when the reviewer has left).
+- **Changes asked for (yellow).** After a send-back: who asked and when, their reason, the
+  criteria not met yet, and what happens next (a code task goes through peer review again).
+- **Code approved (blue).** After the peer reviewer approves, until the task is submitted: who
+  approved it and when, and "Next: submit it for verification".
 - **The countdown card (lavender).** "Task due in 2d 14h 33m 07s", ticking every second with
   digits that roll like a car's odometer. Under it, the task's own deadline ("originally …" if it
   moved) and the feature's deadline, so it's clear which is which. The priority sits on a pink
@@ -376,7 +397,13 @@ From top to bottom:
   (scope change, agreed in a meeting, or other) and why you need it. It says straight away whether
   approving would count the task as late, and whether the date is past the feature's deadline.
   One request at a time. On an admin's own task, the admin task reviewer decides; if none is
-  set (or the reviewer owns the task), the button is replaced by a note saying so.
+  set (or the reviewer owns the task), the button is replaced by a note saying so. When the work
+  is ready, the next step sits above them as the main button (and **Post an update** becomes the
+  second one): **Ask for a peer review** on a code task (an optional note and link, to its
+  reviewer), then **Submit for verification** (a note, required, and a link: "https://… a PR, a
+  build or a page"). Each opens a card that says who reviews or verifies it. A blocked task can't
+  be sent; if nobody could verify it (an admin's task with no reviewer who can), a note says so
+  instead of the button.
 - **Description** on a dark card, if there is one.
 - **Who's on it.** Pastel cards: the owner (orange, with the priority), the peer reviewer for code
   tasks (blue) and whoever proposed it (pink), each with initials, name and title. Someone who
@@ -405,11 +432,12 @@ feature it belongs to as a chip in the feature's colour (it closes the panel and
 feature). Then, in the Board's style:
 
 - its status, type and priority (urgent in red), and its title;
-- what you can do: the owner's **Post an update** and **Ask for more time**, the admin's **Edit
-  task** (or **Review & approve** and **Decline** for a proposal, with the reason asked for in
-  place);
-- the same notes as on the phone (waiting for review, declined, counts as late) and a request for
-  more time waiting for a decision, with its buttons;
+- what you can do: the owner's next review step (**Ask for a peer review** or **Submit for
+  verification**), **Post an update** and **Ask for more time**, the admin's **Edit task** (or
+  **Review & approve** and **Decline** for a proposal, with the reason asked for in place);
+- the same notes as on the phone (waiting for review, declined, counts as late), a request for
+  more time waiting for a decision, and the review card (peer review, verification with its
+  criteria to tick, changes asked for, code approved), each with its buttons;
 - a card in the feature's colour with how far along it is (the bar fills in), when it's due (red
   when late; "moved from" when its deadline moved), the feature's deadline, or when it was
   verified;
@@ -467,10 +495,10 @@ Besides the Board there are four tabs; the Admin tab appears only for admins.
 
 | Tab                 | What it's for             | What's on it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| My Tasks            | Your own work at a glance | **Waiting on you**: requests for more time that are yours to decide (admins, and the admin task reviewer for an admin's own task). **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| My Tasks            | Your own work at a glance | **Reviews waiting on you**: code you peer-review and tasks you verify, waiting for your decision. **Waiting on you**: requests for more time that are yours to decide (admins, and the admin task reviewer for an admin's own task). **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button.                                                                                                                                                                                                                                                                                                                                        |
 | Logs                | Daily work logs           | Today's log, your week and the team's day: see **Logs** below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Settings            | You and the team          | The **Dark mode** switch on a clay scene of a house on a hill: turning it on plays a sunset (the sun goes down, lights come on, the icons light up one by one) and switches the whole app to black; off brings the day and the off-white back. You can also drag across the sky to move the sun. Your choice is kept on this phone. Then five rows: Notifications (the morning digest time), Daily log reminder (its time), People (how many), Team rules (who verifies the admin's tasks) and **Account & security**, which opens your name, title, role, email and time zone, and **Sign out**. An admin taps Notifications or Daily log reminder to change that time on a time wheel. **People** and **Team rules** open their pages (below). |
-| Admin (admins only) | Running the team          | **More time to decide** (requests for more time that are yours to decide), **Proposals to review** and a **New feature** button. Invites live on the People page (Settings → People).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Admin (admins only) | Running the team          | **To verify** (submitted tasks yours to verify), **More time to decide** (requests for more time that are yours to decide), **Proposals to review** and a **New feature** button. Invites live on the People page (Settings → People).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ## Logs
 
@@ -611,7 +639,8 @@ A few things work without a screen of their own.
   again every hour, so a check that didn't run (a deploy or an outage) is made up.
 - **Confirmations.** Every save says it worked in a short message that slides in and fades away
   (at the top on a phone, at the bottom on a computer): "Update posted", "Request sent", "Request
-  approved. The deadline moved", "Proposal declined", "Comment posted", "Feature saved", "Invite
+  approved. The deadline moved", "Sent for peer review", "Submitted for verification", "Task
+  verified", "Feature is live", "Proposal declined", "Comment posted", "Feature saved", "Invite
   revoked" and so on. Screen readers read it out. Problems still show in the form or card, where
   they can be fixed.
 - **Forms on a computer** open as dialogs that ease in over the page and ease out when closed
@@ -626,8 +655,9 @@ A few things work without a screen of their own.
   to the Board**, instead of a blank page. A link to a task or feature that doesn't exist shows
   "doesn't exist" with a back button.
 - **Demo data (development only).** The development copy can be filled with sample features and
-  tasks (titles start with "Demo:", sample people are marked "(demo)"), and a week of the sample
-  people's daily logs, to try the Board and the Logs tab, and
+  tasks (titles start with "Demo:", sample people are marked "(demo)"), with the reviews behind
+  the tasks in review (so there's something to verify), and a week of the sample people's daily
+  logs, to try the Board, the reviews and the Logs tab, and
   emptied again with one command (`bunx convex run demo:seed` / `demo:clear`). A third,
   `demo:setRole`, makes an account an admin or a member, to try the app from either side. All
   three only work where demo data has been switched on, so they can't touch the live app.
@@ -635,14 +665,13 @@ A few things work without a screen of their own.
 
 ## Coming next
 
-Phases 1 to 4 are done, and Phase 5 (daily logs, above) is being built and checked; two more
-phases complete version 1. Each starts once the previous one runs on a phone.
+Phases 1 to 4 are done; Phase 5 (daily logs) and Phase 6 (peer review and verification), both
+above, are built and being checked. One more phase completes version 1. Each starts once the
+previous one runs on a phone.
 
-| Phase                           | What it adds                                                                                                                                                                                                                                                                                                                                                             |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 5. Daily logs                   | A short log every weekday: what I did, what's next, blockers and linked tasks. An optional one-liner at weekends, never counted as missed. Each person's history, with missed weekdays recorded.                                                                                                                                                                         |
-| 6. Peer review and verification | Code tasks go to their peer reviewer first. Owners submit with a note and proof (a link, screenshot, PR or build). The admin checks each acceptance criterion and verifies or sends it back with a reason; the CEO does this for tasks the admin owns. A feature moves to Internal testing once all its tasks are verified, and to Shipped when the admin marks it live. |
-| 7. Notifications and release    | One 8am digest: your tasks due in 48 hours, your overdue tasks, reviews waiting on you, and yesterday's missing log. Instant pushes only for assignments, review requests, verifications and decisions. An 8pm reminder on weekdays if your log isn't in. Then a TestFlight build and the web version going live.                                                        |
+| Phase                        | What it adds                                                                                                                                                                                                                                                                                                      |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 7. Notifications and release | One 8am digest: your tasks due in 48 hours, your overdue tasks, reviews waiting on you, and yesterday's missing log. Instant pushes only for assignments, review requests, verifications and decisions. An 8pm reminder on weekdays if your log isn't in. Then a TestFlight build and the web version going live. |
 
 After version 1: a team health dashboard (features on track, overdue counts, log consistency),
 GitHub links for code tasks, a contribution graph and an Android build.

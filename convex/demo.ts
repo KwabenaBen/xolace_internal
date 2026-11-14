@@ -7,6 +7,7 @@ import { logActivity } from "./lib/activity";
 import { countActiveAdmins } from "./lib/auth";
 import { DAY_MS, endOfDayGmt, isWeekendDate, toDateOnly } from "./lib/dates";
 import { appError } from "./lib/errors";
+import { rollUpFeature } from "./lib/reviews";
 import { getUserSetting } from "./lib/settings";
 import {
   roleValidator,
@@ -20,10 +21,11 @@ import {
  * Demo data for the dev deployment, so the Board has something to show. CLI only, never prod.
  * Every command refuses to run unless the deployment has CADENCE_DEMO=on (set it on dev only:
  * `bunx convex env set CADENCE_DEMO on`), so a slip of `--prod` does nothing.
- *   bunx convex run demo:seed     adds demo people, features ("Demo: …"), tasks, proposals and
- *                                 the demo people's daily logs for the past week
+ *   bunx convex run demo:seed     adds demo people, features ("Demo: …"), tasks with the reviews
+ *                                 their statuses imply, proposals and the demo people's daily
+ *                                 logs for the past week
  *   bunx convex run demo:clear    removes the demo people (with their logs and missed days), and
- *                                 the demo features with their tasks
+ *                                 the demo features with their tasks (and the tasks' reviews)
  *   bunx convex run demo:setRole "{email:'you@example.com',role:'admin'}"
  *                                 makes a signed-up account an admin or a member, to try the app
  *                                 from either side (switch it back the same way)
@@ -164,7 +166,7 @@ const DEMO_FEATURES: DemoFeature[] = [
     description: "Customers can pay through a local bank partner.",
     expectedResult: "Two banks shortlisted and one payments API proven end to end.",
     sourceNote: "Strategy day, 28 Oct",
-    status: "planned",
+    status: "in_progress",
     due: 30,
     tasks: [
       {
@@ -213,7 +215,7 @@ const DEMO_FEATURES: DemoFeature[] = [
     description: "The quarterly update for our angel investors.",
     expectedResult: "Deck sent with Q3 numbers and the plan for Q4.",
     sourceNote: "Board call, 1 Nov",
-    status: "internal_testing",
+    status: "in_progress",
     due: 3,
     tasks: [
       {
@@ -272,10 +274,16 @@ export const seed = internalMutation({
   returns: v.string(),
   handler: async (ctx) => {
     requireDemoDeployment();
-    if ((await findDemoFeatures(ctx)).length > 0) {
+    const existing = await findDemoFeatures(ctx);
+    if (existing.length > 0) {
       const added = await topUpDemoLogs(ctx, Date.now());
+      const reviews = await topUpDemoReviews(ctx, existing, Date.now());
+      const extras = [
+        added > 0 ? `added ${added} daily logs for the demo people` : null,
+        reviews > 0 ? `added ${reviews} reviews behind the demo tasks` : null,
+      ].filter((part) => part !== null);
       return `Demo data is already there (run demo:clear first to reseed)${
-        added > 0 ? `; added ${added} daily logs for the demo people` : ""
+        extras.length > 0 ? `; ${extras.join("; ")}` : ""
       }.`;
     }
     const now = Date.now();
@@ -303,6 +311,7 @@ export const seed = internalMutation({
     );
     people.set("you", realUsers[0]?._id ?? people.get("abena")!);
     const who = (key: PersonKey) => people.get(key)!;
+    const verifierFor = await demoVerifiers(ctx, who("yaw"));
 
     let taskCount = 0;
     // Each demo person's open tasks, for their demo logs to link.
@@ -342,6 +351,8 @@ export const seed = internalMutation({
         if (task.owner !== "you" && !done) {
           openTasks.set(task.owner, [...(openTasks.get(task.owner) ?? []), taskId]);
         }
+        const inserted = await ctx.db.get("tasks", taskId);
+        if (inserted !== null) await seedDemoReviews(ctx, inserted, verifierFor, now);
         taskCount++;
       }
 
@@ -454,6 +465,144 @@ async function topUpDemoLogs(ctx: MutationCtx, now: number): Promise<number> {
 }
 
 /**
+ * Who decided a demo task's verification: Yaw (the demo admin), or for his own task a real
+ * active admin (nobody verifies their own work), else Yaw anyway.
+ */
+async function demoVerifiers(
+  ctx: MutationCtx,
+  yaw: Id<"users">
+): Promise<(ownerId: Id<"users">) => Id<"users">> {
+  const otherAdmin = (
+    await ctx.db
+      .query("users")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .take(500)
+  ).find((u) => u.role === "admin" && u._id !== yaw && !u.email.endsWith(DEMO_EMAIL_DOMAIN));
+  return (ownerId) => (ownerId === yaw ? (otherAdmin?._id ?? yaw) : yaw);
+}
+
+/**
+ * The reviews a demo task's status implies, so its review card has something to show and act
+ * on: a waiting peer review or verification, the verifier's reason behind changes requested,
+ * the approvals behind a verified task. A task that already has any is left alone, so a top-up
+ * never doubles them. Returns how many rows it added.
+ */
+async function seedDemoReviews(
+  ctx: MutationCtx,
+  task: Doc<"tasks">,
+  verifierFor: (ownerId: Id<"users">) => Id<"users">,
+  now: number
+): Promise<number> {
+  const ownerId = task.ownerId;
+  if (ownerId === undefined) return 0;
+  const already = await ctx.db
+    .query("verifications")
+    .withIndex("by_taskId_and_stage", (q) => q.eq("taskId", task._id))
+    .first();
+  if (already !== null) return 0;
+  const proofUrl = "https://example.com/demo-proof";
+  const allMet = task.acceptanceCriteria.map(() => true);
+  const verifier = verifierFor(ownerId);
+  let added = 0;
+  // A code task's verification comes after its peer reviewer's approval.
+  const peerApproved = async (decidedAt: number) => {
+    if (task.kind !== "code" || task.peerReviewerId === undefined) return;
+    await ctx.db.insert("verifications", {
+      taskId: task._id,
+      stage: "peer_review",
+      submittedBy: ownerId,
+      note: "Ready for a look.",
+      proofUrl,
+      decision: "approved",
+      reviewerId: task.peerReviewerId,
+      decidedAt,
+    });
+    added++;
+  };
+  switch (task.status) {
+    case "in_peer_review":
+      await ctx.db.insert("verifications", {
+        taskId: task._id,
+        stage: "peer_review",
+        submittedBy: ownerId,
+        note: "Ready for a look: the main path and its tests are in.",
+        proofUrl,
+      });
+      added++;
+      break;
+    case "submitted":
+      await peerApproved(now - 2 * DAY_MS);
+      await ctx.db.insert("verifications", {
+        taskId: task._id,
+        stage: "verification",
+        submittedBy: ownerId,
+        note: "Done: every criterion is in, ready to check.",
+        proofUrl,
+      });
+      added++;
+      break;
+    case "changes_requested":
+      await peerApproved(now - 3 * DAY_MS);
+      await ctx.db.insert("verifications", {
+        taskId: task._id,
+        stage: "verification",
+        submittedBy: ownerId,
+        note: "Done, I think: have a look.",
+        proofUrl,
+        decision: "changes_requested",
+        reviewerId: verifier,
+        reason: "Nearly there: the last criterion isn't met yet.",
+        criteriaMet: allMet.map((_, index) => index < allMet.length - 1),
+        decidedAt: now - DAY_MS,
+      });
+      added++;
+      break;
+    case "verified":
+      await peerApproved((task.verifiedAt ?? now) - DAY_MS);
+      await ctx.db.insert("verifications", {
+        taskId: task._id,
+        stage: "verification",
+        submittedBy: ownerId,
+        note: "Done: every criterion is in.",
+        proofUrl,
+        decision: "approved",
+        reviewerId: verifier,
+        criteriaMet: allMet,
+        decidedAt: task.verifiedAt ?? now,
+      });
+      added++;
+      break;
+    default:
+      break;
+  }
+  return added;
+}
+
+/**
+ * On demo data seeded before reviews existed: the reviews behind each demo task's status, and
+ * each demo feature's stage brought in line with its tasks (rollUpFeature).
+ */
+async function topUpDemoReviews(
+  ctx: MutationCtx,
+  features: Doc<"features">[],
+  now: number
+): Promise<number> {
+  const yaw = (await findDemoUsers(ctx)).find((u) => u.email === `yaw${DEMO_EMAIL_DOMAIN}`);
+  if (yaw === undefined) return 0;
+  const verifierFor = await demoVerifiers(ctx, yaw._id);
+  let added = 0;
+  for (const feature of features) {
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_featureId_and_status", (q) => q.eq("featureId", feature._id))
+      .take(500);
+    for (const task of tasks) added += await seedDemoReviews(ctx, task, verifierFor, now);
+    await rollUpFeature(ctx, feature._id);
+  }
+  return added;
+}
+
+/**
  * demo:clear won't leave the real app broken: it refuses while no real (non-demo) admin is
  * active, or while real work or a team rule still points at a demo person. The reply says what
  * to change first.
@@ -556,6 +705,11 @@ export const clear = internalMutation({
           .withIndex("by_taskId_and_status", (q) => q.eq("taskId", task._id))
           .take(500);
         for (const request of requests) await ctx.db.delete("extensionRequests", request._id);
+        const reviews = await ctx.db
+          .query("verifications")
+          .withIndex("by_taskId_and_stage", (q) => q.eq("taskId", task._id))
+          .take(500);
+        for (const review of reviews) await ctx.db.delete("verifications", review._id);
         await ctx.db.delete("tasks", task._id);
       }
       await ctx.db.delete("features", feature._id);

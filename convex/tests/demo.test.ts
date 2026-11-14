@@ -48,6 +48,28 @@ describe("demo data", () => {
       `added ${records.logs.length} daily logs`
     );
 
+    // Each task in review has its request behind it: the real admin can verify the submitted
+    // one, and the peer review waits on its reviewer. Feature stages follow their tasks.
+    const waiting = await real.asUser.query(api.reviews.waiting, {});
+    expect(waiting.verifications.map((item) => item.task.title)).toEqual(["Draft the narrative"]);
+    const inReview = board.flatMap((g) => g.tasks).find((task) => task.status === "in_peer_review");
+    const review = await real.asUser.query(api.reviews.forTask, { taskId: inReview!._id });
+    expect(review.pending?.stage).toBe("peer_review");
+    expect(board.map((g) => g.feature.status)).toEqual([
+      "in_progress",
+      "in_progress",
+      "in_progress",
+    ]);
+    // Demo data from before reviews existed: seeding again adds them (once).
+    const reviewRows = await t.run(async (ctx) => {
+      const rows = await ctx.db.query("verifications").collect();
+      for (const row of rows) await ctx.db.delete("verifications", row._id);
+      return rows.length;
+    });
+    expect(reviewRows).toBeGreaterThan(0);
+    expect(await t.mutation(internal.demo.seed, {})).toContain(`added ${reviewRows} reviews`);
+    expect(await t.mutation(internal.demo.seed, {})).not.toContain("reviews");
+
     await t.mutation(internal.demo.clear, {});
     expect(await real.asUser.query(api.tasks.board, {})).toHaveLength(0);
     const users = await t.run(async (ctx) => ctx.db.query("users").collect());
@@ -55,8 +77,9 @@ describe("demo data", () => {
     const left = await t.run(async (ctx) => ({
       logs: await ctx.db.query("dailyLogs").collect(),
       missed: await ctx.db.query("missedDays").collect(),
+      reviews: await ctx.db.query("verifications").collect(),
     }));
-    expect(left).toEqual({ logs: [], missed: [] });
+    expect(left).toEqual({ logs: [], missed: [], reviews: [] });
   });
 
   test("clear won't change a real person's daily log that links a demo task", async () => {

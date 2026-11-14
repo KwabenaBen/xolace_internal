@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { JSX } from "react";
+import { useState, type JSX } from "react";
 import { Text, View } from "react-native";
 
 import { api } from "@convex/_generated/api";
@@ -10,6 +10,7 @@ import { PillButton, PillRow } from "@/components/ui/pill-button";
 import { featureProgress, plural } from "@/components/board/board-stats";
 import { TaskRow } from "@/components/ui/task-row";
 import { featureTeam, teamRole } from "@/components/feature/feature-team";
+import { ShipSheet } from "@/components/feature/ship-sheet";
 import { CountdownCard } from "@/components/task/countdown-card";
 import {
   DetailPage,
@@ -59,6 +60,7 @@ function PhoneFeature({ featureId }: { featureId: Id<"features"> }): JSX.Element
   const { s, content } = usePageSize();
   const c = usePageColors();
   const isAdmin = user.role === "admin";
+  const [shipping, setShipping] = useState(false);
 
   if (data === undefined) {
     return (
@@ -187,6 +189,16 @@ function PhoneFeature({ featureId }: { featureId: Id<"features"> }): JSX.Element
           </View>
         ) : null}
 
+        {isAdmin && feature.status === "internal_testing" ? (
+          <PillButton label="Mark as live" onPress={() => setShipping(true)} />
+        ) : null}
+        {shipping ? (
+          <ShipSheet
+            featureId={feature._id}
+            title={feature.title}
+            onClose={() => setShipping(false)}
+          />
+        ) : null}
         {isAdmin ? (
           canAddWork ? (
             <PillRow>

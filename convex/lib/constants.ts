@@ -18,6 +18,9 @@ export const DAILY_LOG_LIMITS = {
   edits: 50,
 } as const;
 
+/** Peer review and verification (Phase 6): a request's or decision's note, and a proof link. */
+export const REVIEW_LIMITS = { note: 1000, url: 500 } as const;
+
 /** How long an invite (and its code) stays usable. */
 export const INVITE_DAYS = 14;
 

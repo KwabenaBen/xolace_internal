@@ -12,9 +12,9 @@ import {
   isPending,
   isReady,
   loadReviews,
-  REVIEW_LIMITS,
   rollUpFeature,
 } from "./lib/reviews";
+import { REVIEW_LIMITS } from "./lib/constants";
 import { cleanText, isLiveTask, requireFeature, requireTask } from "./lib/tasks";
 import { verificationDecisionValidator } from "./lib/validators";
 import {

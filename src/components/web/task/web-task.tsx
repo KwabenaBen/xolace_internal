@@ -27,7 +27,16 @@ import { ExtensionSheet } from "@/components/task/extension-sheet";
 import { TaskBanner } from "@/components/task/task-panels";
 import { TaskHistory } from "@/components/task/task-history";
 import { UpdateSheet } from "@/components/task/update-sheet";
-import { taskFacts, useTaskData, type TaskExtensions } from "@/components/task/use-task-state";
+import { ReviewPanel } from "@/components/task/review-panel";
+import { ReviewSheet } from "@/components/task/review-sheet";
+import {
+  nextReviewStep,
+  taskFacts,
+  useTaskData,
+  type TaskExtensions,
+  type TaskReviews,
+} from "@/components/task/use-task-state";
+import { verifiedBy } from "@/components/task/verifiers";
 import { clampPercent } from "@/components/ui/progress-bar";
 import { StatusPill } from "@/components/ui/task-row";
 import { colors, fonts, usePageColors } from "@/components/ui/theme";
@@ -44,6 +53,9 @@ import { webType } from "../web-theme";
 
 /** The panel's width beside the page; expanded, it takes the whole page area. */
 const PANEL_WIDTH = 760;
+
+/** The cards the panel opens: an update, more time, a peer review request, a submission. */
+type Sheet = "update" | "extend" | "peer" | "submit";
 
 /** Closing: back to the page underneath (or the Board when the task was opened from a link). */
 function useClose(): () => void {
@@ -169,9 +181,9 @@ function TaskPanelBody({
   onSheet: (open: boolean) => void;
 }): JSX.Element {
   const c = usePageColors();
-  const { data, extensions, windowHours } = useTaskData(taskId);
-  const [open, setOpenState] = useState<"update" | "extend" | null>(null);
-  const setOpen = (next: "update" | "extend" | null) => {
+  const { data, extensions, reviews, windowHours } = useTaskData(taskId);
+  const [open, setOpenState] = useState<Sheet | null>(null);
+  const setOpen = (next: Sheet | null) => {
     setOpenState(next);
     onSheet(next !== null);
   };
@@ -214,11 +226,21 @@ function TaskPanelBody({
         task={data.task}
         feature={data.feature}
         extensions={extensions}
+        reviews={reviews}
         windowHours={windowHours}
         twoColumns={twoColumns}
         onOpenSheet={setOpen}
       />
       {open === "update" ? <UpdateSheet task={data.task} onClose={() => setOpen(null)} /> : null}
+      {open === "peer" || open === "submit" ? (
+        <ReviewSheet
+          mode={open}
+          taskId={data.task._id}
+          reviewerName={data.task.peerReviewer?.name}
+          verifierWords={reviews !== undefined ? verifiedBy(reviews.verifier) : undefined}
+          onClose={() => setOpen(null)}
+        />
+      ) : null}
       {open === "extend" && data.task.deadline !== undefined ? (
         <ExtensionSheet
           taskId={data.task._id}
@@ -368,6 +390,7 @@ function TaskContent({
   task,
   feature,
   extensions,
+  reviews,
   windowHours,
   twoColumns,
   onOpenSheet,
@@ -375,10 +398,11 @@ function TaskContent({
   task: TaskView;
   feature: Doc<"features">;
   extensions: TaskExtensions | undefined;
+  reviews: TaskReviews | undefined;
   windowHours: number;
   /** Expanded and grown: the reading on the left, the facts on the right. */
   twoColumns: boolean;
-  onOpenSheet: (sheet: "update" | "extend") => void;
+  onOpenSheet: (sheet: Sheet) => void;
 }): JSX.Element {
   const c = usePageColors();
   const user = useSignedInUser();
@@ -387,6 +411,12 @@ function TaskContent({
   const isAdmin = user.role === "admin";
   const facts = taskFacts(task, feature, extensions, user._id);
   const { isProposal, isDeclined, isLive, canUpdate, pending, hasPending, cantAsk } = facts;
+  const step = nextReviewStep(reviews);
+  // Ready to submit, but nobody could verify it: say why instead of offering the button.
+  const cantSubmit =
+    canUpdate && reviews !== undefined && !reviews.needsPeerReview && !reviews.hasVerifier
+      ? verifiedBy(reviews.verifier)
+      : null;
 
   const edit = () =>
     router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId: task._id } });
@@ -491,10 +521,18 @@ function TaskContent({
       {canUpdate || (isAdmin && !isDeclined) ? (
         <View style={{ gap: 10 }}>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+            {canUpdate && step !== null ? (
+              <ActionButton
+                label={step === "peer" ? "Ask for a peer review" : "Submit for verification"}
+                icon={step === "peer" ? "git-pull-request-outline" : "checkmark-done-outline"}
+                onPress={() => onOpenSheet(step)}
+              />
+            ) : null}
             {canUpdate ? (
               <ActionButton
                 label="Post an update"
                 icon="pulse-outline"
+                variant={step !== null ? "secondary" : "primary"}
                 onPress={() => onOpenSheet("update")}
               />
             ) : null}
@@ -517,6 +555,9 @@ function TaskContent({
           </View>
           {canUpdate && !hasPending && cantAsk !== null ? (
             <Text style={{ ...webType.small, color: c.muted }}>{cantAsk}</Text>
+          ) : null}
+          {cantSubmit !== null ? (
+            <Text style={{ ...webType.small, color: c.muted }}>{cantSubmit}</Text>
           ) : null}
         </View>
       ) : null}
@@ -561,6 +602,15 @@ function TaskContent({
           myId={user._id}
           alreadyLate={task.countsAsLate}
           approveBlock={facts.approveBlock}
+        />
+      ) : null}
+      {isLive && reviews !== undefined ? (
+        <ReviewPanel
+          key={reviews.pending?._id ?? "none"}
+          s={1}
+          task={task}
+          reviews={reviews}
+          now={now}
         />
       ) : null}
 

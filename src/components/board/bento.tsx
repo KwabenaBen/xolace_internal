@@ -18,20 +18,22 @@ import { colors, fonts } from "@/components/ui/theme";
 /** Montserrat's ascender per point of size: a line's top is `baseline - ASCENT * size`. */
 const ASCENT = 0.968;
 
-type Waiting = { proposals: number; extensions: number };
+type Waiting = { proposals: number; extensions: number; reviews: number };
 
-/** "2 proposals", "1 request" (for more time), or "3 pending" when it's both. */
-function waitingWords({ proposals, extensions }: Waiting): string {
-  if (extensions === 0) return plural(proposals, "proposal");
-  if (proposals === 0) return plural(extensions, "request");
-  return `${proposals + extensions} pending`;
+/** "2 proposals", "1 request" (for more time), "1 review", or "3 pending" when it's a mix. */
+function waitingWords({ proposals, extensions, reviews }: Waiting): string {
+  const kinds = [proposals, extensions, reviews].filter((n) => n > 0).length;
+  if (kinds > 1) return `${proposals + extensions + reviews} pending`;
+  if (extensions > 0) return plural(extensions, "request");
+  if (reviews > 0) return plural(reviews, "review");
+  return plural(proposals, "proposal");
 }
 
 type BentoProps = {
   s: number;
   pit: SharedValue<number>;
   stats: BoardStats;
-  /** Proposals and requests for more time waiting for a decision. */
+  /** Proposals, requests for more time and reviews waiting for a decision. */
   waiting: Waiting;
   now: number;
   isAdmin: boolean;
@@ -385,7 +387,7 @@ function WaitingTile({
       s={s}
       pit={pit}
       fill={colors.yellow}
-      label={`Waiting for a decision: ${plural(waiting.proposals, "proposal")} and ${plural(waiting.extensions, "request")} for more time. Opens the list.`}
+      label={`Waiting for a decision: ${plural(waiting.proposals, "proposal")}, ${plural(waiting.extensions, "request")} for more time and ${plural(waiting.reviews, "review")}. Opens the list.`}
       onPress={onPress}
     >
       <Mark

@@ -11,6 +11,7 @@ import { ruleValue } from "@/components/team-rules/rules";
 import { nobodyDecides } from "./deciders";
 
 export type TaskExtensions = FunctionReturnType<typeof api.extensions.forTask>;
+export type TaskReviews = FunctionReturnType<typeof api.reviews.forTask>;
 
 /**
  * Everything a task page loads: the task and its feature (`undefined` while loading, `null` if
@@ -20,6 +21,8 @@ export type TaskExtensions = FunctionReturnType<typeof api.extensions.forTask>;
 export function useTaskData(taskId: string): {
   data: FunctionReturnType<typeof api.tasks.get> | undefined;
   extensions: TaskExtensions | undefined;
+  /** Its peer reviews and verification (Phase 6), and what you can do with them. */
+  reviews: TaskReviews | undefined;
   windowHours: number;
 } {
   const data = useQuery(api.tasks.get, { taskId });
@@ -29,8 +32,17 @@ export function useTaskData(taskId: string): {
     api.extensions.forTask,
     loadedId !== undefined ? { taskId: loadedId } : "skip"
   );
+  const reviews = useQuery(
+    api.reviews.forTask,
+    loadedId !== undefined ? { taskId: loadedId } : "skip"
+  );
   const windowValue = ruleValue(rules, "extensionLateWindowHours");
-  return { data, extensions, windowHours: typeof windowValue === "number" ? windowValue : 24 };
+  return {
+    data,
+    extensions,
+    reviews,
+    windowHours: typeof windowValue === "number" ? windowValue : 24,
+  };
 }
 
 export type TaskFacts = {
@@ -86,4 +98,15 @@ export function taskFacts(
         : null,
     approveBlock,
   };
+}
+
+/**
+ * The owner's next review step, if they can take it now: "peer" (ask the peer reviewer to review
+ * a code task) or "submit" (submit it for verification). Null otherwise (the server checks too).
+ */
+export function nextReviewStep(reviews: TaskReviews | undefined): "peer" | "submit" | null {
+  if (reviews === undefined) return null;
+  if (reviews.canSubmit) return "submit";
+  if (reviews.canAskPeerReview && reviews.needsPeerReview) return "peer";
+  return null;
 }

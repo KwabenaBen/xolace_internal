@@ -24,7 +24,10 @@ import { ExtensionSheet } from "@/components/task/extension-sheet";
 import { OwnerActions, TaskActions } from "@/components/task/task-actions";
 import { TaskHistory } from "@/components/task/task-history";
 import { UpdateSheet } from "@/components/task/update-sheet";
-import { taskFacts, useTaskData } from "@/components/task/use-task-state";
+import { nextReviewStep, taskFacts, useTaskData } from "@/components/task/use-task-state";
+import { ReviewPanel } from "@/components/task/review-panel";
+import { ReviewSheet } from "@/components/task/review-sheet";
+import { verifiedBy } from "@/components/task/verifiers";
 import { WebTaskPanel } from "@/components/web/task/web-task";
 import { PageHeader } from "@/components/ui/page-header";
 import { CriteriaCard, DescriptionCard, TaskBanner } from "@/components/task/task-panels";
@@ -52,7 +55,7 @@ export default function TaskScreen(): JSX.Element {
 
 /** The phone's task page (described above the default export). */
 function PhoneTask({ taskId }: { taskId: Id<"tasks"> }): JSX.Element {
-  const { data, extensions, windowHours } = useTaskData(taskId);
+  const { data, extensions, reviews, windowHours } = useTaskData(taskId);
   const user = useSignedInUser();
   const router = useRouter();
   const goBack = useGoBack();
@@ -60,7 +63,7 @@ function PhoneTask({ taskId }: { taskId: Id<"tasks"> }): JSX.Element {
   const isAdmin = user.role === "admin";
   const c = usePageColors();
   const now = useNow();
-  const [open, setOpen] = useState<"update" | "extend" | null>(null);
+  const [open, setOpen] = useState<"update" | "extend" | "peer" | "submit" | null>(null);
 
   let body: JSX.Element;
   if (data === undefined) {
@@ -79,6 +82,12 @@ function PhoneTask({ taskId }: { taskId: Id<"tasks"> }): JSX.Element {
       cantAsk,
       approveBlock,
     } = taskFacts(task, feature, extensions, user._id);
+    const step = nextReviewStep(reviews);
+    // Ready to submit, but nobody could verify it: say why instead of offering the button.
+    const cantSubmit =
+      canUpdate && reviews !== undefined && !reviews.needsPeerReview && !reviews.hasVerifier
+        ? verifiedBy(reviews.verifier)
+        : null;
     const edit = () =>
       router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId: task._id } });
     // Owner and reviewer cards open that person's work on this feature.
@@ -192,6 +201,15 @@ function PhoneTask({ taskId }: { taskId: Id<"tasks"> }): JSX.Element {
             approveBlock={approveBlock}
           />
         ) : null}
+        {isLive && reviews !== undefined ? (
+          <ReviewPanel
+            key={reviews.pending?._id ?? "none"}
+            s={s}
+            task={task}
+            reviews={reviews}
+            now={now}
+          />
+        ) : null}
 
         {!isDeclined ? (
           <CountdownCard
@@ -218,12 +236,27 @@ function PhoneTask({ taskId }: { taskId: Id<"tasks"> }): JSX.Element {
               canExtend={!hasPending && cantAsk === null && task.deadline !== undefined}
               onUpdate={() => setOpen("update")}
               onExtend={() => setOpen("extend")}
+              review={
+                step === null
+                  ? null
+                  : {
+                      label: step === "peer" ? "Ask for a peer review" : "Submit for verification",
+                      onPress: () => setOpen(step),
+                    }
+              }
             />
             {!hasPending && cantAsk !== null ? (
               <Text
                 style={{ fontFamily: fonts.medium, fontSize: 13, lineHeight: 19, color: c.muted }}
               >
                 {cantAsk}
+              </Text>
+            ) : null}
+            {cantSubmit !== null ? (
+              <Text
+                style={{ fontFamily: fonts.medium, fontSize: 13, lineHeight: 19, color: c.muted }}
+              >
+                {cantSubmit}
               </Text>
             ) : null}
           </View>
@@ -247,6 +280,15 @@ function PhoneTask({ taskId }: { taskId: Id<"tasks"> }): JSX.Element {
         <TaskHistory s={s} taskId={task._id} canComment={!isDeclined} />
 
         {open === "update" ? <UpdateSheet task={task} onClose={() => setOpen(null)} /> : null}
+        {open === "peer" || open === "submit" ? (
+          <ReviewSheet
+            mode={open}
+            taskId={task._id}
+            reviewerName={task.peerReviewer?.name}
+            verifierWords={reviews !== undefined ? verifiedBy(reviews.verifier) : undefined}
+            onClose={() => setOpen(null)}
+          />
+        ) : null}
         {open === "extend" && task.deadline !== undefined ? (
           <ExtensionSheet
             taskId={task._id}

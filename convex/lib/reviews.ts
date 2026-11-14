@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { logActivity } from "./activity";
+import { REVIEW_LIMITS } from "./constants";
 import { appError } from "./errors";
 import { isLiveTask } from "./tasks";
 import type { FeatureStatus, TaskStatus } from "./validators";
@@ -23,9 +24,6 @@ export const READY_STATUSES = [
 export function isReady(status: TaskStatus): boolean {
   return (READY_STATUSES as readonly TaskStatus[]).includes(status);
 }
-
-/** Limits on what a request or a decision carries. */
-export const REVIEW_LIMITS = { note: 1000, url: 500 } as const;
 
 export function isPending(row: Doc<"verifications">): boolean {
   return row.decision === undefined && row.withdrawnAt === undefined;

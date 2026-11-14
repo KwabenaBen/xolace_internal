@@ -18,6 +18,7 @@ import type { TaskView, UserSummary } from "@convex/lib/views";
 
 import { featureProgress, plural } from "@/components/board/board-stats";
 import { featureTeam, teamRole, type TeamMember } from "@/components/feature/feature-team";
+import { ShipSheet } from "@/components/feature/ship-sheet";
 import { Avatar, pastelFor } from "@/components/people/avatar";
 import { colors, fonts, PAPER, STATUS_COLORS, usePageColors } from "@/components/ui/theme";
 import { FEATURE_STATUS_LABELS, LIVE_STATUS_ORDER, TASK_STATUS_LABELS } from "@/constants/labels";
@@ -88,6 +89,7 @@ export function WebFeatureView({ data }: { data: FeatureData }): JSX.Element {
   const now = useNow();
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<TaskTab>("all");
+  const [shipping, setShipping] = useState(false);
 
   const { feature, createdBy, tasks, proposals } = data;
   const isAdmin = user.role === "admin";
@@ -133,6 +135,13 @@ export function WebFeatureView({ data }: { data: FeatureData }): JSX.Element {
           current={feature.title}
         />
         <View style={{ flexDirection: "row", gap: 10 }}>
+          {isAdmin && feature.status === "internal_testing" ? (
+            <ActionButton
+              label="Mark as live"
+              icon="rocket-outline"
+              onPress={() => setShipping(true)}
+            />
+          ) : null}
           {isAdmin ? (
             <ActionButton
               label="Edit feature"
@@ -152,6 +161,13 @@ export function WebFeatureView({ data }: { data: FeatureData }): JSX.Element {
       </View>
 
       <Hero data={data} createdBy={createdBy} now={now} />
+      {shipping ? (
+        <ShipSheet
+          featureId={feature._id}
+          title={feature.title}
+          onClose={() => setShipping(false)}
+        />
+      ) : null}
 
       <StatusStrip tasks={tasks} />
 

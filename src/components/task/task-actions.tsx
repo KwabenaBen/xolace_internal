@@ -51,26 +51,41 @@ export function TaskActions({
 
 /**
  * The owner's buttons while the task is in their hands: post an update (status, progress, a
- * note) and ask for more time. Asking is hidden while a request is already waiting.
+ * note) and ask for more time (hidden while a request is already waiting). When it's ready for
+ * the next step (`review`: "Ask for a peer review" on a code task, then "Submit for verification")
+ * that's the main button, above the others.
  */
 export function OwnerActions({
   canExtend,
   onUpdate,
   onExtend,
+  review,
 }: {
   canExtend: boolean;
   onUpdate: () => void;
   onExtend: () => void;
+  review?: { label: string; onPress: () => void } | null;
 }): JSX.Element {
-  return canExtend ? (
-    <PillRow>
-      <PillButton label="Ask for more time" variant="secondary" onPress={onExtend} />
-      <PillButton label="Post an update" onPress={onUpdate} />
-    </PillRow>
-  ) : (
-    <PillRow>
-      <PillButton label="Post an update" onPress={onUpdate} />
-    </PillRow>
+  const main = review !== undefined && review !== null;
+  const update = (
+    <PillButton
+      label="Post an update"
+      variant={main ? "secondary" : "primary"}
+      onPress={onUpdate}
+    />
+  );
+  return (
+    <View style={{ gap: 12 }}>
+      {main ? <PillButton label={review.label} onPress={review.onPress} /> : null}
+      {canExtend ? (
+        <PillRow>
+          <PillButton label="Ask for more time" variant="secondary" onPress={onExtend} />
+          {update}
+        </PillRow>
+      ) : (
+        <PillRow>{update}</PillRow>
+      )}
+    </View>
   );
 }
 

@@ -23,6 +23,7 @@ import {
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionTitle } from "@/components/ui/panel";
 import { ExtensionRow } from "@/components/task/extension-row";
+import { TaskRow } from "@/components/ui/task-row";
 import { useNow } from "@/lib/use-now";
 
 /**
@@ -38,7 +39,8 @@ export default function BoardListScreen(): JSX.Element {
   const { s, content } = usePageSize();
   const known = isBoardListView(view);
 
-  const board = useQuery(api.tasks.board, known && view !== "waiting" ? {} : "skip");
+  // The waiting page uses it too, for the tasks in review.
+  const board = useQuery(api.tasks.board, known ? {} : "skip");
   const proposals = useQuery(api.tasks.proposals, view === "waiting" ? {} : "skip");
   const extensions = useQuery(api.extensions.pending, view === "waiting" ? {} : "skip");
   const openTask = (taskId: string) =>
@@ -53,6 +55,15 @@ export default function BoardListScreen(): JSX.Element {
   }
   const copy = known ? BOARD_LISTS[view] : null;
   const count = groups?.reduce((sum, group) => sum + group.tasks.length, 0);
+  // Tasks with their peer reviewer or a verifier (waiting page only).
+  const inReview =
+    view === "waiting"
+      ? (board ?? []).flatMap((group) =>
+          group.tasks
+            .filter((task) => task.status === "in_peer_review" || task.status === "submitted")
+            .map((task) => ({ task, featureTitle: group.feature.title }))
+        )
+      : [];
 
   return (
     <DetailPage title={copy?.title ?? "Board"} content={content}>
@@ -67,13 +78,30 @@ export default function BoardListScreen(): JSX.Element {
               count !== undefined
                 ? `${
                     view === "waiting"
-                      ? `${plural(extensions?.length ?? 0, "request")} · ${plural(count, "proposal")}`
+                      ? `${plural(inReview.length, "review")} · ${plural(extensions?.length ?? 0, "request")} · ${plural(count, "proposal")}`
                       : plural(count, "task")
                   } · ${copy.subtitle}`
                 : copy.subtitle
             }
             onBack={goBack}
           />
+          {inReview.length > 0 ? (
+            <View style={{ gap: 12 * s }}>
+              <SectionTitle s={s} title="In review" count={inReview.length} />
+              {inReview.map(({ task, featureTitle }) => (
+                <TaskRow
+                  key={task._id}
+                  task={task}
+                  now={now}
+                  featureTitle={featureTitle}
+                  onPress={() => openTask(task._id)}
+                />
+              ))}
+              {extensions === undefined || extensions.length === 0 ? (
+                <SectionTitle s={s} title="Proposals" count={count} />
+              ) : null}
+            </View>
+          ) : null}
           {view === "waiting" && extensions !== undefined && extensions.length > 0 ? (
             <View style={{ gap: 12 * s }}>
               <SectionTitle s={s} title="More time asked for" count={extensions.length} />

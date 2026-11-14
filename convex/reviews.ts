@@ -188,7 +188,9 @@ export const decidePeerReview = mutation({
 
 /**
  * Owner: submit the task for verification with a note (required) and a link as proof (optional).
- * A code task needs a peer review approved since changes were last asked for.
+ * A code task needs a peer review approved since changes were last asked for. Submitting says
+ * "it's done", so progress goes to 100% (the user's call, 14 Nov: no "Submitted at 40%"; the
+ * button isn't held back until 100%). Changes asked for leave it there; the owner can lower it.
  */
 export const submit = mutation({
   args: { taskId: v.id("tasks"), note: v.string(), proofUrl: v.optional(v.string()) },
@@ -229,15 +231,15 @@ export const submit = mutation({
       note,
       proofUrl,
     });
-    await setStatus(ctx, task, { status: "submitted", submittedAt: Date.now() });
+    await setStatus(ctx, task, { status: "submitted", submittedAt: Date.now(), progress: 100 });
     await logActivity(ctx, {
       actorId: user._id,
       entityType: "verification",
       entityId: reviewId,
       taskId: task._id,
       action: "task.submitted",
-      before: { status: task.status },
-      after: { status: "submitted", note, proofUrl },
+      before: { status: task.status, progress: task.progress },
+      after: { status: "submitted", progress: 100, note, proofUrl },
     });
     await rollUpFeature(ctx, task.featureId);
     return reviewId;

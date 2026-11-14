@@ -266,7 +266,9 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   pending per task. The owner asks (from to do / in progress / changes requested, never blocked):
   a code task goes to its peer reviewer, who approves (→ in progress) or sends it back with a
   reason (→ changes requested); the owner then submits any task with a note (required) and a link
-  (`cleanProofUrl`: http(s) only; **links only**, no screenshots, the user's call 14 Nov). A code
+  (`cleanProofUrl`: http(s) only; **links only**, no screenshots, the user's call 14 Nov), which
+  sets progress to 100% (the button isn't held back until 100%; changes asked for leave the
+  progress alone; the user's call 14 Nov). A code
   task needs a peer approval since changes were last asked for (`hasCurrentPeerApproval`, by
   request order), so a verifier's changes send it back through peer review. Verifiers =
   `loadDeciders` (the extensions rule); verify needs every criterion ticked (`criteriaMet`,

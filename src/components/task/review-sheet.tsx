@@ -22,7 +22,8 @@ function linkProblem(link: string): string | null {
 /**
  * The owner's request, in a card over the page: ask the peer reviewer to review a code task
  * (`peer`: a note and a link, both optional), or submit a task for verification (`submit`: a note,
- * needed, and a link as proof, optional: a PR, a build, a page). Links only for now.
+ * needed, and a link as proof, optional: a PR, a build, a page). Links only for now. Submitting
+ * sets progress to 100% (reviews.submit), and the card says so.
  */
 export function ReviewSheet({
   mode,
@@ -59,7 +60,7 @@ export function ReviewSheet({
       note={
         peer
           ? `${reviewerName ?? "The peer reviewer"} reviews the code, then approves it or sends it back with comments.`
-          : `${verifierWords ?? "An admin verifies it."} They check each acceptance criterion.`
+          : `${verifierWords ?? "An admin verifies it."} They check each acceptance criterion. Submitting marks it 100% done.`
       }
       // Always sendable once it's valid (a peer review needs nothing typed).
       isChanged

@@ -179,6 +179,8 @@ describe("peer review, submission and verification", () => {
       note: "The right code is rejected too.",
     });
     expect((await task(t, taskId)).status).toBe("changes_requested");
+    // Progress stays where submitting put it; the owner lowers it with an update if they want.
+    expect((await task(t, taskId)).progress).toBe(100);
     await expectAppError(
       cto.asUser.mutation(api.reviews.submit, { taskId, note: "Fixed." }),
       "INVALID_ARGUMENT"
@@ -241,8 +243,16 @@ describe("peer review, submission and verification", () => {
       coo.asUser.mutation(api.reviews.submit, { taskId, note: "Not mine." }),
       "FORBIDDEN"
     );
+    // Submitting from 0%: it says "done", so progress goes to 100% (and the log says so).
+    expect((await task(t, taskId)).progress).toBe(0);
     await cto.asUser.mutation(api.reviews.submit, { taskId, note: "All three screens." });
     expect((await task(t, taskId)).status).toBe("submitted");
+    expect((await task(t, taskId)).progress).toBe(100);
+    const entry = await t.run(async (ctx) =>
+      (await ctx.db.query("activity").collect()).find((a) => a.action === "task.submitted")
+    );
+    expect(entry?.before).toMatchObject({ progress: 0 });
+    expect(entry?.after).toMatchObject({ progress: 100 });
     // Nothing else can be asked for while it waits.
     await expectAppError(
       cto.asUser.mutation(api.reviews.submit, { taskId, note: "Again." }),

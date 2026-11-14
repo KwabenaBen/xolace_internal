@@ -109,8 +109,10 @@ last arrives in Phase 7.
    (**Changes requested**).
 8. **Submit (built).** The owner submits with a note (required) and a link as proof (a PR, a
    build, a document; links only for now, no screenshots). A code task needs its reviewer's
-   approval first. The task becomes **Submitted**; the owner's part is done, though they can take
-   it back while it waits.
+   approval first. The task becomes **Submitted** and its progress goes to 100% (submitting means
+   "it's done"; there's no need to move the bar first). The owner's part is done, though they can
+   take it back while it waits. If changes are asked for, progress stays at 100% until the owner
+   lowers it with an update.
 9. **Verify (built).** The verifier ticks each acceptance criterion; the task is **Verified** (at
    100%) only once every one is ticked. Otherwise it goes to **Changes requested** with a reason
    and back to step 5, and a code task goes through peer review again. Admins verify; a task an

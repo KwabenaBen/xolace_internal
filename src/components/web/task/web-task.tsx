@@ -30,7 +30,9 @@ import { UpdateSheet } from "@/components/task/update-sheet";
 import { ReviewPanel } from "@/components/task/review-panel";
 import { ReviewSheet } from "@/components/task/review-sheet";
 import {
+  lockedNote,
   nextReviewStep,
+  reviewBlocker,
   taskFacts,
   useTaskData,
   type TaskExtensions,
@@ -412,11 +414,8 @@ function TaskContent({
   const facts = taskFacts(task, feature, extensions, user._id);
   const { isProposal, isDeclined, isLive, canUpdate, pending, hasPending, cantAsk } = facts;
   const step = nextReviewStep(reviews);
-  // Ready to submit, but nobody could verify it: say why instead of offering the button.
-  const cantSubmit =
-    canUpdate && reviews !== undefined && !reviews.needsPeerReview && !reviews.hasVerifier
-      ? verifiedBy(reviews.verifier)
-      : null;
+  // No review button right now (blocked, no reviewer or verifier…): say why in its place.
+  const cantSubmit = reviewBlocker(task, reviews, canUpdate);
 
   const edit = () =>
     router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId: task._id } });
@@ -548,7 +547,7 @@ function TaskContent({
               <AdminActions
                 taskId={task._id}
                 isProposal={isProposal}
-                isLocked={isPlanLocked(task.status)}
+                lockedNote={isPlanLocked(task.status) ? lockedNote(task.status) : null}
                 onEdit={edit}
               />
             ) : null}
@@ -881,12 +880,13 @@ function PersonRow({
 function AdminActions({
   taskId,
   isProposal,
-  isLocked,
+  lockedNote,
   onEdit,
 }: {
   taskId: Id<"tasks">;
   isProposal: boolean;
-  isLocked: boolean;
+  /** Why the plan can't change (in review, submitted or verified), or null when it can. */
+  lockedNote: string | null;
   onEdit: () => void;
 }): JSX.Element | null {
   const c = usePageColors();
@@ -916,11 +916,9 @@ function AdminActions({
   }
 
   if (!isProposal) {
-    if (isLocked) {
+    if (lockedNote !== null) {
       return (
-        <Text style={{ ...webType.small, color: c.muted, alignSelf: "center" }}>
-          The plan is locked while it&apos;s in review, submitted or verified.
-        </Text>
+        <Text style={{ ...webType.small, color: c.muted, alignSelf: "center" }}>{lockedNote}</Text>
       );
     }
     return (

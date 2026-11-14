@@ -3,12 +3,14 @@ import type { FunctionReturnType } from "convex/server";
 
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
+import { REVIEW_LIMITS } from "@convex/lib/constants";
 import { isOwnerWorking } from "@convex/lib/validators";
 import type { TaskView } from "@convex/lib/views";
 
 import { ruleValue } from "@/components/team-rules/rules";
 
 import { nobodyDecides } from "./deciders";
+import { verifiedBy } from "./verifiers";
 
 export type TaskExtensions = FunctionReturnType<typeof api.extensions.forTask>;
 export type TaskReviews = FunctionReturnType<typeof api.reviews.forTask>;
@@ -109,4 +111,39 @@ export function nextReviewStep(reviews: TaskReviews | undefined): "peer" | "subm
   if (reviews.canSubmit) return "submit";
   if (reviews.canAskPeerReview && reviews.needsPeerReview) return "peer";
   return null;
+}
+
+/**
+ * Why the owner has no review button right now, in words (shown in its place), or null when
+ * there's nothing to explain: blocked, the peer reviewer deactivated, nobody to verify, or the
+ * task out of reviews. Only while the task is in their hands and nothing is waiting.
+ */
+export function reviewBlocker(
+  task: TaskView,
+  reviews: TaskReviews | undefined,
+  canUpdate: boolean
+): string | null {
+  if (!canUpdate || reviews === undefined || reviews.pending !== null) return null;
+  if (nextReviewStep(reviews) !== null) return null;
+  const toPeer = reviews.needsPeerReview;
+  if (task.status === "blocked") {
+    return toPeer
+      ? "Unblock it (Post an update) to ask for a peer review."
+      : "Unblock it (Post an update) to submit it for verification.";
+  }
+  if (reviews.history.length >= REVIEW_LIMITS.requestsPerTask) {
+    return `This task has had ${REVIEW_LIMITS.requestsPerTask} reviews, the most one task can have. Ask an admin to split the work into a new task.`;
+  }
+  if (toPeer && task.peerReviewer?.isActive === false) {
+    return `${task.peerReviewer.name}, the peer reviewer, has been deactivated. Ask an admin to choose another peer reviewer.`;
+  }
+  if (!toPeer && !reviews.hasVerifier) return verifiedBy(reviews.verifier);
+  return null;
+}
+
+/** Why an admin can't edit a task's plan (in review, submitted or verified). */
+export function lockedNote(status: TaskView["status"]): string {
+  return status === "verified"
+    ? "This task is verified, so its plan is final."
+    : "Its plan is locked while it's with its reviewer. It unlocks if it's sent back, or if the owner takes it back.";
 }

@@ -2,29 +2,34 @@ import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { Button, Spinner } from "heroui-native";
 import type { JSX } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { api } from "@convex/_generated/api";
 
 import { Screen } from "@/components/screen";
 import { ExtensionRow } from "@/components/task/extension-row";
 import { SectionTitle } from "@/components/ui/panel";
-import { TaskRow } from "@/components/ui/task-row";
+import { FeatureStatusPill, TaskRow } from "@/components/ui/task-row";
 import { fonts, usePageColors } from "@/components/ui/theme";
 import { useNow } from "@/lib/use-now";
 
 /**
  * The Admin tab, shown to admins only (every admin action is also checked on the server):
- * submissions to verify, requests for more time that are theirs to decide, the team's task
- * proposals waiting for review, and New feature. Invites and the team live in Settings → People.
+ * submissions to verify, features ready to go live (every task verified: Mark as live is on the
+ * feature's page), requests for more time that are theirs to decide, the team's task proposals
+ * waiting for review, and New feature. Invites and the team live in Settings → People.
  */
 export default function AdminScreen(): JSX.Element {
   const router = useRouter();
   const proposals = useQuery(api.tasks.proposals);
   const extensions = useQuery(api.extensions.pending);
   const reviews = useQuery(api.reviews.waiting);
+  const features = useQuery(api.features.list);
   const toDecide = (extensions ?? []).filter((e) => e.canDecide);
   const toVerify = reviews?.verifications ?? [];
+  const readyToShip = (features ?? []).filter((f) => f.status === "internal_testing");
+  const openFeature = (featureId: string) =>
+    router.push({ pathname: "/features/[featureId]", params: { featureId } });
   const openTask = (taskId: string) =>
     router.push({ pathname: "/tasks/[taskId]", params: { taskId } });
   const now = useNow();
@@ -34,7 +39,7 @@ export default function AdminScreen(): JSX.Element {
   return (
     <Screen
       title="Admin"
-      subtitle="Tasks to verify, requests and proposals waiting for you. Invites are in Settings → People."
+      subtitle="Tasks to verify, features ready to go live, requests and proposals waiting for you. Invites are in Settings → People."
       action={
         <Button size="sm" onPress={() => router.push("/features/new")}>
           New feature
@@ -52,6 +57,46 @@ export default function AdminScreen(): JSX.Element {
               featureTitle={item.feature?.title}
               onPress={() => openTask(item.task._id)}
             />
+          ))}
+        </View>
+      ) : null}
+      {readyToShip.length > 0 ? (
+        <View style={{ gap: 12 }}>
+          <SectionTitle s={1} title="Ready to go live" count={readyToShip.length} />
+          {readyToShip.map((feature) => (
+            <Pressable
+              key={feature._id}
+              accessibilityRole="button"
+              accessibilityLabel={`${feature.title}. Every task is verified. Opens the feature, where you can mark it as live.`}
+              onPress={() => openFeature(feature._id)}
+              style={({ pressed }) => ({
+                borderRadius: 18,
+                borderCurve: "continuous",
+                backgroundColor: c.panelRaised,
+                padding: 14,
+                gap: 8,
+                opacity: pressed ? 0.75 : 1,
+              })}
+            >
+              <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+                <Text
+                  numberOfLines={2}
+                  style={{
+                    flex: 1,
+                    fontFamily: fonts.semibold,
+                    fontSize: 15,
+                    lineHeight: 20,
+                    color: c.text,
+                  }}
+                >
+                  {feature.title}
+                </Text>
+                <FeatureStatusPill status={feature.status} />
+              </View>
+              <Text style={{ fontFamily: fonts.medium, fontSize: 12, color: c.muted }}>
+                Every task is verified · Mark as live on its page
+              </Text>
+            </Pressable>
           ))}
         </View>
       ) : null}

@@ -34,12 +34,12 @@ export function ShipSheet({
           description: "It moves to Shipped and takes no new tasks.",
           confirm: {
             title: "Mark it as live?",
-            message: `${title} moves to Shipped. Shipped features take no new tasks or proposals, and this can't be undone.`,
+            message: `${title} moves to Shipped. Shipped features take no new tasks or proposals (any still waiting must be decided first), and this can't be undone.`,
             label: "Mark as live",
           },
           run: async () => {
             await markShipped({ featureId });
-            toast("Feature is live");
+            toast("Marked as live");
           },
         },
       ]}

@@ -134,14 +134,17 @@ export default defineSchema({
     reviewerId: v.optional(v.id("users")),
     reason: v.optional(v.string()),
     decidedAt: v.optional(v.number()),
-    // Verification only: which acceptance criteria the verifier ticked, in the task's order.
+    // Verification only: which acceptance criteria the verifier ticked (`criteriaMet`), against
+    // the criteria as they were then (`criteria`; the plan can change once it's sent back).
     criteriaMet: v.optional(v.array(v.boolean())),
+    criteria: v.optional(v.array(v.string())),
     // Set when the owner takes a pending request back (it's then neither pending nor decided).
     withdrawnAt: v.optional(v.number()),
   })
     .index("by_taskId_and_stage", ["taskId", "stage"])
     .index("by_reviewerId_and_decision", ["reviewerId", "decision"])
-    .index("by_stage_and_decision", ["stage", "decision"]),
+    // Waiting requests: no decision and not taken back (`waiting` reads only these).
+    .index("by_stage_and_decision_and_withdrawnAt", ["stage", "decision", "withdrawnAt"]),
 
   // One per person per GMT day, written that day (convex/dailyLogs.ts). Editable until the day
   // ends, then locked; never deleted. A weekend log is one line (`done`) with no tasks.

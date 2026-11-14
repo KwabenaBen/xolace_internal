@@ -147,7 +147,8 @@ convex/                  Backend (deployed by `bunx convex dev`)
                          inactive gate
   users.ts invites.ts settings.ts   Public functions (invites: list, create, renew (new code),
                          revoke; internal newCode for the CLI)
-  features.ts            list, get, create, update, markShipped (admin; from Internal testing)
+  features.ts            list, get, create, update, markShipped (admin; from Internal testing);
+                         internal rollUpStages (CLI, once per deployment)
   reviews.ts             requestPeerReview + submit + withdraw (owner), decidePeerReview (the
                          peer reviewer), verify (verifiers: loadDeciders), forTask (history +
                          what you can do), waiting (yours to review or verify)
@@ -266,18 +267,27 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   pending per task. The owner asks (from to do / in progress / changes requested, never blocked):
   a code task goes to its peer reviewer, who approves (→ in progress) or sends it back with a
   reason (→ changes requested); the owner then submits any task with a note (required) and a link
-  (`cleanProofUrl`: http(s) only; **links only**, no screenshots, the user's call 14 Nov), which
+  (`cleanProofUrl`: parsed with `URL`, http(s) only, no user name/password, no spaces or hidden
+  characters, stored as `URL.href` so a look-alike host shows as punycode; the app re-checks the
+  scheme before opening; **links only**, no screenshots, the user's call 14 Nov), which
   sets progress to 100% (the button isn't held back until 100%; changes asked for leave the
   progress alone; the user's call 14 Nov). A code
   task needs a peer approval since changes were last asked for (`hasCurrentPeerApproval`, by
-  request order), so a verifier's changes send it back through peer review. Verifiers =
-  `loadDeciders` (the extensions rule); verify needs every criterion ticked (`criteriaMet`,
-  stored) and sets progress 100 + `verifiedAt`; changes need a reason. Submitting is refused when
-  nobody could verify. The owner can `withdraw` a pending request (→ in progress), the way out if
-  a reviewer is deactivated (the plan is locked while in review). **Feature stages roll up**
-  (`rollUpFeature`, called after every task status change): Planned → In progress when a live
-  task starts; → Internal testing when all are verified; back if not; Shipped only by
-  `features.markShipped` (admin, from Internal testing).
+  request order), given by its **current** peer reviewer on a request from its **current** owner
+  (a new owner or reviewer means a new review), so a verifier's changes send it back through peer
+  review. Verifiers = `loadDeciders` (the extensions rule); verify needs every criterion ticked
+  (`criteriaMet`, stored with a copy of the criteria as they were, `criteria`, since the plan can
+  change once sent back) and sets progress 100 + `verifiedAt`, and closes a request for more time
+  still waiting (status withdrawn); changes need a reason. Submitting is refused when nobody could
+  verify. The owner can `withdraw` a pending request (→ in progress), the way out if a reviewer is
+  deactivated (the plan is locked while in review; asking is refused, and `canAskPeerReview` is
+  false, while the reviewer is deactivated). At most `REVIEW_LIMITS.requestsPerTask` (50) requests
+  per task (`requireRoomForRequest`); `waiting` reads only real pending rows
+  (`by_stage_and_decision_and_withdrawnAt`). **Feature stages roll up** (`rollUpFeature`, called
+  after every task status change, its entry tagged with that task): Planned → In progress when a
+  live task starts; → Internal testing when all are verified; back if not; Shipped only by
+  `features.markShipped` (admin, from Internal testing, once no proposal waits on the feature).
+  `features:rollUpStages` (CLI) brings older features in line, once per deployment.
 - **Activity entries about a task carry `taskId`** (its changes, comments, extension requests,
   a feature moved by its extension), which is how `activity.forTask` finds them. Comments are
   read from the activity log, not the `comments` table.
@@ -425,6 +435,9 @@ UX, security) and write the findings up before moving on.
    while real work or the reviewer rule points at a demo person). To try the app as an admin or a member:
    `bunx convex run demo:setRole "{email:'you@example.com',role:'admin'}"` (and back with
    `role:'member'`).
+6. Once per deployment after Phase 6 arrives: `bunx convex run features:rollUpStages` (moves
+   each unshipped feature to the stage its tasks are at; before Phase 6 nothing moved a feature
+   on). Safe to re-run. Add `--prod` for production (ask first).
 
 **Daily**
 
@@ -480,14 +493,16 @@ UX, security) and write the findings up before moving on.
       a person's logs, the log form, "Daily logs" on People cards. End-of-phase audit done 14 Nov
       (System audit doc, "Phase 5 audit" tab); fixes on `cadence-web-sidebar` (which also holds
       the hover sidebar). Tick once the Logs screens are checked on iPhone._
-- [ ] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
+- [x] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
       verification queue (admin task reviewer for admin-owned tasks), feature status rollup.
       Branch `cadence-phase-6` (from `cadence-web-sidebar`, 14 Nov). _Server rules
       (`convex/reviews.ts`, `lib/reviews.ts`, `features.markShipped`); the review card and the
       owner's ask/submit sheet on the task page (phone and website panel), Reviews waiting on
-      you (My Tasks), To verify (Admin), In review on the waiting page, Mark as live on the
-      feature page. Links only as proof for now (the user's call). Still to do: the iPhone
-      check and the end-of-phase audit._
+      you (My Tasks), To verify and Ready to go live (Admin), In review on the waiting page, Mark
+      as live on the feature page. Links only as proof for now (the user's call). Ticked 14 Nov:
+      the user checked the review screens on iPhone and the owner's side on the website; the
+      end-of-phase audit is in the System audit doc's "Phase 6 audit" tab, its fixes on this
+      branch._
 - [ ] **Phase 7 — Notifications & release:** push tokens, immediate pushes, digest + reminder
       crons, empty/loading/error states, EAS build to TestFlight, web deploy.
 

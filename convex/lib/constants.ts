@@ -18,8 +18,12 @@ export const DAILY_LOG_LIMITS = {
   edits: 50,
 } as const;
 
-/** Peer review and verification (Phase 6): a request's or decision's note, and a proof link. */
-export const REVIEW_LIMITS = { note: 1000, url: 500 } as const;
+/**
+ * Peer review and verification (Phase 6): a request's or decision's note, a proof link, and how
+ * many requests one task can have (each is kept for good; asking and taking back can't go on
+ * forever, and a task's reviews are read in one go).
+ */
+export const REVIEW_LIMITS = { note: 1000, url: 500, requestsPerTask: 50 } as const;
 
 /** How long an invite (and its code) stays usable. */
 export const INVITE_DAYS = 14;

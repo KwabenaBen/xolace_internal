@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { toDateOnly } from "../lib/dates";
+import { cleanProofUrl } from "../lib/reviews";
 import { createTestConvex, expectAppError, insertUser, type TestConvex } from "../test.setup";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -363,5 +364,191 @@ describe("peer review, submission and verification", () => {
       coo.asUser.mutation(api.features.markShipped, { featureId }),
       "INVALID_ARGUMENT"
     );
+  });
+
+  test("a peer approval counts only from the current reviewer, for the current owner", async () => {
+    const { coo, ceo, cto, featureId } = await setup();
+    const taskId = await codeTask(coo.asUser, featureId, cto.userId, ceo.userId);
+    await cto.asUser.mutation(api.reviews.requestPeerReview, { taskId });
+    await ceo.asUser.mutation(api.reviews.decidePeerReview, { taskId, decision: "approved" });
+    // The admin swaps them round: the old reviewer can't submit on their own approval.
+    await coo.asUser.mutation(api.tasks.update, {
+      taskId,
+      title: "Sign-up API",
+      description: "",
+      kind: "code",
+      acceptanceCriteria: ["Rejects a wrong code", "Accepts the right one"],
+      ownerId: ceo.userId,
+      peerReviewerId: cto.userId,
+      deadline: inDays(10),
+      priority: "high",
+    });
+    const forCeo = await ceo.asUser.query(api.reviews.forTask, { taskId });
+    expect(forCeo.needsPeerReview).toBe(true);
+    expect(forCeo.canSubmit).toBe(false);
+    await expectAppError(
+      ceo.asUser.mutation(api.reviews.submit, { taskId, note: "Done." }),
+      "INVALID_ARGUMENT"
+    );
+  });
+
+  test("a deactivated peer reviewer: no asking, and the owner takes a waiting review back", async () => {
+    const { t, coo, ceo, cto, featureId } = await setup();
+    const taskId = await codeTask(coo.asUser, featureId, cto.userId, ceo.userId);
+    await cto.asUser.mutation(api.reviews.requestPeerReview, { taskId });
+    await coo.asUser.mutation(api.users.setActive, { userId: ceo.userId, isActive: false });
+    expect((await cto.asUser.query(api.reviews.forTask, { taskId })).canWithdraw).toBe(true);
+    await cto.asUser.mutation(api.reviews.withdraw, { taskId });
+    expect((await task(t, taskId)).status).toBe("in_progress");
+    // Taken back, it's no approval; asking again waits for an admin to pick another reviewer.
+    const after = await cto.asUser.query(api.reviews.forTask, { taskId });
+    expect(after.needsPeerReview).toBe(true);
+    expect(after.canAskPeerReview).toBe(false);
+    await expectAppError(
+      cto.asUser.mutation(api.reviews.requestPeerReview, { taskId }),
+      "INVALID_ARGUMENT"
+    );
+  });
+
+  test("taken-back requests leave the waiting lists; a task can't ask for ever", async () => {
+    const { coo, cto, featureId } = await setup();
+    const taskId = await contentTask(coo.asUser, featureId, cto.userId);
+    for (let i = 0; i < 50; i++) {
+      await cto.asUser.mutation(api.reviews.submit, { taskId, note: `Try ${i}.` });
+      await cto.asUser.mutation(api.reviews.withdraw, { taskId });
+    }
+    expect((await coo.asUser.query(api.reviews.waiting, {})).verifications).toEqual([]);
+    expect((await cto.asUser.query(api.reviews.forTask, { taskId })).canSubmit).toBe(false);
+    const refused = await expectAppError(
+      cto.asUser.mutation(api.reviews.submit, { taskId, note: "Once more." }),
+      "INVALID_ARGUMENT"
+    );
+    expect(refused?.message).toContain("50 reviews");
+    // A real submission elsewhere still shows.
+    const other = await contentTask(coo.asUser, featureId, cto.userId);
+    await cto.asUser.mutation(api.reviews.submit, { taskId: other, note: "Done." });
+    const waiting = await coo.asUser.query(api.reviews.waiting, {});
+    expect(waiting.verifications.map((item) => item.task._id)).toEqual([other]);
+  });
+
+  test("the criteria ticked are kept with the decision; verifying closes a request for more time", async () => {
+    const { t, coo, cto, featureId } = await setup();
+    const taskId = await contentTask(coo.asUser, featureId, cto.userId);
+    await cto.asUser.mutation(api.extensions.request, {
+      taskId,
+      newDeadline: inDays(20),
+      type: "scope_change",
+      reason: "The copy grew.",
+    });
+    await cto.asUser.mutation(api.reviews.submit, { taskId, note: "Done." });
+    await coo.asUser.mutation(api.reviews.verify, {
+      taskId,
+      decision: "changes_requested",
+      criteriaMet: [false],
+      note: "Only two screens.",
+    });
+    // The plan can change once it's sent back; the decision keeps what was ticked against.
+    await coo.asUser.mutation(api.tasks.update, {
+      taskId,
+      title: "Welcome copy",
+      description: "",
+      kind: "content",
+      acceptanceCriteria: ["Reviewed by the CEO", "Three screens"],
+      ownerId: cto.userId,
+      deadline: inDays(10),
+      priority: "medium",
+    });
+    const decided = (await cto.asUser.query(api.reviews.forTask, { taskId })).history[0];
+    expect(decided.criteria).toEqual(["Three screens"]);
+    expect(decided.criteriaMet).toEqual([false]);
+
+    await cto.asUser.mutation(api.reviews.submit, { taskId, note: "All three now." });
+    await coo.asUser.mutation(api.reviews.verify, {
+      taskId,
+      decision: "approved",
+      criteriaMet: [true, true],
+    });
+    const requests = await t.run(async (ctx) => ctx.db.query("extensionRequests").collect());
+    expect(requests.map((r) => r.status)).toEqual(["withdrawn"]);
+    expect(await coo.asUser.query(api.extensions.pending, {})).toEqual([]);
+  });
+
+  test("Mark as live waits for proposals; stage changes name the task; old stages catch up", async () => {
+    const { t, coo, ceo, cto, featureId } = await setup();
+    const taskId = await contentTask(coo.asUser, featureId, cto.userId);
+    await cto.asUser.mutation(api.reviews.submit, { taskId, note: "Done." });
+    await coo.asUser.mutation(api.reviews.verify, {
+      taskId,
+      decision: "approved",
+      criteriaMet: [true],
+    });
+    expect(await featureStatus(t, featureId)).toBe("internal_testing");
+    const moves = await t.run(async (ctx) =>
+      (await ctx.db.query("activity").collect()).filter(
+        (a) => a.action === "feature.status_changed"
+      )
+    );
+    expect(moves.length).toBeGreaterThan(0);
+    expect(moves.every((a) => a.taskId === taskId)).toBe(true);
+
+    const proposal = await ceo.asUser.mutation(api.tasks.propose, {
+      featureId,
+      title: "One more screen",
+      description: "A fourth welcome screen.",
+      kind: "content",
+      acceptanceCriteria: ["A fourth screen"],
+      priority: "low",
+    });
+    const refused = await expectAppError(
+      coo.asUser.mutation(api.features.markShipped, { featureId }),
+      "INVALID_ARGUMENT"
+    );
+    expect(refused?.message).toContain("proposal");
+    await coo.asUser.mutation(api.tasks.declineProposal, { taskId: proposal, reason: "Later." });
+    await coo.asUser.mutation(api.features.markShipped, { featureId });
+    expect(await featureStatus(t, featureId)).toBe("shipped");
+
+    // A feature left behind from before stages rolled up catches up (CLI, once per deployment).
+    const other = await coo.asUser.mutation(api.features.create, {
+      title: "Payments",
+      description: "x",
+      expectedResult: "x",
+      sourceNote: "",
+      deadline: inDays(30),
+    });
+    const started = await contentTask(coo.asUser, other, cto.userId);
+    await cto.asUser.mutation(api.tasks.postUpdate, {
+      taskId: started,
+      status: "in_progress",
+      progress: 10,
+    });
+    await t.run(async (ctx) => ctx.db.patch("features", other, { status: "planned" }));
+    expect(await t.mutation(internal.features.rollUpStages, {})).toContain("moved 1");
+    expect(await featureStatus(t, other)).toBe("in_progress");
+    expect(await featureStatus(t, featureId)).toBe("shipped");
+  });
+});
+
+describe("proof links", () => {
+  test("only plain http(s) links, stored in their standard form", () => {
+    expect(cleanProofUrl("  https://Example.com/pull/1 ")).toBe("https://example.com/pull/1");
+    expect(cleanProofUrl("http://example.com")).toBe("http://example.com/");
+    expect(cleanProofUrl("")).toBeUndefined();
+    for (const bad of [
+      "javascript:alert(1)",
+      "data:text/html,hi",
+      "file:///etc/passwd",
+      "example.com/pull/1",
+      "https://github.com@evil.example/x",
+      "https://user:pass@example.com",
+      "https://example.com/a b",
+      "https://example.com/‮gnp.exe",
+      "https://exa​mple.com",
+      `https://example.com/${"a".repeat(500)}`,
+    ]) {
+      expect(() => cleanProofUrl(bad), bad).toThrow();
+    }
+    // A look-alike host is stored as punycode, so it shows for what it is.
+    expect(cleanProofUrl("https://gіthub.com/x")).toMatch(/^https:\/\/xn--/);
   });
 });

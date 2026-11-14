@@ -4,7 +4,7 @@ What every part of Cadence does and why it's there, in plain language. Keep this
 with each phase (see [CLAUDE.md](../CLAUDE.md) → Phases). The full spec is
 [REQUIREMENTS.md](REQUIREMENTS.md).
 
-_As of 10 Nov 2026: Phase 1, Phase 2, the bento Board, the feature, person and task pages, the black and off-white themes, and the Settings tab with its People and Team rules pages, and Phase 4 (progress, comments, requests for more time and the Activity page) are built._
+_As of 14 Nov 2026: Phases 1 to 4 are done (sign-in and roles; features, tasks, proposals and the Board; the Settings tab with People and Team rules; progress, comments, requests for more time and the Activity page). Phase 5 (daily logs) and Phase 6 (peer review, verification and feature stages) are built and being checked; Phase 7 (notifications and release) is next._
 
 ## What Cadence is for
 
@@ -30,8 +30,7 @@ website rather than a phone: a sidebar instead of the tab bar, forms that open a
 page, and its own Board ([The Board on a computer](#the-board-on-a-computer)). In a narrower
 window, or in a phone's browser, it looks like the app.
 
-Built so far: sign-in and roles (Phase 1), and features, tasks, proposals and the Board
-(Phase 2). Progress updates, daily logs, reviews and notifications come in Phases 4 to 7 (see
+Built so far: everything below except notifications, which come in Phase 7 (see
 [Coming next](#coming-next)).
 
 ## Key ideas
@@ -107,9 +106,9 @@ last arrives in Phase 7.
    peer reviewer for a review, with an optional note and link (**In peer review**). The reviewer
    approves it (back to In progress, ready to submit) or sends it back with what needs changing
    (**Changes requested**).
-8. **Submit (built).** The owner submits with a note (required) and a link as proof (a PR, a
-   build, a document; links only for now, no screenshots). A code task needs its reviewer's
-   approval first. The task becomes **Submitted** and its progress goes to 100% (submitting means
+8. **Submit (built).** The owner submits with a note (required) and, optionally, a link as proof
+   (a PR, a build, a document; links only for now, no screenshots). A code task needs an approval
+   from its current peer reviewer first (a new owner or reviewer means a new review). The task becomes **Submitted** and its progress goes to 100% (submitting means
    "it's done"; there's no need to move the bar first). The owner's part is done, though they can
    take it back while it waits. If changes are asked for, progress stays at 100% until the owner
    lowers it with an update.
@@ -118,6 +117,7 @@ last arrives in Phase 7.
    and back to step 5, and a code task goes through peer review again. Admins verify; a task an
    admin owns is verified by the admin task reviewer (the CEO), or by the other admins when
    there's no reviewer who can, so nobody approves their own work. Only Verified counts as done.
+   A request for more time still waiting is closed once the task is verified.
 10. **Ship the feature (built).** A feature's stage follows its tasks: **In progress** once one
     starts, **Internal testing** once every task is verified (back to In progress if that
     changes). An admin then taps **Mark as live** and it's **Shipped**, for good. A shipped
@@ -317,7 +317,9 @@ From top to bottom:
 - **Buttons.** Admins get **Add task** and **Edit feature**; members get **Propose a task**. A
   shipped feature takes no new work, so only **Edit feature** remains. Once every task is verified
   (Internal testing), admins also get **Mark as live**: a card asks first (it can't be undone),
-  then the feature moves to Shipped ("Feature is live").
+  then the feature moves to Shipped ("Marked as live"). Proposals still waiting on the feature
+  must be decided first, since a shipped feature takes none. Features ready to go live are also
+  listed on the Admin tab.
 
 On a computer the feature page is laid out in the Board's style:
 
@@ -376,13 +378,20 @@ From top to bottom:
 - **Peer review (blue) or Submitted for verification (lavender).** While a review waits: who
   asked and when, their note, and their link (tap it to open it in the browser). The peer
   reviewer gets **Send back** (saying what needs changing) and **Approve** (with an optional
-  note). A verifier ticks each acceptance criterion, then **Verify** (only once every one is
-  ticked) or **Ask for changes** (with a reason). Everyone else sees whom it's waiting for, and
-  the owner can **Take it back** (it returns to In progress, e.g. when the reviewer has left).
-- **Changes asked for (yellow).** After a send-back: who asked and when, their reason, the
-  criteria not met yet, and what happens next (a code task goes through peer review again).
+  note); their card says "Yours to review" ("Yours to verify" for a verifier). A verifier ticks
+  each acceptance criterion, then **Verify** (only once every one is ticked) or **Ask for
+  changes** (with a reason, after ticking what is met). Everyone else sees whom it's waiting for,
+  and the owner can **Take it back** (it returns to In progress). If the peer reviewer has been
+  deactivated, the card says so: the owner takes it back and asks an admin for another reviewer.
+- **Changes asked for (yellow).** After a send-back, until the owner sends it again (updates in
+  between don't hide it): who asked and when, their reason, the criteria not met yet (as they
+  read when they were ticked), what happens next (a code task goes through peer review again)
+  and the link that was sent.
 - **Code approved (blue).** After the peer reviewer approves, until the task is submitted: who
-  approved it and when, and "Next: submit it for verification".
+  approved it and when, the link, and "Next: submit it for verification" (or "Unblock it" first,
+  if it's blocked).
+- **Verified (green).** Once verified: who verified it and when, who submitted it, what they
+  said, the proof link that was accepted and the verifier's note.
 - **The countdown card (lavender).** "Task due in 2d 14h 33m 07s", ticking every second with
   digits that roll like a car's odometer. Under it, the task's own deadline ("originally …" if it
   moved) and the feature's deadline, so it's clear which is which. The priority sits on a pink
@@ -403,16 +412,18 @@ From top to bottom:
   is ready, the next step sits above them as the main button (and **Post an update** becomes the
   second one): **Ask for a peer review** on a code task (an optional note and link, to its
   reviewer), then **Submit for verification** (a note, required, and a link: "https://… a PR, a
-  build or a page"). Each opens a card that says who reviews or verifies it. A blocked task can't
-  be sent; if nobody could verify it (an admin's task with no reviewer who can), a note says so
-  instead of the button.
+  build or a page"). Each opens a card that says who reviews or verifies it. When there's no
+  button, a note says why in its place: blocked ("Unblock it… to submit it"), the peer reviewer
+  deactivated (ask an admin for another), nobody could verify it (an admin's task with no
+  reviewer who can), or the task has had 50 reviews (the most one task can have).
 - **Description** on a dark card, if there is one.
 - **Who's on it.** Pastel cards: the owner (orange, with the priority), the peer reviewer for code
   tasks (blue) and whoever proposed it (pink), each with initials, name and title. Someone who
   has left is tagged "Deactivated". Tap the owner or reviewer to see their work on the feature.
 - **Acceptance criteria** on a dark card, numbered; they turn into ticks once the task is verified.
-- **Buttons (admins only).** **Edit task**, except while the task is in review, submitted or
-  verified, when a note says its plan is locked.
+- **Buttons (admins only).** **Edit task**, except while the task is in review or submitted
+  (a note says its plan is locked until it's sent back or the owner takes it back) or verified
+  (its plan is final).
 - **Updates and comments.** Everything that happened to the task, newest first: created, each
   update ("marked it blocked at 85%" with the note), requests for more time and the decisions,
   "Cadence flagged it overdue" when the deadline passed, and comments as speech bubbles. Anyone
@@ -500,7 +511,7 @@ Besides the Board there are four tabs; the Admin tab appears only for admins.
 | My Tasks            | Your own work at a glance | **Reviews waiting on you**: code you peer-review and tasks you verify, waiting for your decision. **Waiting on you**: requests for more time that are yours to decide (admins, and the admin task reviewer for an admin's own task). **Assigned to me**: your tasks, soonest deadline first. **My proposals**: what you've suggested, including declined ones with the reason. A **Propose task** button.                                                                                                                                                                                                                                                                                                                                        |
 | Logs                | Daily work logs           | Today's log, your week and the team's day: see **Logs** below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Settings            | You and the team          | The **Dark mode** switch on a clay scene of a house on a hill: turning it on plays a sunset (the sun goes down, lights come on, the icons light up one by one) and switches the whole app to black; off brings the day and the off-white back. You can also drag across the sky to move the sun. Your choice is kept on this phone. Then five rows: Notifications (the morning digest time), Daily log reminder (its time), People (how many), Team rules (who verifies the admin's tasks) and **Account & security**, which opens your name, title, role, email and time zone, and **Sign out**. An admin taps Notifications or Daily log reminder to change that time on a time wheel. **People** and **Team rules** open their pages (below). |
-| Admin (admins only) | Running the team          | **To verify** (submitted tasks yours to verify), **More time to decide** (requests for more time that are yours to decide), **Proposals to review** and a **New feature** button. Invites live on the People page (Settings → People).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Admin (admins only) | Running the team          | **To verify** (submitted tasks yours to verify), **Ready to go live** (features whose tasks are all verified; each opens its page, where **Mark as live** is), **More time to decide** (requests for more time that are yours to decide), **Proposals to review** and a **New feature** button. Invites live on the People page (Settings → People).                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ## Logs
 
@@ -599,23 +610,27 @@ without changing it records nothing.
 
 ## Who can do what
 
-Everyone sees everything; only admins plan and decide. Every rule is checked on the server, so
+Everyone sees everything; admins plan and decide. Every rule is checked on the server, so
 hiding a button is never the only protection.
 
-| Action                                                          | Admin                       | Member |
-| --------------------------------------------------------------- | --------------------------- | ------ |
-| See the Board, every feature, task and proposal                 | Yes                         | Yes    |
-| Propose a task                                                  | Yes                         | Yes    |
-| Create and edit features                                        | Yes                         | No     |
-| Create and edit tasks, including owners, deadlines and criteria | Yes                         | No     |
-| Approve or decline proposals                                    | Yes                         | No     |
-| Invite people, change roles, deactivate accounts                | Yes (Settings → People)     | No     |
-| Change team rules                                               | Yes (Settings → Team rules) | No     |
+| Action                                                                 | Admin                                                                          | Member                                              |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------- |
+| See the Board, every feature, task and proposal                        | Yes                                                                            | Yes                                                 |
+| Propose a task                                                         | Yes                                                                            | Yes                                                 |
+| Create and edit features                                               | Yes                                                                            | No                                                  |
+| Create and edit tasks, including owners, deadlines and criteria        | Yes                                                                            | No                                                  |
+| Approve or decline proposals                                           | Yes                                                                            | No                                                  |
+| Invite people, change roles, deactivate accounts                       | Yes (Settings → People)                                                        | No                                                  |
+| Change team rules                                                      | Yes (Settings → Team rules)                                                    | No                                                  |
+| Update, ask for more time, ask for a peer review, submit, take it back | Their own tasks                                                                | Their own tasks                                     |
+| Approve or send back a peer review                                     | When named the task's peer reviewer                                            | When named the task's peer reviewer                 |
+| Verify a task, or ask for changes                                      | Yes, except an admin's task (the admin task reviewer does) and never their own | Only as the admin task reviewer, on an admin's task |
+| Mark a feature as live                                                 | Yes                                                                            | No                                                  |
 
 - More than one admin is allowed; the last active admin can't be demoted or deactivated.
-- Deactivated people can't be given work.
-- From Phase 4, members also update status and progress on their own tasks, request deadline
-  extensions and peer-review code.
+- Deactivated people can't be given work, review or verify.
+- Nobody reviews or verifies their own work. When the admin task reviewer can't verify an admin's
+  task (none chosen, deactivated, or it's their own), the other admins do.
 
 ## Behind the scenes
 
@@ -642,7 +657,7 @@ A few things work without a screen of their own.
 - **Confirmations.** Every save says it worked in a short message that slides in and fades away
   (at the top on a phone, at the bottom on a computer): "Update posted", "Request sent", "Request
   approved. The deadline moved", "Sent for peer review", "Submitted for verification", "Task
-  verified", "Feature is live", "Proposal declined", "Comment posted", "Feature saved", "Invite
+  verified", "Marked as live", "Proposal declined", "Comment posted", "Feature saved", "Invite
   revoked" and so on. Screen readers read it out. Problems still show in the form or card, where
   they can be fixed.
 - **Forms on a computer** open as dialogs that ease in over the page and ease out when closed

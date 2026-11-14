@@ -24,7 +24,13 @@ import { ExtensionSheet } from "@/components/task/extension-sheet";
 import { OwnerActions, TaskActions } from "@/components/task/task-actions";
 import { TaskHistory } from "@/components/task/task-history";
 import { UpdateSheet } from "@/components/task/update-sheet";
-import { nextReviewStep, taskFacts, useTaskData } from "@/components/task/use-task-state";
+import {
+  lockedNote,
+  nextReviewStep,
+  reviewBlocker,
+  taskFacts,
+  useTaskData,
+} from "@/components/task/use-task-state";
 import { ReviewPanel } from "@/components/task/review-panel";
 import { ReviewSheet } from "@/components/task/review-sheet";
 import { verifiedBy } from "@/components/task/verifiers";
@@ -83,11 +89,8 @@ function PhoneTask({ taskId }: { taskId: Id<"tasks"> }): JSX.Element {
       approveBlock,
     } = taskFacts(task, feature, extensions, user._id);
     const step = nextReviewStep(reviews);
-    // Ready to submit, but nobody could verify it: say why instead of offering the button.
-    const cantSubmit =
-      canUpdate && reviews !== undefined && !reviews.needsPeerReview && !reviews.hasVerifier
-        ? verifiedBy(reviews.verifier)
-        : null;
+    // No review button right now (blocked, no reviewer or verifier…): say why in its place.
+    const cantSubmit = reviewBlocker(task, reviews, canUpdate);
     const edit = () =>
       router.push({ pathname: "/tasks/[taskId]/edit", params: { taskId: task._id } });
     // Owner and reviewer cards open that person's work on this feature.
@@ -274,7 +277,7 @@ function PhoneTask({ taskId }: { taskId: Id<"tasks"> }): JSX.Element {
           isAdmin={isAdmin}
           isProposal={isProposal}
           isDeclined={isDeclined}
-          isLocked={isPlanLocked(task.status)}
+          lockedNote={isPlanLocked(task.status) ? lockedNote(task.status) : null}
           onEdit={edit}
         />
         <TaskHistory s={s} taskId={task._id} canComment={!isDeclined} />

@@ -311,7 +311,7 @@ export const seed = internalMutation({
     );
     people.set("you", realUsers[0]?._id ?? people.get("abena")!);
     const who = (key: PersonKey) => people.get(key)!;
-    const verifierFor = await demoVerifiers(ctx, who("yaw"));
+    const verifierFor = demoVerifiers(who("yaw"));
 
     let taskCount = 0;
     // Each demo person's open tasks, for their demo logs to link.
@@ -465,20 +465,11 @@ async function topUpDemoLogs(ctx: MutationCtx, now: number): Promise<number> {
 }
 
 /**
- * Who decided a demo task's verification: Yaw (the demo admin), or for his own task a real
- * active admin (nobody verifies their own work), else Yaw anyway.
+ * Who decided a demo task's verification: Yaw (the demo admin). His own tasks name nobody (nobody
+ * verifies their own work, and demo data never puts a decision on a real person).
  */
-async function demoVerifiers(
-  ctx: MutationCtx,
-  yaw: Id<"users">
-): Promise<(ownerId: Id<"users">) => Id<"users">> {
-  const otherAdmin = (
-    await ctx.db
-      .query("users")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
-      .take(500)
-  ).find((u) => u.role === "admin" && u._id !== yaw && !u.email.endsWith(DEMO_EMAIL_DOMAIN));
-  return (ownerId) => (ownerId === yaw ? (otherAdmin?._id ?? yaw) : yaw);
+function demoVerifiers(yaw: Id<"users">): (ownerId: Id<"users">) => Id<"users"> | undefined {
+  return (ownerId) => (ownerId === yaw ? undefined : yaw);
 }
 
 /**
@@ -490,7 +481,7 @@ async function demoVerifiers(
 async function seedDemoReviews(
   ctx: MutationCtx,
   task: Doc<"tasks">,
-  verifierFor: (ownerId: Id<"users">) => Id<"users">,
+  verifierFor: (ownerId: Id<"users">) => Id<"users"> | undefined,
   now: number
 ): Promise<number> {
   const ownerId = task.ownerId;
@@ -553,6 +544,7 @@ async function seedDemoReviews(
         reviewerId: verifier,
         reason: "Nearly there: the last criterion isn't met yet.",
         criteriaMet: allMet.map((_, index) => index < allMet.length - 1),
+        criteria: task.acceptanceCriteria,
         decidedAt: now - DAY_MS,
       });
       added++;
@@ -568,6 +560,7 @@ async function seedDemoReviews(
         decision: "approved",
         reviewerId: verifier,
         criteriaMet: allMet,
+        criteria: task.acceptanceCriteria,
         decidedAt: task.verifiedAt ?? now,
       });
       added++;
@@ -589,7 +582,7 @@ async function topUpDemoReviews(
 ): Promise<number> {
   const yaw = (await findDemoUsers(ctx)).find((u) => u.email === `yaw${DEMO_EMAIL_DOMAIN}`);
   if (yaw === undefined) return 0;
-  const verifierFor = await demoVerifiers(ctx, yaw._id);
+  const verifierFor = demoVerifiers(yaw._id);
   let added = 0;
   for (const feature of features) {
     const tasks = await ctx.db

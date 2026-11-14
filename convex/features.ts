@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { diffFields, logActivity } from "./lib/activity";
+import { rollUpFeature } from "./lib/reviews";
 import { requireAdmin, requireUser } from "./lib/auth";
 import { toDateOnly } from "./lib/dates";
 import { appError } from "./lib/errors";
@@ -159,7 +160,8 @@ export const update = mutation({
 
 /**
  * Admin: mark a feature as live once it's in Internal testing (every task verified). It's then
- * Shipped, and takes no new work.
+ * Shipped, and takes no new work, so proposals still waiting would be stuck: they're decided
+ * first.
  */
 export const markShipped = mutation({
   args: { featureId: v.id("features") },
@@ -175,6 +177,18 @@ export const markShipped = mutation({
           : "A feature goes live once every task in it is verified (Internal testing)."
       );
     }
+    const proposals = await ctx.db
+      .query("tasks")
+      .withIndex("by_featureId_and_status", (q) =>
+        q.eq("featureId", featureId).eq("status", "proposed")
+      )
+      .take(100);
+    if (proposals.length > 0) {
+      throw appError(
+        "INVALID_ARGUMENT",
+        `Decide the ${proposals.length === 1 ? "proposal" : `${proposals.length} proposals`} waiting on this feature first: a shipped feature takes no new work.`
+      );
+    }
     await ctx.db.patch("features", featureId, { status: "shipped" });
     await logActivity(ctx, {
       actorId: admin._id,
@@ -185,5 +199,27 @@ export const markShipped = mutation({
       after: { status: "shipped" },
     });
     return null;
+  },
+});
+
+/**
+ * CLI, once per deployment after Phase 6 arrives: bring every unshipped feature's stage in line
+ * with its tasks (`rollUpFeature`). Before Phase 6 nothing moved a feature on, so a feature whose
+ * tasks had started still read Planned. Safe to re-run; each change is an activity entry.
+ *   bunx convex run features:rollUpStages
+ */
+export const rollUpStages = internalMutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    const features = await ctx.db.query("features").take(500);
+    let moved = 0;
+    for (const feature of features) {
+      if (feature.status === "shipped") continue;
+      await rollUpFeature(ctx, feature._id);
+      const after = await ctx.db.get("features", feature._id);
+      if (after !== null && after.status !== feature.status) moved++;
+    }
+    return `Checked ${features.length} features; moved ${moved} to the stage their tasks are at.`;
   },
 });

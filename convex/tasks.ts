@@ -241,7 +241,7 @@ export const create = mutation({
       after: { featureId, ...plan },
     });
     // A new task on a feature in Internal testing sends it back to In progress.
-    await rollUpFeature(ctx, featureId);
+    await rollUpFeature(ctx, featureId, taskId);
     return taskId;
   },
 });
@@ -420,7 +420,7 @@ export const postUpdate = mutation({
       after: { status, progress, ...(text !== "" ? { note: text } : {}) },
     });
     // The first task to start moves its feature from Planned to In progress.
-    if (changed) await rollUpFeature(ctx, task.featureId);
+    if (changed) await rollUpFeature(ctx, task.featureId, task._id);
     return null;
   },
 });
@@ -500,7 +500,7 @@ export const approveProposal = mutation({
       before: { status: task.status },
       after: { status: "todo", ...plan },
     });
-    await rollUpFeature(ctx, task.featureId);
+    await rollUpFeature(ctx, task.featureId, task._id);
     return null;
   },
 });

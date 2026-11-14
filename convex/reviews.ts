@@ -12,6 +12,7 @@ import {
   isPending,
   isReady,
   loadReviews,
+  requireRoomForRequest,
   rollUpFeature,
 } from "./lib/reviews";
 import { REVIEW_LIMITS } from "./lib/constants";
@@ -85,6 +86,39 @@ async function setStatus(
   await ctx.db.patch("tasks", task._id, patch);
 }
 
+/**
+ * A verified task needs no more time: a request still waiting is closed (status withdrawn, like
+ * when a task moves to a new owner), so it doesn't sit in the waiting lists for ever.
+ */
+async function closeExtensionRequests(
+  ctx: MutationCtx,
+  task: Doc<"tasks">,
+  verifierId: Id<"users">
+): Promise<void> {
+  const open = await ctx.db
+    .query("extensionRequests")
+    .withIndex("by_taskId_and_status", (q) => q.eq("taskId", task._id).eq("status", "pending"))
+    .take(10);
+  for (const request of open) {
+    const note = "The task was verified.";
+    await ctx.db.patch("extensionRequests", request._id, {
+      status: "withdrawn",
+      reviewerId: verifierId,
+      decidedAt: Date.now(),
+      decisionNote: note,
+    });
+    await logActivity(ctx, {
+      actorId: verifierId,
+      entityType: "extensionRequest",
+      entityId: request._id,
+      taskId: task._id,
+      action: "extension.closed",
+      before: { status: "pending" },
+      after: { status: "withdrawn", note },
+    });
+  }
+}
+
 /** Owner of a code task: ask its peer reviewer to review it (note and link optional). */
 export const requestPeerReview = mutation({
   args: { taskId: v.id("tasks"), note: v.optional(v.string()), proofUrl: v.optional(v.string()) },
@@ -113,6 +147,7 @@ export const requestPeerReview = mutation({
     }
     const rows = await loadReviews(ctx, task._id);
     if (rows.some(isPending)) throw appError("INVALID_ARGUMENT", "A review is already waiting.");
+    requireRoomForRequest(rows);
     const note = cleanNote(args.note, "Note", false);
     const proofUrl = cleanProofUrl(args.proofUrl);
 
@@ -133,7 +168,7 @@ export const requestPeerReview = mutation({
       before: { status: task.status },
       after: { status: "in_peer_review", ...(note !== "" ? { note } : {}), proofUrl },
     });
-    await rollUpFeature(ctx, task.featureId);
+    await rollUpFeature(ctx, task.featureId, task._id);
     return reviewId;
   },
 });
@@ -181,7 +216,7 @@ export const decidePeerReview = mutation({
       before: { status: task.status },
       after: { status, ...(note !== "" ? { note } : {}) },
     });
-    await rollUpFeature(ctx, task.featureId);
+    await rollUpFeature(ctx, task.featureId, task._id);
     return null;
   },
 });
@@ -209,7 +244,8 @@ export const submit = mutation({
     await requireOpenFeature(ctx, task);
     const rows = await loadReviews(ctx, task._id);
     if (rows.some(isPending)) throw appError("INVALID_ARGUMENT", "A review is already waiting.");
-    if (task.kind === "code" && !hasCurrentPeerApproval(rows)) {
+    requireRoomForRequest(rows);
+    if (task.kind === "code" && !hasCurrentPeerApproval(rows, task)) {
       throw appError(
         "INVALID_ARGUMENT",
         "A code task needs its peer reviewer's approval before it's submitted."
@@ -241,7 +277,7 @@ export const submit = mutation({
       before: { status: task.status, progress: task.progress },
       after: { status: "submitted", progress: 100, note, proofUrl },
     });
-    await rollUpFeature(ctx, task.featureId);
+    await rollUpFeature(ctx, task.featureId, task._id);
     return reviewId;
   },
 });
@@ -292,9 +328,14 @@ export const verify = mutation({
       reason: note === "" ? undefined : note,
       decidedAt: now,
       criteriaMet: args.criteriaMet,
+      // What was ticked against: the plan can change once it's sent back.
+      criteria: task.acceptanceCriteria,
     });
     if (changes) await setStatus(ctx, task, { status: "changes_requested" });
-    else await setStatus(ctx, task, { status: "verified", verifiedAt: now, progress: 100 });
+    else {
+      await setStatus(ctx, task, { status: "verified", verifiedAt: now, progress: 100 });
+      await closeExtensionRequests(ctx, task, user._id);
+    }
     await logActivity(ctx, {
       actorId: user._id,
       entityType: "verification",
@@ -308,7 +349,7 @@ export const verify = mutation({
         ...(note !== "" ? { note } : {}),
       },
     });
-    await rollUpFeature(ctx, task.featureId);
+    await rollUpFeature(ctx, task.featureId, task._id);
     return null;
   },
 });
@@ -334,7 +375,7 @@ export const withdraw = mutation({
       before: { status: task.status },
       after: { status: "in_progress", stage: pending.stage },
     });
-    await rollUpFeature(ctx, task.featureId);
+    await rollUpFeature(ctx, task.featureId, task._id);
     return null;
   },
 });
@@ -370,14 +411,22 @@ export const forTask = query({
     const isOwner = task.ownerId === user._id;
     const open = isLiveTask(task) && feature.status !== "shipped";
     const isCode = task.kind === "code" && task.peerReviewerId !== undefined;
-    const needsPeerReview = isCode && !hasCurrentPeerApproval(rows);
-    const ownerCanAct = open && isOwner && pendingRow === null && isReady(task.status);
+    const needsPeerReview = isCode && !hasCurrentPeerApproval(rows, task);
+    const ownerCanAct =
+      open &&
+      isOwner &&
+      pendingRow === null &&
+      isReady(task.status) &&
+      rows.length < REVIEW_LIMITS.requestsPerTask;
+    // requestPeerReview refuses a deactivated reviewer; the app says why instead of the button.
+    const reviewerActive =
+      task.peerReviewerId !== undefined && directory.get(task.peerReviewerId)?.isActive === true;
     const hasVerifier = await deciders.hasDecider(task);
     return {
       history: [...rows].reverse().map((row) => toReviewView(row, directory)),
       pending: pendingRow === null ? null : toReviewView(pendingRow, directory),
       needsPeerReview,
-      canAskPeerReview: ownerCanAct && isCode,
+      canAskPeerReview: ownerCanAct && isCode && reviewerActive,
       canSubmit: ownerCanAct && !needsPeerReview && hasVerifier,
       canDecidePeerReview:
         pendingRow?.stage === "peer_review" &&
@@ -419,9 +468,11 @@ export const waiting = query({
       (
         await ctx.db
           .query("verifications")
-          .withIndex("by_stage_and_decision", (q) => q.eq("stage", stage).eq("decision", undefined))
+          .withIndex("by_stage_and_decision_and_withdrawnAt", (q) =>
+            q.eq("stage", stage).eq("decision", undefined).eq("withdrawnAt", undefined)
+          )
           .take(200)
-      ).filter((row) => row.withdrawnAt === undefined);
+      ).filter(isPending);
 
     const item = async (row: Doc<"verifications">, task: Doc<"tasks">) => {
       const feature = await ctx.db.get("features", task.featureId);

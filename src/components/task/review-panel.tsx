@@ -5,6 +5,7 @@ import { Linking, Pressable, Text, TextInput, View } from "react-native";
 import { api } from "@convex/_generated/api";
 import { REVIEW_LIMITS } from "@convex/lib/constants";
 import { longDay, shortDay } from "@convex/lib/dates";
+import { isOwnerWorking } from "@convex/lib/validators";
 import type { TaskView } from "@convex/lib/views";
 
 import { PillButton, PillRow } from "@/components/ui/pill-button";
@@ -25,8 +26,10 @@ type Review = TaskReviews["history"][number];
  * link, and the decision right there for whoever makes it (the peer reviewer: approve or send back
  * with comments; a verifier: tick each acceptance criterion, then verify or ask for changes). The
  * owner can take it back. With nothing waiting it shows the last outcome that still matters: the
- * changes asked for (yellow), or the code approved and ready to submit. Key it by the pending
- * request's id, so a new one starts clean. Null when there's nothing to show.
+ * changes asked for (yellow, until the owner sends it again, whatever updates they post), the
+ * code approved and ready to submit, or, once verified, who verified it and the proof that was
+ * accepted. Key it by the pending request's id, so a new one starts clean. Null when there's
+ * nothing to show.
  */
 export function ReviewPanel({
   s,
@@ -44,29 +47,59 @@ export function ReviewPanel({
     return <PendingCard s={s} task={task} reviews={reviews} pending={pending} now={now} />;
   }
   const last = reviews.history.find((row) => row.decision !== undefined);
-  if (task.status === "changes_requested" && last?.decision === "changes_requested") {
+  if (last === undefined) return null;
+  if (task.status === "verified") {
+    return last.stage === "verification" && last.decision === "approved" ? (
+      <VerifiedCard s={s} review={last} now={now} />
+    ) : null;
+  }
+  if (last.decision === "changes_requested" && isOwnerWorking(task.status)) {
     return <ChangesCard s={s} task={task} review={last} now={now} />;
   }
   if (
     task.kind === "code" &&
     !reviews.needsPeerReview &&
-    last?.stage === "peer_review" &&
-    last.decision === "approved" &&
-    task.status !== "verified"
+    last.stage === "peer_review" &&
+    last.decision === "approved"
   ) {
     return (
       <Card s={s} fill={colors.sky}>
         <Eyebrow text="CODE APPROVED" />
         <Text style={inkLine}>
           {last.reviewer?.name ?? "The peer reviewer"} approved the code
-          {last.decidedAt !== undefined ? ` on ${shortDay(last.decidedAt, now)}` : ""}. Next: submit
-          it for verification.
+          {last.decidedAt !== undefined ? ` on ${shortDay(last.decidedAt, now)}` : ""}.{" "}
+          {task.status === "blocked"
+            ? "Unblock it (Post an update), then submit it for verification."
+            : "Next: submit it for verification."}
         </Text>
         {last.reason ? <Quote text={last.reason} /> : null}
+        {last.proofUrl !== undefined ? <ProofLink url={last.proofUrl} /> : null}
       </Card>
     );
   }
   return null;
+}
+
+/** Once verified: who verified it and when, what the owner said, and the proof accepted. */
+function VerifiedCard({ s, review, now }: { s: number; review: Review; now: number }): JSX.Element {
+  return (
+    <Card s={s} fill={colors.green}>
+      <Eyebrow text="VERIFIED" />
+      <Text style={inkLine}>
+        {review.reviewer !== null ? `Verified by ${review.reviewer.name}` : "Verified"}
+        {review.decidedAt !== undefined ? ` · ${shortDay(review.decidedAt, now)}` : ""}
+        {review.submitter !== null ? ` · submitted by ${review.submitter.name}` : ""}
+      </Text>
+      {review.note !== "" ? <Quote text={review.note} /> : null}
+      {review.proofUrl !== undefined ? <ProofLink url={review.proofUrl} /> : null}
+      {review.reason ? (
+        <Text style={inkLine}>
+          <Text style={{ fontFamily: fonts.bold }}>Verifier&apos;s note: </Text>
+          {review.reason}
+        </Text>
+      ) : null}
+    </Card>
+  );
 }
 
 const inkLine = { fontFamily: fonts.medium, fontSize: 14, lineHeight: 20, color: colors.ink };
@@ -115,13 +148,20 @@ function Quote({ text }: { text: string }): JSX.Element {
   );
 }
 
-/** The proof link: opens it in the browser. */
+/**
+ * The proof link: opens it in the browser. The server only stores plain http(s) links
+ * (cleanProofUrl); anything else (a row edited by hand) isn't opened.
+ */
 function ProofLink({ url }: { url: string }): JSX.Element {
+  const open = () => {
+    if (!/^https?:\/\//i.test(url)) return;
+    Linking.openURL(url).catch(() => undefined);
+  };
   return (
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={`Open the link: ${url}`}
-      onPress={() => void Linking.openURL(url)}
+      onPress={open}
       className="active:opacity-60"
       style={{
         flexDirection: "row",
@@ -160,10 +200,12 @@ function ChangesCard({
   review: Review;
   now: number;
 }): JSX.Element {
-  const missed =
-    review.criteriaMet === undefined
-      ? []
-      : task.acceptanceCriteria.filter((_, i) => review.criteriaMet?.[i] === false);
+  // The criteria as they were when ticked (the plan can change once it's sent back); older rows
+  // without them are read against today's, only while the count still matches.
+  const criteria =
+    review.criteria ??
+    (task.acceptanceCriteria.length === review.criteriaMet?.length ? task.acceptanceCriteria : []);
+  const missed = criteria.filter((_, i) => review.criteriaMet?.[i] === false);
   const who = review.reviewer?.name ?? "The reviewer";
   return (
     <Card s={s} fill={colors.yellow}>
@@ -183,13 +225,14 @@ function ChangesCard({
       {missed.length > 0 ? (
         <View style={{ gap: 4 }}>
           <Text style={{ ...inkLine, fontFamily: fonts.bold }}>Not met yet:</Text>
-          {missed.map((criterion) => (
-            <Text key={criterion} style={inkLine}>
+          {missed.map((criterion, i) => (
+            <Text key={i} style={inkLine}>
               • {criterion}
             </Text>
           ))}
         </View>
       ) : null}
+      {review.proofUrl !== undefined ? <ProofLink url={review.proofUrl} /> : null}
     </Card>
   );
 }
@@ -222,9 +265,27 @@ function PendingCard({
 
   const peer = pending.stage === "peer_review";
   const who = pending.submitter?.name.split(" ")[0] ?? "The owner";
-  const reviewer = task.peerReviewer?.name ?? "the peer reviewer";
+  const reviewerName = task.peerReviewer?.name;
   const canDecide = peer ? reviews.canDecidePeerReview : reviews.canVerify;
   const allTicked = ticks.every(Boolean);
+  // Nobody can decide a peer review whose reviewer has left; the owner's way out is Take it back.
+  const reviewerGone = peer && task.peerReviewer?.isActive === false;
+  const title = canDecide
+    ? peer
+      ? "Yours to review"
+      : "Yours to verify"
+    : peer
+      ? reviewerName !== undefined
+        ? `Waiting on ${reviewerName.split(" ")[0]}`
+        : "Waiting for its peer reviewer"
+      : "Waiting to be verified";
+  const waitingLine = reviewerGone
+    ? reviews.canWithdraw
+      ? `${reviewerName ?? "The peer reviewer"} has been deactivated, so nobody can review it. Take it back, then ask an admin to choose another peer reviewer.`
+      : `${reviewerName ?? "The peer reviewer"} has been deactivated: ${who} can take it back, and an admin can then choose another peer reviewer.`
+    : peer
+      ? `Waiting for ${reviewerName ?? "the peer reviewer"} to review the code.`
+      : waitingToVerify(reviews.verifier);
 
   async function run(work: () => Promise<unknown>, done: string) {
     setError(null);
@@ -297,7 +358,7 @@ function PendingCard({
             color: colors.ink,
           }}
         >
-          {peer ? `Waiting on ${reviewer.split(" ")[0]}` : "Waiting to be verified"}
+          {title}
         </Text>
         <Text style={inkLine}>
           {who} · {peer ? "asked" : "submitted"} {shortDay(pending._creationTime, now)}
@@ -307,7 +368,7 @@ function PendingCard({
       {pending.proofUrl !== undefined ? <ProofLink url={pending.proofUrl} /> : null}
 
       {!peer && canDecide ? (
-        <View accessibilityRole="list" style={{ gap: 8 }}>
+        <View style={{ gap: 8 }}>
           <Text style={{ ...inkLine, fontFamily: fonts.bold }}>
             Check each acceptance criterion
           </Text>
@@ -352,11 +413,7 @@ function PendingCard({
 
       {!canDecide ? (
         <View style={{ gap: 10 }}>
-          <Text style={{ ...inkLine, fontFamily: fonts.semibold }}>
-            {peer
-              ? `Waiting for ${reviewer} to review the code.`
-              : waitingToVerify(reviews.verifier)}
-          </Text>
+          <Text style={{ ...inkLine, fontFamily: fonts.semibold }}>{waitingLine}</Text>
           {errorLine}
           {reviews.canWithdraw ? (
             <PillButton
@@ -395,6 +452,11 @@ function PendingCard({
                 : "Verify it?"
               : `Tell ${who} what needs changing`}
           </Text>
+          {mode === "changes" && !peer ? (
+            <Text style={{ ...inkLine, fontSize: 13 }}>
+              Tick the criteria that are met above, so {who} sees what&apos;s left.
+            </Text>
+          ) : null}
           {errorLine}
           <TextInput
             accessibilityLabel={mode === "approve" ? "Note (optional)" : "What needs changing"}

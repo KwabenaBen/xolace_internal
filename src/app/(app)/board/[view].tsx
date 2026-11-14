@@ -28,7 +28,7 @@ import { useNow } from "@/lib/use-now";
 
 /**
  * The tasks behind one of the Board's quick tiles — due this week, overdue, or what's waiting
- * for a decision (requests for more time first, then proposals) — grouped by feature, with the
+ * for a decision (tasks in review first, then requests for more time, then proposals) — grouped by feature, with the
  * same header as the other detail pages.
  */
 export default function BoardListScreen(): JSX.Element {

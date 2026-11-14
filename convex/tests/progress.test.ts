@@ -93,7 +93,12 @@ describe("owners' updates", () => {
     );
 
     const history = await ceo.asUser.query(api.activity.forTask, { taskId });
+    // Starting it moved the feature on (Planned → In progress), and that shows here too.
     expect(history[0]).toMatchObject({
+      action: "feature.status_changed",
+      after: { status: "in_progress" },
+    });
+    expect(history[1]).toMatchObject({
       action: "task.update_posted",
       before: { status: "todo", progress: 0 },
       after: { status: "in_progress", progress: 40, note: "Two of three screens drafted" },

@@ -36,7 +36,7 @@ export default function AppLayout(): JSX.Element {
 
   // Pages that draw their own header (back button, then the title) on the theme's page colour.
   const ownHeader = { headerShown: false, contentStyle: { backgroundColor: background } };
-  // Form modals: native iOS sheets (swipe down to close) with Cancel at the top left. With unsaved
+  // Form modals: native iOS sheets (swipe down to close) with an ✕ at the top left. With unsaved
   // changes, both the swipe and Cancel ask first (useUnsavedGuard blocks the native dismiss).
   // Pushed pages keep the native push and swipe back (from anywhere on the screen on iOS 26).
   // On a wide browser window the page underneath stays visible and the form draws its own dialog

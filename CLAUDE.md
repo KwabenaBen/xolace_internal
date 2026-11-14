@@ -299,7 +299,7 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   asks when there are changes); signing in/out cross-fades (root stack `animation: "fade"`);
   tabs shift (`animation: "shift"`, none with Reduce Motion). Web stacks don't animate.
 - On web, inline `pointerEvents: "box-none"` is ignored (not CSS): put it in a `StyleSheet`.
-- **Forms** (modals): `HeaderCancel` top left; `useUnsavedGuard(initial, values)` asks before
+- **Forms** (modals): `HeaderCancel` (an ✕, the user's choice 14 Nov) top left; `useUnsavedGuard(initial, values)` asks before
   discarding changes (Expo Router's `usePreventRemove`; call `markSaving()` before saving);
   errors show above the save button.
 - **Feedback:** every save that succeeds confirms it with `useToast()` ("Update posted",

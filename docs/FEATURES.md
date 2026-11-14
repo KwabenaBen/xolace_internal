@@ -443,8 +443,8 @@ new task starts as **To do**.
 - A feature's deadline can't move earlier than one of its tasks' deadlines; move the task first.
 - On iPhone, tapping the date opens the calendar in a sheet; nothing changes until **Done**. On
   the web, the browser's date picker.
-- Every form has **Cancel** at the top. Closing a form with changes (Cancel, back, or swiping it
-  down) asks "Discard changes?" first. A problem with what was entered shows just above the save
+- Every form has an **✕** at the top left to close it. Closing a form with changes (✕, back, or
+  swiping it down) asks "Discard changes?" first. A problem with what was entered shows just above the save
   button.
 - After **Add task** (or **Propose a task**) the form closes back to where it was opened, usually
   the feature page, ready for the next task.
@@ -611,7 +611,7 @@ A few things work without a screen of their own.
   revoked" and so on. Screen readers read it out. Problems still show in the form or card, where
   they can be fixed.
 - **Forms on a computer** open as dialogs that ease in over the page and ease out when closed
-  (Cancel, ✕, Esc or a click outside); if there are unsaved changes and you choose to keep them,
+  (✕, Esc or a click outside); if there are unsaved changes and you choose to keep them,
   the dialog comes straight back.
 - **Live updates.** A change made on one device appears on everyone else's within seconds;
   nobody needs to refresh.

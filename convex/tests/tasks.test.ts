@@ -537,6 +537,7 @@ describe("edit rules (audit batch 3)", () => {
     expect(await ceo.asUser.query(api.tasks.waitingCount, {})).toEqual({
       proposals: 1,
       extensions: 0,
+      reviews: 0,
     });
   });
 

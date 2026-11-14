@@ -2,10 +2,14 @@ import type { FunctionReturnType } from "convex/server";
 
 import type { api } from "@convex/_generated/api";
 import { calendarDaysBetween, endOfDayGmt, shortDay } from "@convex/lib/dates";
-import type { ExtensionType, Role, TaskStatus } from "@convex/lib/validators";
+import type { ExtensionType, FeatureStatus, Role, TaskStatus } from "@convex/lib/validators";
 
 import { clock, hoursLabel } from "@/components/team-rules/rules";
-import { EXTENSION_TYPE_LABELS, TASK_STATUS_LABELS } from "@/constants/labels";
+import {
+  EXTENSION_TYPE_LABELS,
+  FEATURE_STATUS_LABELS,
+  TASK_STATUS_LABELS,
+} from "@/constants/labels";
 
 export type ActivityItem = FunctionReturnType<typeof api.activity.forTask>[number];
 
@@ -162,6 +166,45 @@ export function describeActivity(
         what: `flagged ${it} overdue: its deadline passed`,
         tone: "warning",
       };
+    case "task.peer_review_requested":
+      return plain(`asked for a peer review on ${it}`, text(after.note));
+    case "task.peer_review_approved":
+      return {
+        who,
+        what: inTask ? "approved the code" : `approved the code on ${it}`,
+        quote: text(after.note),
+        tone: "good",
+      };
+    case "task.peer_review_changes_requested":
+      return {
+        who,
+        what: `sent ${it} back after peer review`,
+        quote: text(after.note),
+        tone: "warning",
+      };
+    case "task.submitted":
+      return plain(`submitted ${it} for verification`, text(after.note));
+    case "task.verified":
+      return { who, what: `verified ${it}`, quote: text(after.note), tone: "good" };
+    case "task.changes_requested":
+      return { who, what: `asked for changes on ${it}`, quote: text(after.note), tone: "warning" };
+    case "task.review_withdrawn":
+      return plain(
+        `took ${it} back from ${after.stage === "peer_review" ? "peer review" : "verification"}`
+      );
+    case "feature.status_changed": {
+      const stage =
+        typeof after.status === "string" && after.status in FEATURE_STATUS_LABELS
+          ? FEATURE_STATUS_LABELS[after.status as FeatureStatus]
+          : "a new stage";
+      return {
+        who: "Cadence",
+        what: `moved ${item.feature?.title ?? "a feature"} to ${stage}`,
+        tone: after.status === "internal_testing" ? "good" : "plain",
+      };
+    }
+    case "feature.shipped":
+      return { who, what: `marked ${item.feature?.title ?? "a feature"} as live`, tone: "good" };
     case "comment.added":
       return {
         who,

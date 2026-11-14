@@ -141,7 +141,10 @@ convex/                  Backend (deployed by `bunx convex dev`)
                          inactive gate
   users.ts invites.ts settings.ts   Public functions (invites: list, create, renew (new code),
                          revoke; internal newCode for the CLI)
-  features.ts            list, get, create, update (admin)
+  features.ts            list, get, create, update, markShipped (admin; from Internal testing)
+  reviews.ts             requestPeerReview + submit + withdraw (owner), decidePeerReview (the
+                         peer reviewer), verify (verifiers: loadDeciders), forTask (history +
+                         what you can do), waiting (yours to review or verify)
   tasks.ts               board (filters; unshipped features unless one is picked), waitingCount,
                          get, mine, proposals, create, update (admin),
                          propose (anyone), approveProposal, declineProposal (admin),
@@ -164,7 +167,7 @@ convex/                  Backend (deployed by `bunx convex dev`)
                          GMT days, "Fri 14 Nov", "in 3 days"; shared with the app),
                          inviteCodes (shared with the app), tasks (task rules), views (shapes
                          sent to the app), extensions (who decides), lateRule (the late rule;
-                         shared with the app)
+                         shared with the app), reviews (review rules, rollUpFeature)
   tests/                 Vitest + convex-test
   test.setup.ts          Test helpers (never deployed: two dots in the name)
 assets/fonts/            Montserrat (5 weights) and Anton (the holo card's wordmark), SIL OFL —
@@ -251,6 +254,21 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   activity entries); it never records a day twice, so a missed run is made up. A missed day can
   never be logged afterwards. Limits: `DAILY_LOG_LIMITS` (`convex/lib/constants.ts`); weekday
   maths: `isWeekendDate`, `addDays` (`convex/lib/dates.ts`).
+- **Peer review & verification (Phase 6):** each request is a `verifications` row (stage
+  `peer_review` or `verification`), pending until decided or taken back (`withdrawnAt`); one
+  pending per task. The owner asks (from to do / in progress / changes requested, never blocked):
+  a code task goes to its peer reviewer, who approves (→ in progress) or sends it back with a
+  reason (→ changes requested); the owner then submits any task with a note (required) and a link
+  (`cleanProofUrl`: http(s) only; **links only**, no screenshots, the user's call 14 Nov). A code
+  task needs a peer approval since changes were last asked for (`hasCurrentPeerApproval`, by
+  request order), so a verifier's changes send it back through peer review. Verifiers =
+  `loadDeciders` (the extensions rule); verify needs every criterion ticked (`criteriaMet`,
+  stored) and sets progress 100 + `verifiedAt`; changes need a reason. Submitting is refused when
+  nobody could verify. The owner can `withdraw` a pending request (→ in progress), the way out if
+  a reviewer is deactivated (the plan is locked while in review). **Feature stages roll up**
+  (`rollUpFeature`, called after every task status change): Planned → In progress when a live
+  task starts; → Internal testing when all are verified; back if not; Shipped only by
+  `features.markShipped` (admin, from Internal testing).
 - **Activity entries about a task carry `taskId`** (its changes, comments, extension requests,
   a feature moved by its extension), which is how `activity.forTask` finds them. Comments are
   read from the activity log, not the `comments` table.

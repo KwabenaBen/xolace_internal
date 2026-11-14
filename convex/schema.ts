@@ -134,6 +134,10 @@ export default defineSchema({
     reviewerId: v.optional(v.id("users")),
     reason: v.optional(v.string()),
     decidedAt: v.optional(v.number()),
+    // Verification only: which acceptance criteria the verifier ticked, in the task's order.
+    criteriaMet: v.optional(v.array(v.boolean())),
+    // Set when the owner takes a pending request back (it's then neither pending nor decided).
+    withdrawnAt: v.optional(v.number()),
   })
     .index("by_taskId_and_stage", ["taskId", "stage"])
     .index("by_reviewerId_and_decision", ["reviewerId", "decision"])

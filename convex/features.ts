@@ -156,3 +156,34 @@ export const update = mutation({
     return null;
   },
 });
+
+/**
+ * Admin: mark a feature as live once it's in Internal testing (every task verified). It's then
+ * Shipped, and takes no new work.
+ */
+export const markShipped = mutation({
+  args: { featureId: v.id("features") },
+  returns: v.null(),
+  handler: async (ctx, { featureId }) => {
+    const admin = await requireAdmin(ctx);
+    const feature = await requireFeature(ctx, featureId);
+    if (feature.status !== "internal_testing") {
+      throw appError(
+        "INVALID_ARGUMENT",
+        feature.status === "shipped"
+          ? "This feature has already shipped."
+          : "A feature goes live once every task in it is verified (Internal testing)."
+      );
+    }
+    await ctx.db.patch("features", featureId, { status: "shipped" });
+    await logActivity(ctx, {
+      actorId: admin._id,
+      entityType: "feature",
+      entityId: featureId,
+      action: "feature.shipped",
+      before: { status: feature.status },
+      after: { status: "shipped" },
+    });
+    return null;
+  },
+});

@@ -17,6 +17,7 @@ import {
   taskPlanArgs,
   validateTaskPlan,
 } from "./lib/tasks";
+import { rollUpFeature } from "./lib/reviews";
 import {
   extensionTypeValidator,
   isOwnerWorking,
@@ -109,7 +110,7 @@ export const board = query({
  */
 export const waitingCount = query({
   args: {},
-  returns: v.object({ proposals: v.number(), extensions: v.number() }),
+  returns: v.object({ proposals: v.number(), extensions: v.number(), reviews: v.number() }),
   handler: async (ctx) => {
     await requireUser(ctx);
     const proposals = await ctx.db
@@ -120,7 +121,20 @@ export const waitingCount = query({
       .query("extensionRequests")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .take(500);
-    return { proposals: proposals.length, extensions: extensions.length };
+    // Peer reviews and submissions waiting for a decision (the tasks' statuses say so).
+    const inReview = await ctx.db
+      .query("tasks")
+      .withIndex("by_status_and_deadline", (q) => q.eq("status", "in_peer_review"))
+      .take(500);
+    const submitted = await ctx.db
+      .query("tasks")
+      .withIndex("by_status_and_deadline", (q) => q.eq("status", "submitted"))
+      .take(500);
+    return {
+      proposals: proposals.length,
+      extensions: extensions.length,
+      reviews: inReview.length + submitted.length,
+    };
   },
 });
 
@@ -226,6 +240,8 @@ export const create = mutation({
       action: "task.created",
       after: { featureId, ...plan },
     });
+    // A new task on a feature in Internal testing sends it back to In progress.
+    await rollUpFeature(ctx, featureId);
     return taskId;
   },
 });
@@ -403,6 +419,8 @@ export const postUpdate = mutation({
       before: { status: task.status, progress: task.progress },
       after: { status, progress, ...(text !== "" ? { note: text } : {}) },
     });
+    // The first task to start moves its feature from Planned to In progress.
+    if (changed) await rollUpFeature(ctx, task.featureId);
     return null;
   },
 });
@@ -482,6 +500,7 @@ export const approveProposal = mutation({
       before: { status: task.status },
       after: { status: "todo", ...plan },
     });
+    await rollUpFeature(ctx, task.featureId);
     return null;
   },
 });

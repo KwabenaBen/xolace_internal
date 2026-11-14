@@ -244,11 +244,12 @@ Pinterest, instead of the phone's tiles. Everything on the phone's Board is stil
 
 - **The sidebar** (on every page) lists Board, My Tasks, Logs, Activity and Admin (admins), then
   the features in progress (each with its stage's colour; admins also get **New feature**), then
-  Settings and you. Its arrow collapses it to icons and back, after a "hoverable sidebar" the
-  team picked: it slides the moment you click, the words slip out (or slide in one after another
-  as it opens), the icons stay where they are, and the choice is remembered on that browser.
-  Collapsed, pointing at (or tabbing to) an icon slides its name out beside it. Collapsing or
-  opening it only stretches the page; nothing rearranges.
+  Settings and you. It rests as a strip of icons under the Cadence mark and **slides open while
+  the pointer is over it**, then shut again when the pointer leaves, after a "hoverable sidebar"
+  the team picked: it opens over the page with a soft shadow, the words slide in one after
+  another and slip out first as it closes, and the icons stay where they are. The page never
+  moves. Tabbing into it opens it too, and Esc closes it; on a touch screen, tap the Cadence
+  mark.
 - **Motion, for now:** while the team reviews the website's animations, they play in full even
   when the computer asks for less motion (Windows' "Animation effects" off, or the Mac's "Reduce
   motion" on): the sidebar's slide, the cards lifting and the liquid buttons. Before release,

@@ -114,8 +114,9 @@ src/components/          Shared UI (Screen, OfflineBanner, ErrorScreen (the sign
                          extension-row.tsx lists waiting requests (Admin, My Tasks, waiting page)
   web/                   The website layout (a browser window ≥ 1000 px wide: `useIsDesktop`,
                          src/lib/use-desktop.ts): web-theme.ts (type sizes, sidebar widths),
-                         sidebar.web.tsx (replaces the tab bar; GSAP slide and collapsed
-                         tooltips; sidebar.tsx is the app's empty stub), liquid-button.web.tsx
+                         sidebar.web.tsx (replaces the tab bar; an icon strip that slides open
+                         over the page on hover or focus, GSAP; sidebar.tsx is the app's empty
+                         stub), liquid-button.web.tsx
                          (the "liquid arrow" Open button: SVG goo filter + GSAP; .tsx = plain
                          fallback), motion.web.ts (useHoverLift, useTweenTo, useGrowIn,
                          usePressScale, useEnterFrom, playOut, useWebReducedMotion; motion.ts
@@ -317,10 +318,11 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   screens open as dialogs (`Screen`'s `dialogTitle`; `transparentModal` keeps the page visible);
   a `Sheet` becomes a centred dialog; the Board route renders `WebBoard`, the feature route
   `WebFeature`, and the task route (also a `transparentModal` there) `WebTaskPanel`, a side panel
-  over the page it was opened from. Layout breakpoints read
-  the **window** width, never the sidebar's, and sizes are percentages/flex: the sidebar's glide
-  then reflows the page in CSS alone. Don't drive layout from `onLayout` there (it re-renders React
-  on every frame of the glide). **Web motion uses GSAP** (`gsap`, the user's choice), only in
+  over the page it was opened from. The sidebar keeps a 64 px strip in the layout and slides open
+  **over** the page while hovered or focused (the user's choice, 14 Nov), so the page never
+  reflows. Layout breakpoints read the **window** width, never the sidebar's, and sizes are
+  percentages/flex. Don't drive layout from `onLayout` (it re-renders React on every frame of a
+  slide). **Web motion uses GSAP** (`gsap`, the user's choice), only in
   `*.web.ts(x)` files with a plain `.ts(x)` twin for the app, so GSAP never reaches the iPhone
   bundle (check the iOS export). On the web a React Native view's ref is its DOM node, which GSAP
   animates; once GSAP owns a style (a width, a transform, a shadow), React's style gives only its

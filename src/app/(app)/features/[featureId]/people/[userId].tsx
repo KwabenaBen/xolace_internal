@@ -6,6 +6,7 @@ import { Text, View } from "react-native";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 
+import { PillButton, PillRow } from "@/components/ui/pill-button";
 import { TaskRow } from "@/components/ui/task-row";
 import { featureTeam, teamRole } from "@/components/feature/feature-team";
 import { PersonSummaryCard, PersonTaskCard } from "@/components/feature/person-work";
@@ -23,8 +24,8 @@ import { useNow } from "@/lib/use-now";
 
 /**
  * One person's work on one feature (from the feature page's Who's on it): their tasks there with
- * status, deadline, progress and what each must deliver, and the code tasks they review. Daily
- * logs (Phase 5) and submitted proof (Phase 6) join this page when those phases are built.
+ * status, deadline, progress and what each must deliver, the code tasks they review, and the way
+ * to their daily logs (the proof they submit is on each task's page).
  */
 export default function FeaturePersonScreen(): JSX.Element {
   const { featureId, userId } = useLocalSearchParams<{
@@ -133,9 +134,18 @@ export default function FeaturePersonScreen(): JSX.Element {
               color: c.muted,
             }}
           >
-            What {user.name.split(" ")[0]} logs each day (Phase 5) and the proof submitted with each
-            task (Phase 6) will show here.
+            The proof {user.name.split(" ")[0]} submits is on each task&apos;s page, with who
+            verified it.
           </Text>
+          <PillRow>
+            <PillButton
+              label="Daily logs"
+              variant="secondary"
+              onPress={() =>
+                router.push({ pathname: "/logs/[userId]", params: { userId: user._id } })
+              }
+            />
+          </PillRow>
         </Panel>
       </View>
     </DetailPage>

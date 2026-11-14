@@ -123,7 +123,17 @@ export function WebTaskPanel({ taskId }: { taskId: string }): JSX.Element {
   useEffect(() => {
     if (Platform.OS !== "web" || !isFocused || sheetOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") slideAway();
+      if (e.key !== "Escape") return;
+      // Not while typing (a review's reason, a comment, a decline reason): Esc would close the
+      // panel and lose it.
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLElement &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable)
+      ) {
+        return;
+      }
+      slideAway();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

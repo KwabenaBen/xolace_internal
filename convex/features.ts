@@ -168,6 +168,8 @@ export const markShipped = mutation({
   returns: v.null(),
   handler: async (ctx, { featureId }) => {
     const admin = await requireAdmin(ctx);
+    // Judge the stage its tasks are at now, not one saved before stages rolled up.
+    await rollUpFeature(ctx, featureId);
     const feature = await requireFeature(ctx, featureId);
     if (feature.status !== "internal_testing") {
       throw appError(

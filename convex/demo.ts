@@ -488,7 +488,7 @@ async function seedDemoReviews(
   if (ownerId === undefined) return 0;
   const already = await ctx.db
     .query("verifications")
-    .withIndex("by_taskId_and_stage", (q) => q.eq("taskId", task._id))
+    .withIndex("by_taskId", (q) => q.eq("taskId", task._id))
     .first();
   if (already !== null) return 0;
   const proofUrl = "https://example.com/demo-proof";
@@ -700,7 +700,7 @@ export const clear = internalMutation({
         for (const request of requests) await ctx.db.delete("extensionRequests", request._id);
         const reviews = await ctx.db
           .query("verifications")
-          .withIndex("by_taskId_and_stage", (q) => q.eq("taskId", task._id))
+          .withIndex("by_taskId", (q) => q.eq("taskId", task._id))
           .take(500);
         for (const review of reviews) await ctx.db.delete("verifications", review._id);
         await ctx.db.delete("tasks", task._id);

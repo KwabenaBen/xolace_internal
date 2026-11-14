@@ -14,6 +14,7 @@ import { colors, fonts, usePageColors } from "@/components/ui/theme";
 import { useToast } from "@/components/ui/toast";
 import { getErrorMessage } from "@/lib/errors";
 import { useAnnounce } from "@/lib/use-announce";
+import { useSignedInUser } from "@/lib/use-current-user";
 
 import type { TaskReviews } from "./use-task-state";
 import { waitingToVerify } from "./verifiers";
@@ -42,9 +43,23 @@ export function ReviewPanel({
   reviews: TaskReviews;
   now: number;
 }): JSX.Element | null {
+  const user = useSignedInUser();
+  // Next steps are said to the owner ("submit it") or about them ("Kofi submits it"); anything
+  // that stops the owner's button (blocked, no verifier) is the note in its place instead.
+  const isOwner = task.ownerId === user._id;
+  const ownerName = task.owner?.name.split(" ")[0] ?? "The owner";
   const pending = reviews.pending;
   if (pending !== null) {
-    return <PendingCard s={s} task={task} reviews={reviews} pending={pending} now={now} />;
+    return (
+      <PendingCard
+        s={s}
+        task={task}
+        reviews={reviews}
+        pending={pending}
+        now={now}
+        isOwner={isOwner}
+      />
+    );
   }
   const last = reviews.history.find((row) => row.decision !== undefined);
   if (last === undefined) return null;
@@ -54,7 +69,12 @@ export function ReviewPanel({
     ) : null;
   }
   if (last.decision === "changes_requested" && isOwnerWorking(task.status)) {
-    return <ChangesCard s={s} task={task} review={last} now={now} />;
+    const next = reviews.needsPeerReview
+      ? "it goes through peer review again"
+      : isOwner
+        ? "fix it, then submit it again"
+        : `${ownerName} fixes it, then submits it again`;
+    return <ChangesCard s={s} task={task} review={last} now={now} next={next} />;
   }
   if (
     task.kind === "code" &&
@@ -68,9 +88,9 @@ export function ReviewPanel({
         <Text style={inkLine}>
           {last.reviewer?.name ?? "The peer reviewer"} approved the code
           {last.decidedAt !== undefined ? ` on ${shortDay(last.decidedAt, now)}` : ""}.{" "}
-          {task.status === "blocked"
-            ? "Unblock it (Post an update), then submit it for verification."
-            : "Next: submit it for verification."}
+          {isOwner
+            ? "Next: submit it for verification."
+            : `Next: ${ownerName} submits it for verification.`}
         </Text>
         {last.reason ? <Quote text={last.reason} /> : null}
         {last.proofUrl !== undefined ? <ProofLink url={last.proofUrl} /> : null}
@@ -157,6 +177,12 @@ function ProofLink({ url }: { url: string }): JSX.Element {
     if (!/^https?:\/\//i.test(url)) return;
     Linking.openURL(url).catch(() => undefined);
   };
+  // The site in full and bold first, then the rest, so a long path can't push the real site out
+  // of sight (e.g. github.com.something-long.evil.example). Plain parsing: React Native's URL
+  // doesn't do hosts.
+  const parts = /^https?:\/\/([^/?#]+)(.*)$/i.exec(url);
+  const host = parts?.[1] ?? url;
+  const rest = parts === null || parts[2] === "/" ? "" : parts[2];
   return (
     <Pressable
       accessibilityRole="link"
@@ -169,7 +195,7 @@ function ProofLink({ url }: { url: string }): JSX.Element {
         gap: 8,
         alignSelf: "flex-start",
         maxWidth: "100%",
-        borderRadius: 999,
+        borderRadius: 16,
         paddingHorizontal: 12,
         paddingVertical: 7,
         backgroundColor: colors.tagFill,
@@ -179,10 +205,11 @@ function ProofLink({ url }: { url: string }): JSX.Element {
     >
       <Sym symbol={symbols.arrowUpRight} size={13} color={colors.ink} weight="semibold" />
       <Text
-        numberOfLines={1}
-        style={{ flexShrink: 1, fontFamily: fonts.semibold, fontSize: 13, color: colors.ink }}
+        numberOfLines={3}
+        style={{ flexShrink: 1, fontFamily: fonts.medium, fontSize: 13, color: colors.ink }}
       >
-        {url.replace(/^https?:\/\//i, "")}
+        <Text style={{ fontFamily: fonts.extraBold }}>{host}</Text>
+        {rest}
       </Text>
     </Pressable>
   );
@@ -194,11 +221,14 @@ function ChangesCard({
   task,
   review,
   now,
+  next,
 }: {
   s: number;
   task: TaskView;
   review: Review;
   now: number;
+  /** What happens next, from the server's flags and said to (or about) the owner. */
+  next: string;
 }): JSX.Element {
   // The criteria as they were when ticked (the plan can change once it's sent back); older rows
   // without them are read against today's, only while the count still matches.
@@ -214,12 +244,7 @@ function ChangesCard({
       />
       <Text style={inkLine}>
         {who}
-        {review.decidedAt !== undefined ? ` · ${shortDay(review.decidedAt, now)}` : ""}
-        {review.stage === "peer_review"
-          ? " · it goes through peer review again"
-          : task.kind === "code"
-            ? " · it goes back through peer review"
-            : " · fix it, then submit it again"}
+        {review.decidedAt !== undefined ? ` · ${shortDay(review.decidedAt, now)}` : ""} · {next}
       </Text>
       {review.reason ? <Quote text={review.reason} /> : null}
       {missed.length > 0 ? (
@@ -244,12 +269,15 @@ function PendingCard({
   reviews,
   pending,
   now,
+  isOwner,
 }: {
   s: number;
   task: TaskView;
   reviews: TaskReviews;
   pending: Review;
   now: number;
+  /** The signed-in user owns the task. */
+  isOwner: boolean;
 }): JSX.Element {
   const c = usePageColors();
   const decidePeerReview = useMutation(api.reviews.decidePeerReview);
@@ -257,6 +285,8 @@ function PendingCard({
   const withdraw = useMutation(api.reviews.withdraw);
   const toast = useToast();
   const [mode, setMode] = useState<"approve" | "changes" | null>(null);
+  // Taking it back asks first: the reviewer loses the request, and take-backs are limited.
+  const [confirmingTakeBack, setConfirmingTakeBack] = useState(false);
   const [note, setNote] = useState("");
   const [ticks, setTicks] = useState<boolean[]>(() => task.acceptanceCriteria.map(() => false));
   const [busy, setBusy] = useState(false);
@@ -279,10 +309,13 @@ function PendingCard({
         ? `Waiting on ${reviewerName.split(" ")[0]}`
         : "Waiting for its peer reviewer"
       : "Waiting to be verified";
+  const gone = `${reviewerName ?? "The peer reviewer"} has been deactivated, so nobody can review it.`;
   const waitingLine = reviewerGone
-    ? reviews.canWithdraw
-      ? `${reviewerName ?? "The peer reviewer"} has been deactivated, so nobody can review it. Take it back, then ask an admin to choose another peer reviewer.`
-      : `${reviewerName ?? "The peer reviewer"} has been deactivated: ${who} can take it back, and an admin can then choose another peer reviewer.`
+    ? isOwner
+      ? `${gone} Take it back, then ask an admin to choose another peer reviewer.`
+      : reviews.canWithdraw
+        ? `${gone} Take it back, then choose another peer reviewer (Edit task).`
+        : `${gone} ${who} or an admin can take it back.`
     : peer
       ? `Waiting for ${reviewerName ?? "the peer reviewer"} to review the code.`
       : waitingToVerify(reviews.verifier);
@@ -416,12 +449,33 @@ function PendingCard({
           <Text style={{ ...inkLine, fontFamily: fonts.semibold }}>{waitingLine}</Text>
           {errorLine}
           {reviews.canWithdraw ? (
-            <PillButton
-              label="Take it back"
-              variant="secondary"
-              isLoading={busy}
-              onPress={() => void run(() => withdraw({ taskId: task._id }), "Taken back")}
-            />
+            confirmingTakeBack ? (
+              <View style={{ gap: 10 }}>
+                <Text style={inkLine}>
+                  Take it back? It returns to In progress, and{" "}
+                  {peer ? (reviewerName ?? "the peer reviewer") : "the verifier"} no longer sees it.
+                </Text>
+                <PillRow>
+                  <PillButton
+                    label="Keep it"
+                    variant="secondary"
+                    isDisabled={busy}
+                    onPress={() => setConfirmingTakeBack(false)}
+                  />
+                  <PillButton
+                    label="Take it back"
+                    isLoading={busy}
+                    onPress={() => void run(() => withdraw({ taskId: task._id }), "Taken back")}
+                  />
+                </PillRow>
+              </View>
+            ) : (
+              <PillButton
+                label="Take it back"
+                variant="secondary"
+                onPress={() => setConfirmingTakeBack(true)}
+              />
+            )
           ) : null}
         </View>
       ) : mode === null ? (

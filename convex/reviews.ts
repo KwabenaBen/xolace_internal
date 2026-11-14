@@ -3,7 +3,7 @@ import { v, type Infer } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { logActivity } from "./lib/activity";
-import { requireUser } from "./lib/auth";
+import { isAdmin, requireUser } from "./lib/auth";
 import { appError } from "./lib/errors";
 import { deciderValidator, loadDeciders } from "./lib/extensions";
 import {
@@ -12,7 +12,7 @@ import {
   isPending,
   isReady,
   loadReviews,
-  requireRoomForRequest,
+  takeBacksLeft,
   rollUpFeature,
 } from "./lib/reviews";
 import { REVIEW_LIMITS } from "./lib/constants";
@@ -147,7 +147,6 @@ export const requestPeerReview = mutation({
     }
     const rows = await loadReviews(ctx, task._id);
     if (rows.some(isPending)) throw appError("INVALID_ARGUMENT", "A review is already waiting.");
-    requireRoomForRequest(rows);
     const note = cleanNote(args.note, "Note", false);
     const proofUrl = cleanProofUrl(args.proofUrl);
 
@@ -244,7 +243,6 @@ export const submit = mutation({
     await requireOpenFeature(ctx, task);
     const rows = await loadReviews(ctx, task._id);
     if (rows.some(isPending)) throw appError("INVALID_ARGUMENT", "A review is already waiting.");
-    requireRoomForRequest(rows);
     if (task.kind === "code" && !hasCurrentPeerApproval(rows, task)) {
       throw appError(
         "INVALID_ARGUMENT",
@@ -354,16 +352,50 @@ export const verify = mutation({
   },
 });
 
-/** Owner: take a pending peer review or submission back (the task returns to In progress). */
+/**
+ * Whether this person may take the waiting request back: its owner (at most
+ * `REVIEW_LIMITS.takeBacksPerTask` times per task; past that a request waits for its reviewer's
+ * decision), or an admin when the request is a peer review whose reviewer has been deactivated
+ * (nobody could decide it, and the owner may have gone too).
+ */
+async function canTakeBack(
+  ctx: QueryCtx,
+  user: Doc<"users">,
+  task: Doc<"tasks">,
+  rows: Doc<"verifications">[],
+  pending: Doc<"verifications">
+): Promise<boolean> {
+  if (task.ownerId === user._id && takeBacksLeft(rows) > 0) return true;
+  if (!isAdmin(user) || pending.stage !== "peer_review" || task.peerReviewerId === undefined) {
+    return false;
+  }
+  const reviewer = await ctx.db.get("users", task.peerReviewerId);
+  return reviewer === null || !reviewer.isActive;
+}
+
+/**
+ * Take a pending peer review or submission back (the task returns to In progress): the owner,
+ * or an admin when the peer reviewer has left (`canTakeBack`).
+ */
 export const withdraw = mutation({
   args: { taskId: v.id("tasks") },
   returns: v.null(),
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    const task = await requireOwnersLiveTask(ctx, args.taskId, user._id);
-    const pending = (await loadReviews(ctx, task._id)).find(isPending);
+    const task = await requireTask(ctx, args.taskId);
+    if (!isLiveTask(task)) throw appError("INVALID_ARGUMENT", "Only live tasks are reviewed.");
+    const rows = await loadReviews(ctx, task._id);
+    const pending = rows.find(isPending);
     if (pending === undefined)
       throw appError("INVALID_ARGUMENT", "Nothing is waiting to take back.");
+    if (!(await canTakeBack(ctx, user, task, rows, pending))) {
+      throw appError(
+        task.ownerId === user._id ? "INVALID_ARGUMENT" : "FORBIDDEN",
+        task.ownerId === user._id
+          ? `This task's requests have been taken back ${REVIEW_LIMITS.takeBacksPerTask} times, the most there can be: this one waits for its reviewer's decision.`
+          : "Only the task's owner can take it back (or an admin, when the peer reviewer has left)."
+      );
+    }
     await ctx.db.patch("verifications", pending._id, { withdrawnAt: Date.now() });
     await setStatus(ctx, task, { status: "in_progress" });
     await logActivity(ctx, {
@@ -412,12 +444,7 @@ export const forTask = query({
     const open = isLiveTask(task) && feature.status !== "shipped";
     const isCode = task.kind === "code" && task.peerReviewerId !== undefined;
     const needsPeerReview = isCode && !hasCurrentPeerApproval(rows, task);
-    const ownerCanAct =
-      open &&
-      isOwner &&
-      pendingRow === null &&
-      isReady(task.status) &&
-      rows.length < REVIEW_LIMITS.requestsPerTask;
+    const ownerCanAct = open && isOwner && pendingRow === null && isReady(task.status);
     // requestPeerReview refuses a deactivated reviewer; the app says why instead of the button.
     const reviewerActive =
       task.peerReviewerId !== undefined && directory.get(task.peerReviewerId)?.isActive === true;
@@ -437,7 +464,8 @@ export const forTask = query({
         pendingRow?.stage === "verification" &&
         task.status === "submitted" &&
         (await deciders.canDecide(user, task)),
-      canWithdraw: isOwner && pendingRow !== null,
+      canWithdraw:
+        pendingRow !== null && open && (await canTakeBack(ctx, user, task, rows, pendingRow)),
       verifier: await deciders.deciderOf(task),
       hasVerifier,
     };

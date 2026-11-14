@@ -19,7 +19,7 @@ it in step when asked).
   shared kit in `src/components/ui/`.
 - **Graphics:** `@shopify/react-native-skia` for the welcome dot animation on iOS (Skia is in Expo
   Go); the web build uses a plain 2D canvas instead (`*.web.tsx`) to avoid Skia's WebAssembly.
-- **Backend:** Convex (database, functions, auth, crons later). Convex Auth 0.0.96 with the
+- **Backend:** Convex (database, functions, auth, crons). Convex Auth 0.0.96 with the
   Password provider. Stay on 0.0.x until Convex Auth 2.0 is production-ready.
 - **Package manager:** bun (`bun install`, `bun add`, `bunx …`). Use `bunx expo install` for
   Expo/React Native packages so versions match the SDK.
@@ -102,7 +102,8 @@ src/components/          Shared UI (Screen, OfflineBanner, ErrorScreen (the sign
                          review-sheet.tsx (the owner's Ask for a peer review / Submit for
                          verification: note + link), review-panel.tsx (the review card: a
                          waiting review with the reviewer's or verifier's buttons and criteria
-                         to tick, Take it back for the owner; changes asked for; code approved),
+                         to tick, Take it back (asks first); changes asked for; code approved;
+                         verified, with the proof accepted),
                          verifiers.ts (who verifies, in words),
                          task-history.tsx (the task's history + comment box),
                          task-dates.ts (countdown maths), task-theme.ts (holo words),
@@ -279,14 +280,20 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   (`criteriaMet`, stored with a copy of the criteria as they were, `criteria`, since the plan can
   change once sent back) and sets progress 100 + `verifiedAt`, and closes a request for more time
   still waiting (status withdrawn); changes need a reason. Submitting is refused when nobody could
-  verify. The owner can `withdraw` a pending request (→ in progress), the way out if a reviewer is
-  deactivated (the plan is locked while in review; asking is refused, and `canAskPeerReview` is
-  false, while the reviewer is deactivated). At most `REVIEW_LIMITS.requestsPerTask` (50) requests
-  per task (`requireRoomForRequest`); `waiting` reads only real pending rows
-  (`by_stage_and_decision_and_withdrawnAt`). **Feature stages roll up** (`rollUpFeature`, called
+  verify. The owner can `withdraw` a pending request (→ in progress), at most
+  `REVIEW_LIMITS.takeBacksPerTask` (50) times per task (`takeBacksLeft`; asking is never refused,
+  so a task can always reach a decision); an admin can too when a pending peer review's reviewer
+  has been deactivated (`canTakeBack`: the way out, since the plan is locked while in review;
+  asking is refused, and `canAskPeerReview` is false, while the reviewer is deactivated). A task's
+  reviews are read newest first (`loadReviews`, `by_taskId`, the newest `readWindow`); `waiting`
+  reads only real pending rows (`by_stage_and_decision_and_withdrawnAt`). Once a task has had a
+  review request, the admin who owns it (or is taking it on) can't change its kind, peer reviewer
+  or criteria in `tasks.update` (another admin can; the owner may replace a deactivated
+  reviewer). **Feature stages roll up** (`rollUpFeature`, called
   after every task status change, its entry tagged with that task): Planned → In progress when a
   live task starts; → Internal testing when all are verified; back if not; Shipped only by
-  `features.markShipped` (admin, from Internal testing, once no proposal waits on the feature).
+  `features.markShipped` (admin, from Internal testing, once no proposal waits on the feature; it
+  rolls the stage up first, so a stale saved stage can't ship unverified work).
   `features:rollUpStages` (CLI) brings older features in line, once per deployment.
 - **Activity entries about a task carry `taskId`** (its changes, comments, extension requests,
   a feature moved by its extension), which is how `activity.forTask` finds them. Comments are
@@ -531,7 +538,35 @@ UX, security) and write the findings up before moving on.
   black. Cosmetic, web-only; iOS is unaffected. Revisit if HeroUI adds web support.
 - **Password reset** ("forgot password") isn't built. The user put it in Phase 5, then, on 13
   Nov, put Resend (an emailed code) off for later. Whether to build an admin-issued one-time
-  reset code meanwhile is undecided: ask before building a reset.
+  reset code meanwhile is undecided: ask before building a reset. Settle it before real accounts
+  move to TestFlight and production.
+- **Proof is links only** (the user's call, 14 Nov): no screenshot or file upload yet, though
+  REQUIREMENTS.md still lists them. `verifications.proofStorageId` is kept, unused, for when
+  uploads come.
+- **Before Phase 7 (found by the 14 Nov loose-ends review), to settle with the user:**
+  - _Production plan:_ the team uses the dev deployment today, which has `CADENCE_DEMO` on and
+    demo work spread over real people. Start production fresh, or carry dev data over without
+    the demo? How to run has no production section yet (`convex deploy`, JWT keys with `--prod`,
+    `seed --prod`, `features:rollUpStages --prod`, the Convex URL for the EAS and web builds;
+    never `CADENCE_DEMO` there).
+  - _Digest and reminder timing:_ the times are minute-precise team rules, but crons are fixed
+    in `crons.ts`: a frequent cron with a "sent today" record (a small table), or times limited
+    to whole hours.
+  - _Push setup:_ `expo-notifications` (and `expo-device`) are new packages (ask first); push
+    tokens need an EAS project id; the app scheme and bundle id (App identity, above) come
+    first; `users.pushToken` holds one device per person and must be cleared on sign-out and
+    deactivation.
+  - _Which events push:_ being named peer reviewer, a peer approval, a request taken back or
+    closed by Cadence; whether the digest's "reviews waiting on you" includes requests for more
+    time; Monday's "yesterday's log" (Sunday never counts: Friday instead?); overdue tasks
+    already in review or submitted.
+  - _Website layouts:_ My Tasks, Admin, the waiting page and Activity still use the phone layout
+    on a computer (the Board, Logs, feature page and task panel have their own).
+  - _Web hosting:_ `web.output: "single"` needs the host to send every path to `index.html`, so
+    links like `/tasks/…` open.
+- **Phase numbers:** REQUIREMENTS.md numbers the build phases differently (its 5 and 6 are this
+  file's 6 and 7, and it says v1 launches after its phase 6). This file's numbering is the one
+  in use.
 
 <!-- convex-ai-start -->
 

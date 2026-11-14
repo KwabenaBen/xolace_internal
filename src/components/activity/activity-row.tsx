@@ -5,7 +5,7 @@ import { Avatar, pastelFor } from "@/components/people/avatar";
 import { Sym, symbols } from "@/components/ui/sym";
 import { colors, fonts, usePageColors } from "@/components/ui/theme";
 
-import { describeActivity, timeAgo, type ActivityItem } from "./describe";
+import { describeActivity, entryTarget, timeAgo, type ActivityItem } from "./describe";
 
 /**
  * One activity entry: who (their pastel avatar, or a yellow clock for Cadence itself), the
@@ -36,9 +36,9 @@ export function ActivityRow({
       accessibilityHint={
         onPress === undefined
           ? undefined
-          : item.task !== null
-            ? "Opens the task"
-            : "Opens the feature"
+          : entryTarget(item)?.kind === "feature"
+            ? "Opens the feature"
+            : "Opens the task"
       }
       style={({ pressed }) => ({
         flexDirection: "row",

@@ -17,7 +17,7 @@ import {
   taskPlanArgs,
   validateTaskPlan,
 } from "./lib/tasks";
-import { rollUpFeature } from "./lib/reviews";
+import { loadReviews, rollUpFeature } from "./lib/reviews";
 import {
   extensionTypeValidator,
   isOwnerWorking,
@@ -271,6 +271,29 @@ export const update = mutation({
     const feature = await requireFeature(ctx, task.featureId);
     const now = Date.now();
     const plan = await validateTaskPlan(ctx, feature, input, now, task.deadline);
+
+    // Once a task has gone for review, the admin who owns it (or is taking it on) doesn't reshape
+    // that review: another admin changes its kind, peer reviewer or criteria. Nobody approves
+    // their own work. A deactivated peer reviewer can still be replaced, so the task isn't stuck.
+    if (
+      (task.ownerId === admin._id || plan.ownerId === admin._id) &&
+      (await loadReviews(ctx, taskId)).length > 0
+    ) {
+      const reviewer =
+        task.peerReviewerId !== undefined ? await ctx.db.get("users", task.peerReviewerId) : null;
+      const reviewerGone = task.peerReviewerId !== undefined && reviewer?.isActive !== true;
+      const criteriaChanged =
+        plan.acceptanceCriteria.length !== task.acceptanceCriteria.length ||
+        plan.acceptanceCriteria.some((text, i) => text !== task.acceptanceCriteria[i]);
+      const reviewerChanged = plan.peerReviewerId !== task.peerReviewerId;
+      const allowedSwap = reviewerChanged && reviewerGone && plan.kind === "code";
+      if (plan.kind !== task.kind || criteriaChanged || (reviewerChanged && !allowedSwap)) {
+        throw appError(
+          "FORBIDDEN",
+          "This task is yours and has been sent for review, so another admin changes its type, peer reviewer or acceptance criteria."
+        );
+      }
+    }
 
     // Deadline moves (convex/lib/lateRule.ts → "direct moves"):
     let lateMove: { type: ExtensionType; late: boolean } | null = null;

@@ -19,11 +19,17 @@ export const DAILY_LOG_LIMITS = {
 } as const;
 
 /**
- * Peer review and verification (Phase 6): a request's or decision's note, a proof link, and how
- * many requests one task can have (each is kept for good; asking and taking back can't go on
- * forever, and a task's reviews are read in one go).
+ * Peer review and verification (Phase 6): a request's or decision's note, a proof link, how many
+ * times an owner can take requests back on one task (each request is kept for good, so asking
+ * and taking back can't go on for ever; past it, a request waits for its reviewer's decision),
+ * and how many of a task's newest requests are read (all a decision needs).
  */
-export const REVIEW_LIMITS = { note: 1000, url: 500, requestsPerTask: 50 } as const;
+export const REVIEW_LIMITS = {
+  note: 1000,
+  url: 500,
+  takeBacksPerTask: 50,
+  readWindow: 200,
+} as const;
 
 /** How long an invite (and its code) stays usable. */
 export const INVITE_DAYS = 14;

@@ -410,20 +410,29 @@ describe("peer review, submission and verification", () => {
     );
   });
 
-  test("taken-back requests leave the waiting lists; a task can't ask for ever", async () => {
-    const { coo, cto, featureId } = await setup();
+  test("taken-back requests leave the waiting lists; take-backs are limited, never the asking", async () => {
+    const { t, coo, cto, featureId } = await setup();
     const taskId = await contentTask(coo.asUser, featureId, cto.userId);
     for (let i = 0; i < 50; i++) {
       await cto.asUser.mutation(api.reviews.submit, { taskId, note: `Try ${i}.` });
       await cto.asUser.mutation(api.reviews.withdraw, { taskId });
     }
     expect((await coo.asUser.query(api.reviews.waiting, {})).verifications).toEqual([]);
-    expect((await cto.asUser.query(api.reviews.forTask, { taskId })).canSubmit).toBe(false);
+    // Asking is never refused, so the task can always reach its verifier…
+    await cto.asUser.mutation(api.reviews.submit, { taskId, note: "Once more." });
+    expect((await cto.asUser.query(api.reviews.forTask, { taskId })).canWithdraw).toBe(false);
+    // …but past 50 take-backs it waits for the decision.
     const refused = await expectAppError(
-      cto.asUser.mutation(api.reviews.submit, { taskId, note: "Once more." }),
+      cto.asUser.mutation(api.reviews.withdraw, { taskId }),
       "INVALID_ARGUMENT"
     );
-    expect(refused?.message).toContain("50 reviews");
+    expect(refused?.message).toContain("50 times");
+    await coo.asUser.mutation(api.reviews.verify, {
+      taskId,
+      decision: "approved",
+      criteriaMet: [true],
+    });
+    expect((await task(t, taskId)).status).toBe("verified");
     // A real submission elsewhere still shows.
     const other = await contentTask(coo.asUser, featureId, cto.userId);
     await cto.asUser.mutation(api.reviews.submit, { taskId: other, note: "Done." });
@@ -526,6 +535,128 @@ describe("peer review, submission and verification", () => {
     expect(await t.mutation(internal.features.rollUpStages, {})).toContain("moved 1");
     expect(await featureStatus(t, other)).toBe("in_progress");
     expect(await featureStatus(t, featureId)).toBe("shipped");
+  });
+
+  test("an admin rescues a review whose peer reviewer has left; nobody else takes it back", async () => {
+    const { t, coo, cmo, ceo, cto, featureId } = await setup();
+    const taskId = await codeTask(coo.asUser, featureId, cto.userId, ceo.userId);
+    await cto.asUser.mutation(api.reviews.requestPeerReview, { taskId });
+    // While the reviewer is here, it's theirs to decide: an admin can't take it back.
+    await expectAppError(cmo.asUser.mutation(api.reviews.withdraw, { taskId }), "FORBIDDEN");
+    await coo.asUser.mutation(api.users.setActive, { userId: ceo.userId, isActive: false });
+    expect((await cmo.asUser.query(api.reviews.forTask, { taskId })).canWithdraw).toBe(true);
+    await cmo.asUser.mutation(api.reviews.withdraw, { taskId });
+    expect((await task(t, taskId)).status).toBe("in_progress");
+  });
+
+  test("an admin who owns a task doesn't reshape its review once it has gone for review", async () => {
+    const { coo, cmo, ceo, cto, featureId } = await setup();
+    const taskId = await codeTask(coo.asUser, featureId, cmo.userId, cto.userId);
+    const plan = {
+      taskId,
+      title: "Sign-up API",
+      description: "",
+      kind: "code" as const,
+      acceptanceCriteria: ["Rejects a wrong code", "Accepts the right one"],
+      ownerId: cmo.userId,
+      peerReviewerId: cto.userId,
+      deadline: inDays(10),
+      priority: "high" as const,
+    };
+    // Still planning: the owner edits freely.
+    await cmo.asUser.mutation(api.tasks.update, { ...plan, description: "Planning notes." });
+    await cmo.asUser.mutation(api.reviews.requestPeerReview, { taskId });
+    await cto.asUser.mutation(api.reviews.decidePeerReview, {
+      taskId,
+      decision: "changes_requested",
+      note: "The wrong code gets through.",
+    });
+    for (const change of [
+      { kind: "design" as const, peerReviewerId: undefined },
+      { peerReviewerId: ceo.userId },
+      { acceptanceCriteria: ["Accepts the right one"] },
+    ]) {
+      await expectAppError(
+        cmo.asUser.mutation(api.tasks.update, { ...plan, ...change }),
+        "FORBIDDEN"
+      );
+    }
+    // The rest of the plan is still theirs, and another admin can change the review's shape.
+    await cmo.asUser.mutation(api.tasks.update, { ...plan, title: "Sign-up API v2" });
+    await coo.asUser.mutation(api.tasks.update, {
+      ...plan,
+      title: "Sign-up API v2",
+      peerReviewerId: ceo.userId,
+    });
+    // A deactivated reviewer can be replaced by the owner too, so the task isn't stuck.
+    await coo.asUser.mutation(api.users.setActive, { userId: ceo.userId, isActive: false });
+    await cmo.asUser.mutation(api.tasks.update, {
+      ...plan,
+      title: "Sign-up API v2",
+      peerReviewerId: cto.userId,
+    });
+  });
+
+  test("submitting is refused when nobody could verify the task", async () => {
+    const { coo, cmo, featureId } = await setup();
+    // One admin left, and they are the admin task reviewer: nobody can verify their own task.
+    await coo.asUser.mutation(api.users.setActive, { userId: cmo.userId, isActive: false });
+    await coo.asUser.mutation(api.settings.set, {
+      key: "adminTaskReviewer",
+      value: { email: "coo@cadence.test", userId: coo.userId },
+    });
+    const taskId = await contentTask(coo.asUser, featureId, coo.userId);
+    const reviews = await coo.asUser.query(api.reviews.forTask, { taskId });
+    expect(reviews.hasVerifier).toBe(false);
+    expect(reviews.canSubmit).toBe(false);
+    await expectAppError(
+      coo.asUser.mutation(api.reviews.submit, { taskId, note: "Done." }),
+      "INVALID_ARGUMENT"
+    );
+  });
+
+  test("verify needs one tick per criterion; the request it closes says why", async () => {
+    const { t, coo, cto, featureId } = await setup();
+    const taskId = await contentTask(coo.asUser, featureId, cto.userId);
+    await cto.asUser.mutation(api.extensions.request, {
+      taskId,
+      newDeadline: inDays(20),
+      type: "other",
+      reason: "More screens.",
+    });
+    await cto.asUser.mutation(api.reviews.submit, { taskId, note: "Done." });
+    await expectAppError(
+      coo.asUser.mutation(api.reviews.verify, { taskId, decision: "approved", criteriaMet: [] }),
+      "INVALID_ARGUMENT"
+    );
+    await coo.asUser.mutation(api.reviews.verify, {
+      taskId,
+      decision: "approved",
+      criteriaMet: [true],
+    });
+    const closed = await t.run(async (ctx) =>
+      (await ctx.db.query("activity").collect()).find((a) => a.action === "extension.closed")
+    );
+    expect(closed).toMatchObject({
+      actorId: coo.userId,
+      taskId,
+      after: { status: "withdrawn", note: "The task was verified." },
+    });
+  });
+
+  test("Mark as live judges the stage the tasks are at now, not a stale one", async () => {
+    const { t, coo, cto, featureId } = await setup();
+    const taskId = await contentTask(coo.asUser, featureId, cto.userId);
+    await cto.asUser.mutation(api.reviews.submit, { taskId, note: "Done." });
+    // A stage saved before stages rolled up (old demo data did this).
+    await t.run(async (ctx) => ctx.db.patch("features", featureId, { status: "internal_testing" }));
+    await expectAppError(
+      coo.asUser.mutation(api.features.markShipped, { featureId }),
+      "INVALID_ARGUMENT"
+    );
+    // (A refused change is rolled back whole, so the stage moves on with the next task change
+    // or features:rollUpStages.)
+    expect(await featureStatus(t, featureId)).toBe("internal_testing");
   });
 });
 

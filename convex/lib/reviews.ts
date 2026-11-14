@@ -30,8 +30,11 @@ export function isPending(row: Doc<"verifications">): boolean {
 }
 
 /**
- * A task's requests, oldest first. A task has at most `REVIEW_LIMITS.requestsPerTask` of them
- * (`requireRoomForRequest`), so this reads them all.
+ * A task's newest requests (`REVIEW_LIMITS.readWindow`), oldest first. Every rule needs only the
+ * recent ones: the request waiting is always the newest (one at a time), and a peer approval
+ * counts only since changes were last asked for. Taken-back requests are capped
+ * (`takeBacksLeft`) and every other one needed a second person's decision, so a task's requests
+ * stay few.
  */
 export async function loadReviews(
   ctx: QueryCtx,
@@ -39,19 +42,16 @@ export async function loadReviews(
 ): Promise<Doc<"verifications">[]> {
   const rows = await ctx.db
     .query("verifications")
-    .withIndex("by_taskId_and_stage", (q) => q.eq("taskId", taskId))
-    .take(REVIEW_LIMITS.requestsPerTask * 2);
-  return rows.sort((a, b) => a._creationTime - b._creationTime);
+    .withIndex("by_taskId", (q) => q.eq("taskId", taskId))
+    .order("desc")
+    .take(REVIEW_LIMITS.readWindow);
+  return rows.reverse();
 }
 
-/** Refuses a new request once a task has had `REVIEW_LIMITS.requestsPerTask`. */
-export function requireRoomForRequest(rows: Doc<"verifications">[]): void {
-  if (rows.length >= REVIEW_LIMITS.requestsPerTask) {
-    throw appError(
-      "INVALID_ARGUMENT",
-      `This task has had ${REVIEW_LIMITS.requestsPerTask} reviews, the most one task can have. Ask an admin to split the work into a new task.`
-    );
-  }
+/** How many more times the owner may take a request back on this task. */
+export function takeBacksLeft(rows: Doc<"verifications">[]): number {
+  const taken = rows.filter((row) => row.withdrawnAt !== undefined).length;
+  return Math.max(0, REVIEW_LIMITS.takeBacksPerTask - taken);
 }
 
 /**

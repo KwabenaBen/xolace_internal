@@ -123,7 +123,11 @@ export default function BoardListScreen(): JSX.Element {
             <FeatureFeed
               groups={groups}
               now={now}
-              emptyMessage={copy.empty}
+              emptyMessage={
+                view === "waiting" && inReview.length === 0 && (extensions?.length ?? 0) === 0
+                  ? "Nothing is waiting for a decision."
+                  : copy.empty
+              }
               onOpenFeature={(featureId) =>
                 router.push({ pathname: "/features/[featureId]", params: { featureId } })
               }

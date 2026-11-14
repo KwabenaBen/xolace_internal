@@ -138,11 +138,11 @@ export default defineSchema({
     // the criteria as they were then (`criteria`; the plan can change once it's sent back).
     criteriaMet: v.optional(v.array(v.boolean())),
     criteria: v.optional(v.array(v.string())),
-    // Set when the owner takes a pending request back (it's then neither pending nor decided).
+    // Set when a pending request is taken back (by the owner, or an admin when the peer reviewer
+    // has left); it is then neither pending nor decided.
     withdrawnAt: v.optional(v.number()),
   })
-    .index("by_taskId_and_stage", ["taskId", "stage"])
-    .index("by_reviewerId_and_decision", ["reviewerId", "decision"])
+    .index("by_taskId", ["taskId"])
     // Waiting requests: no decision and not taken back (`waiting` reads only these).
     .index("by_stage_and_decision_and_withdrawnAt", ["stage", "decision", "withdrawnAt"]),
 

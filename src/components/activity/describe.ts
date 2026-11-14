@@ -13,6 +13,21 @@ import {
 
 export type ActivityItem = FunctionReturnType<typeof api.activity.forTask>[number];
 
+/**
+ * What tapping an entry opens: the feature for an entry about a feature (even one a task's change
+ * moved, which also names that task), else the task, else the feature, else nothing.
+ */
+export function entryTarget(
+  item: ActivityItem
+): { kind: "task"; id: string } | { kind: "feature"; id: string } | null {
+  if (item.entityType === "feature" && item.feature !== null) {
+    return { kind: "feature", id: item.feature._id };
+  }
+  if (item.task !== null) return { kind: "task", id: item.task._id };
+  if (item.feature !== null) return { kind: "feature", id: item.feature._id };
+  return null;
+}
+
 /** One activity entry as words: "Kofi" + "moved it to In progress at 40%", and what they wrote. */
 export type Described = {
   /** Who did it: their name, or "Cadence" for the app itself (e.g. flagging a task overdue). */
@@ -232,7 +247,8 @@ export function describeActivity(
     case "extension.withdrawn":
       return plain(`withdrew their request for more time on ${it}`);
     case "extension.closed":
-      return plain(`closed the request for more time on ${it}: it has a new owner`);
+      // Why it closed is saved with it ("The task moved to a new owner.", "The task was verified.").
+      return plain(`closed the request for more time on ${it}`, text(after.note));
     case "feature.created":
       return plain(`created the feature ${item.feature?.title ?? text(after.title) ?? ""}`.trim());
     case "feature.updated":

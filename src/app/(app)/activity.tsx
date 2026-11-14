@@ -8,7 +8,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { calendarDaysBetween, shortDay } from "@convex/lib/dates";
 
 import { ActivityRow } from "@/components/activity/activity-row";
-import type { ActivityItem } from "@/components/activity/describe";
+import { entryTarget, type ActivityItem } from "@/components/activity/describe";
 import { Avatar, pastelFor } from "@/components/people/avatar";
 import { DetailPage, useGoBack, usePageSize } from "@/components/ui/detail-page";
 import { PageHeader } from "@/components/ui/page-header";
@@ -48,10 +48,11 @@ export default function ActivityScreen(): JSX.Element {
   );
 
   const open = (item: ActivityItem) => {
-    if (item.task !== null) {
-      router.push({ pathname: "/tasks/[taskId]", params: { taskId: item.task._id } });
-    } else if (item.feature !== null) {
-      router.push({ pathname: "/features/[featureId]", params: { featureId: item.feature._id } });
+    const target = entryTarget(item);
+    if (target?.kind === "task") {
+      router.push({ pathname: "/tasks/[taskId]", params: { taskId: target.id } });
+    } else if (target?.kind === "feature") {
+      router.push({ pathname: "/features/[featureId]", params: { featureId: target.id } });
     }
   };
 
@@ -160,9 +161,7 @@ export default function ActivityScreen(): JSX.Element {
                     item={item}
                     inTask={false}
                     now={now}
-                    onPress={
-                      item.task !== null || item.feature !== null ? () => open(item) : undefined
-                    }
+                    onPress={entryTarget(item) !== null ? () => open(item) : undefined}
                   />
                 ))}
               </View>

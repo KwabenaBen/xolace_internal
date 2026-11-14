@@ -66,8 +66,9 @@ flowchart LR
     D --> E["Submitted<br/><small>with note and proof</small>"]
     E --> F{"Criteria met?"}
     F -- "no: changes requested" --> C
-    F -- yes --> G["Verified<br/><small>by admin or CEO</small>"]
-    G --> H["Feature ships<br/><small>all tasks verified</small>"]
+    F -- yes --> G["Verified<br/><small>by a verifier, never the owner</small>"]
+    G --> I["Internal testing<br/><small>every task verified</small>"]
+    I --> H["Live<br/><small>an admin marks it live</small>"]
 ```
 
 A rejected task loops back to its owner with a reason; a code task then goes through peer review
@@ -132,13 +133,15 @@ last arrives in Phase 7.
 
 Each status says who has to act next.
 
-| Status                                         | Whose move                                                 |
-| ---------------------------------------------- | ---------------------------------------------------------- |
-| Proposed                                       | The admin (approve or decline)                             |
-| To do, In progress, Blocked, Changes requested | The owner                                                  |
-| In peer review                                 | The peer reviewer                                          |
-| Submitted                                      | The verifier (the admin, or the CEO for the admin's tasks) |
-| Verified, Declined                             | Nobody; it's finished                                      |
+| Status                                         | Whose move                                                                                                         |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Proposed                                       | The admin (approve or decline)                                                                                     |
+| To do, In progress, Blocked, Changes requested | The owner                                                                                                          |
+| In peer review                                 | The peer reviewer                                                                                                  |
+| Submitted                                      | The verifier (an admin; for an admin's task, the admin task reviewer, or the other admins when the reviewer can't) |
+| Verified, Declined                             | Nobody; it's finished                                                                                              |
+
+A feature in **Internal testing** (every task verified) waits for an admin to **Mark as live**.
 
 ### Task statuses
 
@@ -161,7 +164,7 @@ Each status says who has to act next.
 | Planned          | Agreed and planned; work hasn't started           | Cream               |
 | In progress      | Work is under way                                 | Blue                |
 | Internal testing | Every task is verified and the team is testing it | Yellow              |
-| Shipped          | Live; the admin marked it shipped                 | Green               |
+| Shipped          | Live; an admin marked it live                     | Green               |
 
 Stages move on their own as the tasks change; only Shipped is set by hand (**Mark as live**).
 
@@ -381,15 +384,19 @@ From top to bottom:
   note); their card says "Yours to review" ("Yours to verify" for a verifier). A verifier ticks
   each acceptance criterion, then **Verify** (only once every one is ticked) or **Ask for
   changes** (with a reason, after ticking what is met). Everyone else sees whom it's waiting for,
-  and the owner can **Take it back** (it returns to In progress). If the peer reviewer has been
-  deactivated, the card says so: the owner takes it back and asks an admin for another reviewer.
+  and the owner can **Take it back** (it asks first; it returns to In progress). An owner can take
+  a task's requests back up to 50 times; after that a request waits for its reviewer's decision
+  (asking is never refused). If the peer reviewer has been deactivated, the card says so: the
+  owner, or any admin, takes it back, and an admin chooses another reviewer.
 - **Changes asked for (yellow).** After a send-back, until the owner sends it again (updates in
   between don't hide it): who asked and when, their reason, the criteria not met yet (as they
-  read when they were ticked), what happens next (a code task goes through peer review again)
-  and the link that was sent.
+  read when they were ticked), what happens next (a code task goes through peer review again;
+  said to the owner, or about them to everyone else) and the link that was sent.
 - **Code approved (blue).** After the peer reviewer approves, until the task is submitted: who
-  approved it and when, the link, and "Next: submit it for verification" (or "Unblock it" first,
-  if it's blocked).
+  approved it and when, the link, and "Next: submit it for verification" (to everyone else:
+  "Next: Kofi submits it…").
+- **Proof links** show the site in full and bold, then the rest of the address, so a long address
+  can't hide which site it really is.
 - **Verified (green).** Once verified: who verified it and when, who submitted it, what they
   said, the proof link that was accepted and the verifier's note.
 - **The countdown card (lavender).** "Task due in 2d 14h 33m 07s", ticking every second with
@@ -414,8 +421,8 @@ From top to bottom:
   reviewer), then **Submit for verification** (a note, required, and a link: "https://… a PR, a
   build or a page"). Each opens a card that says who reviews or verifies it. When there's no
   button, a note says why in its place: blocked ("Unblock it… to submit it"), the peer reviewer
-  deactivated (ask an admin for another), nobody could verify it (an admin's task with no
-  reviewer who can), or the task has had 50 reviews (the most one task can have).
+  deactivated (ask an admin for another), or nobody could verify it (an admin's task with no
+  reviewer who can).
 - **Description** on a dark card, if there is one.
 - **Who's on it.** Pastel cards: the owner (orange, with the priority), the peer reviewer for code
   tasks (blue) and whoever proposed it (pink), each with initials, name and title. Someone who
@@ -423,10 +430,14 @@ From top to bottom:
 - **Acceptance criteria** on a dark card, numbered; they turn into ticks once the task is verified.
 - **Buttons (admins only).** **Edit task**, except while the task is in review or submitted
   (a note says its plan is locked until it's sent back or the owner takes it back) or verified
-  (its plan is final).
+  (its plan is final). Once a task has gone for review, an admin who owns it can still edit it,
+  but not its type, peer reviewer or acceptance criteria: another admin changes those (its owner
+  may replace a peer reviewer who has been deactivated).
 - **Updates and comments.** Everything that happened to the task, newest first: created, each
   update ("marked it blocked at 85%" with the note), requests for more time and the decisions,
-  "Cadence flagged it overdue" when the deadline passed, and comments as speech bubbles. Anyone
+  each review request and decision (asked, approved, sent back, submitted, verified, changes
+  asked for, taken back), "Cadence moved the feature to Internal testing" when this task moved
+  it, "Cadence flagged it overdue" when the deadline passed, and comments as speech bubbles. Anyone
   can comment from the box at the top (not on a declined proposal). Comments can't be edited or
   deleted: they're part of the record.
 
@@ -450,7 +461,8 @@ feature). Then, in the Board's style:
   **Review & approve** and **Decline** for a proposal, with the reason asked for in place);
 - the same notes as on the phone (waiting for review, declined, counts as late), a request for
   more time waiting for a decision, and the review card (peer review, verification with its
-  criteria to tick, changes asked for, code approved), each with its buttons;
+  criteria to tick, changes asked for, code approved, verified), each with its buttons (**Esc**
+  doesn't close the panel while you're typing a reason or a comment);
 - a card in the feature's colour with how far along it is (the bar fills in), when it's due (red
   when late; "moved from" when its deadline moved), the feature's deadline, or when it was
   verified;
@@ -622,7 +634,7 @@ hiding a button is never the only protection.
 | Approve or decline proposals                                           | Yes                                                                            | No                                                  |
 | Invite people, change roles, deactivate accounts                       | Yes (Settings → People)                                                        | No                                                  |
 | Change team rules                                                      | Yes (Settings → Team rules)                                                    | No                                                  |
-| Update, ask for more time, ask for a peer review, submit, take it back | Their own tasks                                                                | Their own tasks                                     |
+| Update, ask for more time, ask for a peer review, submit, take it back | Their own tasks (and take back a review whose peer reviewer has left)          | Their own tasks                                     |
 | Approve or send back a peer review                                     | When named the task's peer reviewer                                            | When named the task's peer reviewer                 |
 | Verify a task, or ask for changes                                      | Yes, except an admin's task (the admin task reviewer does) and never their own | Only as the admin task reviewer, on an admin's task |
 | Mark a feature as live                                                 | Yes                                                                            | No                                                  |
@@ -647,8 +659,9 @@ A few things work without a screen of their own.
   (Africa/Accra, GMT) and the late-extension window (24 hours). Admins change them on Settings →
   Team rules.
 - **Activity log.** Every change is recorded with who made it, when, and what it was before and
-  after: sign-ups, invites, features, tasks, proposals, settings and daily logs. Deadlines,
-  reviews, verifications and logs are never deleted.
+  after: sign-ups, invites, features, tasks, proposals, settings, daily logs, reviews and
+  verifications, and each feature stage Cadence moves on. Deadlines, reviews, verifications and
+  logs are never deleted.
 - **Missed weekdays.** Just after midnight (GMT), Cadence notes everyone who didn't write a log
   on the weekday that just ended, and the Activity page says so ("Cadence recorded no log from
   Kofi on Thu 12 Nov"). A missed day stays missed: it can't be filled in later. Weekends never

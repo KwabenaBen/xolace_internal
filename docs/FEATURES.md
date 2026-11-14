@@ -483,10 +483,12 @@ logs.
   log"); it opens as a sheet on the phone and as a dialog on a computer. Its **Save log** button
   plays as it saves: the words roll up to "Saving", the arrow collapses and the circle fills like
   a glass of water, then "Saved" with a check, and the form closes. You can edit it until midnight
-  (GMT); then that day is locked. Logs are never deleted, and there's no delete button.
+  (GMT); then that day is locked (a form left open past midnight keeps what you typed, and saving
+  says the day is locked). Logs are never deleted, and there's no delete button. The tasks offered
+  are your open ones, plus any verified that day.
 - **Missed weekdays.** A weekday that ends without a log is recorded as missed just after
-  midnight, and it can't be filled in afterwards. The day someone joined, and days they were
-  deactivated, never count.
+  midnight, and it can't be filled in afterwards. The day someone joined, and any day they were
+  deactivated for (even part of it), never count.
 - **On the phone**, the Logs tab shows the date and "logs", then **your week** as seven pills
   (green: logged; rose: missed; today ringed until you log; days to come faded), today on a
   lavender card (your log with **Edit**, or a prompt and **Write today's log**), and **the team**
@@ -605,7 +607,8 @@ A few things work without a screen of their own.
 - **Missed weekdays.** Just after midnight (GMT), Cadence notes everyone who didn't write a log
   on the weekday that just ended, and the Activity page says so ("Cadence recorded no log from
   Kofi on Thu 12 Nov"). A missed day stays missed: it can't be filled in later. Weekends never
-  count, and neither does the day someone joined or a day they were deactivated.
+  count, and neither does the day someone joined or a day they were deactivated. It checks
+  again every hour, so a check that didn't run (a deploy or an outage) is made up.
 - **Confirmations.** Every save says it worked in a short message that slides in and fades away
   (at the top on a phone, at the bottom on a computer): "Update posted", "Request sent", "Request
   approved. The deadline moved", "Proposal declined", "Comment posted", "Feature saved", "Invite

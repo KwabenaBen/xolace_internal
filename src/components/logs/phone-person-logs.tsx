@@ -14,7 +14,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { fonts, usePageColors } from "@/components/ui/theme";
 import { useSignedInUser } from "@/lib/use-current-user";
 
-import { dayName, markFor, useToday, weekDates } from "./log-days";
+import { dayName, markFor, plainDay, useToday, weekDates } from "./log-days";
 import { LogBody, MarkPill, WeekPills } from "./phone-parts";
 import {
   entriesOf,
@@ -96,7 +96,7 @@ export function PhonePersonLogs({ userId }: { userId: string }): JSX.Element {
             style={{ fontFamily: fonts.medium, fontSize: 13, color: c.muted, textAlign: "center" }}
           >
             {isMe ? "You" : first.user.name.split(" ")[0]} joined Cadence on{" "}
-            {dayName(first.joined, today, now)}.
+            {plainDay(first.joined, now)}.
           </Text>
         )}
       </View>

@@ -65,16 +65,28 @@ export function SaveButton({
   const checkMark = useRef<SVGPathElement>(null);
   const icon = useRef<IconState>({ ...REST });
   const ctx = useRef<gsap.Context | null>(null);
+  const mounted = useRef(true);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const pressScale = usePressScale(button);
   useTweenTo(wash, { opacity: hovered && state === "idle" && !isDisabled ? 1 : 0 }, 0.2);
 
   useLayoutEffect(() => {
     ctx.current = gsap.context(() => {});
+    mounted.current = true;
+    const pending = timers.current;
     return () => {
+      // Once gone (its form was closed, e.g. while it said "Saved"), nothing it scheduled runs:
+      // no onDone (it would navigate from wherever the app is now).
+      mounted.current = false;
+      pending.forEach(clearTimeout);
       ctx.current?.revert();
       ctx.current = null;
     };
   }, []);
+
+  const later = (fn: () => void, seconds: number) => {
+    timers.current.push(setTimeout(fn, seconds * 1000));
+  };
 
   /** Puts the icon's numbers on screen. */
   function draw() {
@@ -95,6 +107,9 @@ export function SaveButton({
       const context = ctx.current;
       if (context === null) return resolve();
       context.add(() => {
+        // Stop whatever else was easing (or waiting to ease) these numbers: a delayed tween
+        // from the press would otherwise start later and cancel this one (a quick save).
+        gsap.killTweensOf(icon.current, Object.keys(to).join(","));
         if (reduced) {
           Object.assign(icon.current, to);
           draw();
@@ -106,7 +121,6 @@ export function SaveButton({
           duration,
           ease,
           delay,
-          overwrite: "auto",
           onUpdate: draw,
           onComplete: () => resolve(),
         });
@@ -119,6 +133,7 @@ export function SaveButton({
     const context = ctx.current;
     if (el === null || context === null) return;
     context.add(() => {
+      gsap.killTweensOf(el, "y");
       gsap.to(el, { y: -index * LINE, duration: reduced ? 0 : 0.44, ease: "back.out(1.4)", delay });
     });
   }
@@ -154,6 +169,7 @@ export function SaveButton({
     startWave();
 
     const saved = await onPress();
+    if (!mounted.current) return; // closed while it was saving
     if (!saved) {
       stopWave();
       rollTo(0);
@@ -168,17 +184,17 @@ export function SaveButton({
     // tab draws few frames, and GSAP stretches its tweens rather than skip them.
     let carriedOn = false;
     const carryOn = () => {
-      if (carriedOn) return;
+      if (carriedOn || !mounted.current) return;
       carriedOn = true;
       onDone?.();
     };
-    setTimeout(carryOn, FALLBACK * 1000);
+    later(carryOn, FALLBACK);
     void tween({ tick: 0 }, 0.18, "power1.out");
     await tween({ level: 1 }, 0.34, "power2.out");
     stopWave();
     rollTo(2);
     await tween({ check: 1 }, 0.38, "power3.out", 0.08);
-    setTimeout(carryOn, HOLD * 1000);
+    later(carryOn, HOLD);
   }
 
   const ink = c.accentText;

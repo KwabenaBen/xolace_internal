@@ -154,7 +154,7 @@ convex/                  Backend (deployed by `bunx convex dev`)
   overdue.ts + crons.ts  flag: hourly job that sets tasks.overdueSince once a deadline passes
   dailyLogs.ts           save (your log for today; edits until the day ends), day (the team on
                          one date), range (one person's logs + missed days, ≤ 62 days),
-                         linkableTasks; internal recordMissed (cron, 00:10 GMT)
+                         linkableTasks; internal recordMissed (cron, hourly; last 2 days)
   seed.ts                Internal seed mutation (CLI only); prints each new invite's code
   demo.ts                Dev-only: demo:seed / demo:clear (demo data), demo:setRole (make an
                          account admin or member) (CLI only; refuse to run unless the deployment
@@ -240,13 +240,17 @@ Aliases: `@/…` → `src/…`, `@convex/…` → `convex/…` (e.g. `@convex/_g
   the email of a person a setting names before they joined (`hidePendingEmail`).
 - **Daily logs (Phase 5):** one per person per GMT day (`dailyLogs`), written for **today only**
   (the app sends the date it shows; an ended day is refused as locked) and only your own. Edits
-  until the day ends, then locked; never deleted. Weekdays: `done` required, `next`, `blockers`,
-  up to 20 linked tasks you own or peer-review (live ones). Weekends: one line, no tasks, never
-  missed. `recordMissed` (cron, 00:10 GMT, once on purpose) writes a `missedDays` row and a
-  `dailyLog.missed` activity entry (no actor) for each active person with no log on the weekday
-  that ended, skipping their join day; a missed day can never be logged afterwards. Limits:
-  `DAILY_LOG_LIMITS` (`convex/lib/constants.ts`); weekday maths: `isWeekendDate`, `addDays`
-  (`convex/lib/dates.ts`).
+  until the day ends (at most `DAILY_LOG_LIMITS.edits` = 50 edits: each is an activity entry),
+  then locked; never deleted. Weekdays: `done` required, `next`, `blockers`, up to 20 linked
+  tasks (`canLink`: live tasks you own or peer-review, verified ones included; a log keeps tasks
+  it already links). `linkableTasks({ date })` offers open ones plus those verified that day.
+  Weekends: one line, no tasks, never missed. `recordMissed` (cron, hourly at :10) checks the
+  last `MISSED_LOOKBACK_DAYS` (2) ended weekdays and writes a `missedDays` row and a
+  `dailyLog.missed` activity entry (no actor) for each person with no log, skipping their join day
+  and any day they were deactivated for (spans read from the `user.deactivated`/`reactivated`
+  activity entries); it never records a day twice, so a missed run is made up. A missed day can
+  never be logged afterwards. Limits: `DAILY_LOG_LIMITS` (`convex/lib/constants.ts`); weekday
+  maths: `isWeekendDate`, `addDays` (`convex/lib/dates.ts`).
 - **Activity entries about a task carry `taskId`** (its changes, comments, extension requests,
   a feature moved by its extension), which is how `activity.forTask` finds them. Comments are
   read from the activity log, not the `comments` table.
@@ -446,7 +450,9 @@ UX, security) and write the findings up before moving on.
 - [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays;
       the Logs tab with its website design too. Branch `cadence-phase-5` (from `main`, 13 Nov).
       _Server rules, `missedDays` and the nightly job; the Logs tab (phone) and page (website),
-      a person's logs, the log form, "Daily logs" on People cards. To check on iPhone and web._
+      a person's logs, the log form, "Daily logs" on People cards. End-of-phase audit done 14 Nov
+      (System audit doc, "Phase 5 audit" tab); fixes on `cadence-web-sidebar` (which also holds
+      the hover sidebar). Tick once the Logs screens are checked on iPhone._
 - [ ] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
       verification queue (admin task reviewer for admin-owned tasks), feature status rollup.
 - [ ] **Phase 7 — Notifications & release:** push tokens, immediate pushes, digest + reminder

@@ -24,19 +24,28 @@ import { WebLogContent, WebMarkPill, WebWeekPills } from "./log-parts";
  * weeks went, and their week), then every log and missed weekday, newest first, as a timeline,
  * four weeks at a time.
  */
-export function WebPersonLogs({ userId }: { userId: string }): JSX.Element {
+export function WebPersonLogs({
+  userId,
+  fromPeople = false,
+}: {
+  userId: string;
+  /** Opened from their card on People: the breadcrumb leads back there instead of to Logs. */
+  fromPeople?: boolean;
+}): JSX.Element {
   const me = useSignedInUser();
   const router = useRouter();
   const c = usePageColors();
   const { now, today } = useToday();
   const [windows, setWindows] = useState(1);
   const first = useHistoryWindow(userId, today, 0);
-  const toLogs = () => router.navigate("/logs");
+  const back = fromPeople
+    ? { label: "People", onPress: () => router.navigate("/settings/people") }
+    : { label: "Logs", onPress: () => router.navigate("/logs") };
 
   if (first === undefined) {
     return (
       <WebPage>
-        <Breadcrumb trail={[{ label: "Logs", onPress: toLogs }]} current="Person" />
+        <Breadcrumb trail={[back]} current="Person" />
         <ActivityIndicator color={c.text} style={{ paddingVertical: 120 }} />
       </WebPage>
     );
@@ -44,12 +53,12 @@ export function WebPersonLogs({ userId }: { userId: string }): JSX.Element {
   if (first === null) {
     return (
       <WebPage>
-        <Breadcrumb trail={[{ label: "Logs", onPress: toLogs }]} current="Not found" />
+        <Breadcrumb trail={[back]} current="Not found" />
         <View style={{ paddingVertical: 80, alignItems: "flex-start", gap: 16 }}>
           <Text style={{ fontFamily: fonts.black, fontSize: 32, color: c.text }}>
             This person doesn&apos;t exist.
           </Text>
-          <ActionButton label="Back to Logs" icon="arrow-back" onPress={toLogs} />
+          <ActionButton label={`Back to ${back.label}`} icon="arrow-back" onPress={back.onPress} />
         </View>
       </WebPage>
     );
@@ -65,10 +74,7 @@ export function WebPersonLogs({ userId }: { userId: string }): JSX.Element {
 
   return (
     <WebPage>
-      <Breadcrumb
-        trail={[{ label: "Logs", onPress: toLogs }]}
-        current={isMe ? "Your logs" : first.user.name}
-      />
+      <Breadcrumb trail={[back]} current={isMe ? "Your logs" : first.user.name} />
 
       <View
         style={{

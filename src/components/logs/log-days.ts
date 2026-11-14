@@ -94,6 +94,12 @@ export function dayName(date: string, today: string, now: number): string {
   return end === null ? date : shortDay(end, now);
 }
 
+/** Always the date itself, "Wed 11 Nov" (for sentences like "joined Cadence on …"). */
+export function plainDay(date: string, now: number): string {
+  const end = endOfDayGmt(date);
+  return end === null ? date : shortDay(end, now);
+}
+
 /** "Wednesday 11 November 2026", for screen readers. */
 export function spokenDay(date: string): string {
   const end = endOfDayGmt(date);

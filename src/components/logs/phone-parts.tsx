@@ -169,13 +169,15 @@ export function WeekPills({
         const { day, letter } = dayParts(date);
         const isToday = date === today;
         const isPicked = picked === date;
+        const pickable = onPick !== undefined && date <= today;
         return (
           <Pressable
             key={date}
-            accessibilityRole={onPick ? "button" : undefined}
+            // Only days that can be picked (not still to come) are buttons for screen readers.
+            accessibilityRole={pickable ? "button" : undefined}
             accessibilityLabel={`${spokenDay(date)}${isToday ? ", today" : ""}: ${MARK_WORDS[mark]}`}
-            accessibilityState={onPick ? { selected: isPicked } : undefined}
-            disabled={onPick === undefined || date > today}
+            accessibilityState={pickable ? { selected: isPicked } : undefined}
+            disabled={!pickable}
             onPress={() => onPick?.(date)}
             className="active:opacity-70"
             style={{

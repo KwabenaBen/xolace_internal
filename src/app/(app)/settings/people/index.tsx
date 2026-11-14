@@ -241,7 +241,9 @@ export default function PeopleScreen(): JSX.Element {
             // "Daily logs": the card has played its exit; now open their logs.
             const userId = logsAfterClose.current;
             logsAfterClose.current = null;
-            if (userId !== null) router.push({ pathname: "/logs/[userId]", params: { userId } });
+            if (userId !== null) {
+              router.push({ pathname: "/logs/[userId]", params: { userId, from: "people" } });
+            }
           }}
         />
       ) : null}

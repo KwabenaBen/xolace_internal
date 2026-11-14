@@ -150,6 +150,7 @@ export default defineSchema({
     blockers: v.optional(v.string()),
     taskIds: v.array(v.id("tasks")),
     updatedAt: v.optional(v.number()), // set by the last edit (ms)
+    edits: v.optional(v.number()), // how many times it's been edited (capped: DAILY_LOG_LIMITS)
   })
     .index("by_userId_and_date", ["userId", "date"])
     .index("by_date", ["date"]),

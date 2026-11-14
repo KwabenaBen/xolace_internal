@@ -1,5 +1,5 @@
 import { Canvas, Circle, Group, Line, Path, Skia, vec } from "@shopify/react-native-skia";
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -70,7 +70,22 @@ export function SaveButton({
   const phase = useSharedValue(0);
   const check = useSharedValue(0);
 
-  useEffect(() => () => cancelAnimation(phase), [phase]);
+  // Once the button has gone (its form was closed, e.g. while it said "Saved"), nothing it
+  // scheduled may run: no onDone (it would navigate from wherever the app is now), no animation.
+  const mounted = useRef(true);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => {
+    mounted.current = true;
+    const pending = timers.current;
+    return () => {
+      mounted.current = false;
+      pending.forEach(clearTimeout);
+      cancelAnimation(phase);
+    };
+  }, [phase]);
+  const later = (fn: () => void, ms: number) => {
+    timers.current.push(setTimeout(fn, ms));
+  };
 
   const wave = useDerivedValue(
     () => Skia.Path.MakeFromSVGString(wavePath(level.get(), phase.get())) ?? Skia.Path.Make()
@@ -109,12 +124,12 @@ export function SaveButton({
     // It's saved: carry on once the check has shown, or within a moment whatever the motion does.
     let carriedOn = false;
     const carryOn = () => {
-      if (carriedOn) return;
+      if (carriedOn || !mounted.current) return;
       carriedOn = true;
       onDone?.();
     };
-    setTimeout(carryOn, FALLBACK_MS);
-    const done = () => setTimeout(carryOn, HOLD_MS);
+    later(carryOn, FALLBACK_MS);
+    const done = () => later(carryOn, HOLD_MS);
     if (reduced) {
       level.set(1);
       tickOpacity.set(0);
@@ -153,6 +168,7 @@ export function SaveButton({
     setState("busy");
     start();
     const saved = await onPress();
+    if (!mounted.current) return; // closed while it was saving
     if (!saved) {
       revert();
       setState("idle");

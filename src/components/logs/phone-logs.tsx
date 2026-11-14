@@ -142,7 +142,12 @@ export function PhoneLogs(): JSX.Element {
               <DayStepper
                 s={s}
                 label={dayName(teamDate, today, now)}
-                onBack={() => setPicked(addDays(teamDate, -1))}
+                // Stops once a day had nobody on Cadence yet: nothing further back to see.
+                onBack={
+                  teamDay !== undefined && teamDay.people.length === 0
+                    ? undefined
+                    : () => setPicked(addDays(teamDate, -1))
+                }
                 onForward={
                   teamDate < today
                     ? () => {
@@ -325,7 +330,7 @@ function DayStepper({
   s: number;
   label: string;
   spoken: string;
-  onBack: () => void;
+  onBack?: () => void;
   onForward?: () => void;
 }): JSX.Element {
   const c = usePageColors();

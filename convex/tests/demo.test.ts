@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "../_generated/api";
 import { createTestConvex, expectAppError, insertUser } from "../test.setup";
@@ -57,6 +57,28 @@ describe("demo data", () => {
       missed: await ctx.db.query("missedDays").collect(),
     }));
     expect(left).toEqual({ logs: [], missed: [] });
+  });
+
+  test("clear won't change a real person's daily log that links a demo task", async () => {
+    // A weekday, so the log can link tasks.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-12T10:00:00Z"));
+    try {
+      const t = createTestConvex();
+      const real = await insertUser(t, { email: "real@cadence.test", role: "admin" });
+      await t.mutation(internal.demo.seed, {});
+      const mine = await real.asUser.query(api.tasks.mine, {});
+      const demoTask = mine.owned[0]._id;
+      await real.asUser.mutation(api.dailyLogs.save, {
+        date: "2026-11-12",
+        done: "Worked on a demo task.",
+        taskIds: [demoTask],
+      });
+      await expectAppError(t.mutation(internal.demo.clear, {}), "INVALID_ARGUMENT");
+      expect(await t.run(async (ctx) => ctx.db.get("tasks", demoTask))).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("clear won't leave the app without a real admin, or real work pointing at nobody", async () => {

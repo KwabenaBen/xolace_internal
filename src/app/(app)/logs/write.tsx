@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { Spinner } from "heroui-native";
-import type { JSX } from "react";
+import { useState, type JSX } from "react";
 
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -19,9 +19,13 @@ import { useSignedInUser } from "@/lib/use-current-user";
  */
 export default function WriteLogScreen(): JSX.Element {
   const user = useSignedInUser();
-  const { today } = useToday();
+  // The day the form opened on, kept even if midnight (GMT) passes while it's open: what's typed
+  // stays on screen, and saving then says the day is locked (the server's rule) instead of the
+  // form wiping itself for the new day.
+  const { today: current } = useToday();
+  const [today] = useState(current);
   const day = useQuery(api.dailyLogs.day, { date: today });
-  const linkable = useQuery(api.dailyLogs.linkableTasks);
+  const linkable = useQuery(api.dailyLogs.linkableTasks, { date: today });
   const save = useMutation(api.dailyLogs.save);
   const router = useRouter();
   const toast = useToast();
@@ -43,9 +47,6 @@ export default function WriteLogScreen(): JSX.Element {
 
   return (
     <LogForm
-      // A fresh form if the day turns over while it's open. (Not on saving: the form keeps
-      // showing its "Saved" until it closes.)
-      key={today}
       isWeekend={isWeekend}
       isEdit={existing !== null}
       tasks={tasks}

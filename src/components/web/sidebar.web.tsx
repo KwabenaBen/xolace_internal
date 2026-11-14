@@ -106,11 +106,17 @@ function Row({
   const c = usePageColors();
   const washRef = useRef<ComponentRef<typeof View>>(null);
 
+  // The page you're on has its own highlight, so its wash never fades in; it always fades out
+  // (a wash left on as you click a row would otherwise stay after you'd moved on).
   const wash = (on: boolean) => {
     const el = dom(washRef);
-    if (el === null || active) return;
+    if (el === null || (on && active)) return;
     gsap.to(el, { opacity: on ? 1 : 0, duration: on ? 0.18 : 0.28, ease: "power2.out" });
   };
+  useEffect(() => {
+    const el = dom(washRef);
+    if (active && el !== null) gsap.to(el, { opacity: 0, duration: 0.2, ease: "power2.out" });
+  }, [active]);
 
   return (
     <Pressable
@@ -228,9 +234,12 @@ export function SidebarView({
     shown.current = next;
     setOpen(next);
 
+    // One slide at a time: the last one is stopped and dropped from the context, which would
+    // otherwise keep every slide of the session (the sidebar lives as long as you're signed in).
+    slide.current?.kill();
+    context.clear();
     context.add(() => {
       const words = panel.querySelectorAll(`[data-testid="${WORD}"]`);
-      slide.current?.kill();
       if (reduceMotion) {
         gsap.set(panel, {
           width: next ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH,
@@ -269,11 +278,17 @@ export function SidebarView({
     timer.current = setTimeout(() => show(next), next ? OPEN_DELAY_MS : CLOSE_DELAY_MS);
   };
 
-  // Keyboard: Tab into the sidebar opens it, Tab out of it closes it, Esc closes it.
+  // Keyboard: Tab into the sidebar opens it, Tab out of it closes it, Esc closes it. (Focus from a
+  // click or tap doesn't open it: that's the pointer's job, and a tap on the mark toggles it.)
+  // Touch: picking a page closes it, and so does a tap anywhere outside it.
+  const lastPointer = useRef<string>("mouse");
   useEffect(() => {
     const panel = dom(panelRef);
     if (panel === null) return;
-    const onFocusIn = () => show(true);
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target as Element | null;
+      if (target?.matches(":focus-visible") === true) show(true);
+    };
     const onFocusOut = (e: FocusEvent) => {
       if (!panel.contains(e.relatedTarget as Node | null)) showSoon(false);
     };
@@ -282,17 +297,31 @@ export function SidebarView({
       show(false);
       (document.activeElement as HTMLElement | null)?.blur();
     };
+    const onPointerDown = (e: PointerEvent) => {
+      lastPointer.current = e.pointerType;
+    };
+    const onTapOutside = (e: PointerEvent) => {
+      if (shown.current && !panel.contains(e.target as Node | null)) show(false);
+    };
     panel.addEventListener("focusin", onFocusIn);
     panel.addEventListener("focusout", onFocusOut);
     panel.addEventListener("keydown", onKey);
+    panel.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("pointerdown", onTapOutside);
     return () => {
       panel.removeEventListener("focusin", onFocusIn);
       panel.removeEventListener("focusout", onFocusOut);
       panel.removeEventListener("keydown", onKey);
+      panel.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("pointerdown", onTapOutside);
     };
   });
 
-  const go = (href: Href) => router.navigate(href);
+  const go = (href: Href) => {
+    router.navigate(href);
+    // With a mouse it closes as the pointer leaves; after a tap there's no "leave", so close it.
+    if (lastPointer.current === "touch") show(false);
+  };
   const at = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
   const openFeatures = (features ?? [])
     .filter((f) => f.status !== "shipped")
@@ -474,7 +503,10 @@ export function SidebarView({
                 active={false}
                 word={false}
                 focusable={open}
-                onPress={() => router.push("/features/new")}
+                onPress={() => {
+                  router.push("/features/new");
+                  if (lastPointer.current === "touch") show(false);
+                }}
               />
             ) : null}
           </ScrollView>

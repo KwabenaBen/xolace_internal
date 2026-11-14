@@ -147,7 +147,12 @@ export function WebLogs(): JSX.Element {
               <WebDayStepper
                 label={dayName(teamDate, today, now)}
                 spoken={spokenDay(teamDate)}
-                onBack={() => pick(addDays(teamDate, -1))}
+                // Stops once a day had nobody on Cadence yet: nothing further back to see.
+                onBack={
+                  teamDay !== undefined && teamDay.people.length === 0
+                    ? undefined
+                    : () => pick(addDays(teamDate, -1))
+                }
                 onForward={teamDate < today ? () => pick(addDays(teamDate, 1)) : undefined}
               />
             </View>
@@ -378,7 +383,8 @@ function InkButton({ label, onPress }: { label: string; onPress: () => void }): 
 
 /**
  * One person on the team's day: avatar, name and title, how the day went, and their log. A wash
- * fades in on hover; the row opens their logs (the log's task pills open the task).
+ * fades in over the row on hover. The person (avatar and name) is the link to their logs; the log
+ * sits beside it, so screen readers read it and reach its task pills (each opens its task).
  */
 function PersonRow({
   person,
@@ -399,12 +405,9 @@ function PersonRow({
   useTweenTo(wash, { opacity: hovered ? 1 : 0 }, 0.2);
   const { user, log } = person;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${user.name}${isYou ? " (you)" : ""}, ${MARK_WORDS[mark]}`}
-      accessibilityHint="Opens their logs"
-      onPress={onOpen}
-      {...hover}
+    <View
+      onPointerEnter={hover.onHoverIn}
+      onPointerLeave={hover.onHoverOut}
       style={{
         flexDirection: "row",
         gap: 16,
@@ -417,19 +420,34 @@ function PersonRow({
         ref={wash}
         style={[StyleSheet.absoluteFill, { opacity: 0, backgroundColor: c.panelRaised }]}
       />
-      <Avatar size={40} fill={pastelFor(user._id)} name={user.name} dim={!user.isActive} />
-      <View style={{ width: 180, gap: 2 }}>
-        <Text numberOfLines={1} style={{ ...webType.body, fontWeight: "700", color: c.text }}>
-          {user.name}
-          {isYou ? <Text style={{ fontWeight: "400", color: c.muted }}> · you</Text> : null}
-        </Text>
-        <Text numberOfLines={1} style={{ ...webType.small, color: c.muted }}>
-          {user.title}
-        </Text>
-        <View style={{ paddingTop: 6 }}>
-          <WebMarkPill mark={mark} />
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`${user.name}${isYou ? " (you)" : ""}, ${MARK_WORDS[mark]}. Open their logs`}
+        onPress={onOpen}
+        style={{ flexDirection: "row", gap: 16, width: 236 }}
+      >
+        <Avatar size={40} fill={pastelFor(user._id)} name={user.name} dim={!user.isActive} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text
+            numberOfLines={1}
+            style={{
+              ...webType.body,
+              fontWeight: "700",
+              color: c.text,
+              textDecorationLine: hovered ? "underline" : "none",
+            }}
+          >
+            {user.name}
+            {isYou ? <Text style={{ fontWeight: "400", color: c.muted }}> · you</Text> : null}
+          </Text>
+          <Text numberOfLines={1} style={{ ...webType.small, color: c.muted }}>
+            {user.title}
+          </Text>
+          <View style={{ paddingTop: 6 }}>
+            <WebMarkPill mark={mark} />
+          </View>
         </View>
-      </View>
+      </Pressable>
       <View style={{ flex: 1, minWidth: 0 }}>
         {log ? (
           <WebLogContent log={log} ink={c.text} muted={c.muted} onOpenTask={onOpenTask} />
@@ -443,7 +461,7 @@ function PersonRow({
           </Text>
         )}
       </View>
-    </Pressable>
+    </View>
   );
 }
 

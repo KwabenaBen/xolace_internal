@@ -501,6 +501,34 @@ async function refuseIfStillNeeded(
       `Demo people are still in real use; reassign these first: ${[...new Set(realWork)].join(", ")}.`
     );
   }
+
+  // A real person's daily log that links a demo task would quietly lose the link (logs are part
+  // of the record), so clearing waits until nobody's log points at one.
+  const demoTaskIds = new Set<Id<"tasks">>();
+  for (const feature of demoFeatures) {
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_featureId_and_status", (q) => q.eq("featureId", feature._id))
+      .take(500);
+    for (const task of tasks) demoTaskIds.add(task._id);
+  }
+  const realPeople = (await ctx.db.query("users").take(500)).filter((u) => !demoIds.has(u._id));
+  const linking: string[] = [];
+  for (const person of realPeople) {
+    const logs = await ctx.db
+      .query("dailyLogs")
+      .withIndex("by_userId_and_date", (q) => q.eq("userId", person._id))
+      .take(1000);
+    if (logs.some((log) => log.taskIds.some((id) => demoTaskIds.has(id)))) {
+      linking.push(person.name);
+    }
+  }
+  if (linking.length > 0) {
+    throw appError(
+      "INVALID_ARGUMENT",
+      `Real daily logs link demo tasks (${linking.join(", ")}); clearing would change them, so the demo data stays.`
+    );
+  }
 }
 
 export const clear = internalMutation({

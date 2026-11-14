@@ -14,6 +14,8 @@ export const DAILY_LOG_LIMITS = {
   blockers: 1000,
   weekendLine: 280,
   taskIds: 20,
+  /** Edits per log (each is an activity entry): far more than a person needs in a day. */
+  edits: 50,
 } as const;
 
 /** How long an invite (and its code) stays usable. */

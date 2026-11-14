@@ -213,7 +213,7 @@ describe("writing a log", () => {
     const [log] = await logsOf(t, cto.userId);
     expect(log.taskIds).toEqual([own, reviewing]);
 
-    const linkable = await cto.asUser.query(api.dailyLogs.linkableTasks, {});
+    const linkable = await cto.asUser.query(api.dailyLogs.linkableTasks, { date: THU });
     expect(linkable.map((task) => task._id).sort()).toEqual([own, reviewing].sort());
 
     // Reassigned later that day: the log can keep it, but a new log couldn't link it.
@@ -287,7 +287,7 @@ describe("reading logs", () => {
     });
     expect(range?.joined).toBe("2026-11-01");
     expect(range?.logs.map((l) => l.date)).toEqual([FRI]);
-    expect(range?.missed).toEqual([THU]);
+    expect(range?.missed).toEqual([THU, "2026-11-11"]); // the run looks back two days
 
     expect(
       await coo.asUser.query(api.dailyLogs.range, { userId: "nope", from: THU, to: FRI })
@@ -315,15 +315,18 @@ describe("missed weekdays", () => {
     await t.run(async (ctx) => ctx.db.patch("users", gone.userId, { isActive: false }));
     const joinedToday = await insertUser(t, { email: "new@cadence.test", role: "member" });
 
+    // Each run looks back over the last two ended days: Thursday (the COO and CEO; the CTO
+    // logged) and Wednesday (nobody logged it).
     setClock(`${FRI}T00:10:00Z`);
-    expect(await t.mutation(internal.dailyLogs.recordMissed, {})).toBe(2); // the COO and CEO
+    expect(await t.mutation(internal.dailyLogs.recordMissed, {})).toBe(5);
     expect(await t.mutation(internal.dailyLogs.recordMissed, {})).toBe(0); // already recorded
-    const missed = await t.run(async (ctx) => ctx.db.query("missedDays").collect());
+    const all = await t.run(async (ctx) => ctx.db.query("missedDays").collect());
+    const missed = all.filter((m) => m.date === THU);
     expect(missed.map((m) => m.userId).sort()).toEqual([coo.userId, ceo.userId].sort());
-    expect(missed.every((m) => m.date === THU)).toBe(true);
+    expect(all.filter((m) => m.date === "2026-11-11")).toHaveLength(3);
     // Their first day never counts, and nor does a deactivated person's.
-    expect(missed.some((m) => m.userId === joinedToday.userId)).toBe(false);
-    expect(missed.some((m) => m.userId === gone.userId)).toBe(false);
+    expect(all.some((m) => m.userId === joinedToday.userId)).toBe(false);
+    expect(all.some((m) => m.userId === gone.userId)).toBe(false);
 
     // The entry names who it's about, though Cadence recorded it.
     const feed = await ceo.asUser.query(api.activity.feed, {
@@ -349,5 +352,161 @@ describe("missed weekdays", () => {
     expect(await t.mutation(internal.dailyLogs.recordMissed, {})).toBe(0);
     setClock(`${MON}T00:10:00Z`); // Sunday ended
     expect(await t.mutation(internal.dailyLogs.recordMissed, {})).toBe(0);
+  });
+});
+
+describe("audit fixes (14 Nov)", () => {
+  test("a missed run is made up by a later one, and nothing is recorded twice", async () => {
+    const { t, coo } = await setup();
+    // No run at all on Friday; the first one is Saturday mid-morning.
+    setClock(`${SAT}T09:10:00Z`);
+    const recorded = await t.mutation(internal.dailyLogs.recordMissed, {});
+    const days = await t.run(async (ctx) =>
+      (await ctx.db.query("missedDays").collect())
+        .filter((m) => m.userId === coo.userId)
+        .map((m) => m.date)
+        .sort()
+    );
+    expect(days).toEqual([THU, FRI]);
+    expect(recorded).toBe(6); // three people, Thursday and Friday
+    setClock(`${SAT}T10:10:00Z`);
+    expect(await t.mutation(internal.dailyLogs.recordMissed, {})).toBe(0);
+  });
+
+  test("a day someone was deactivated for doesn't count, even once they're back", async () => {
+    const { t, coo, ceo } = await setup();
+    setClock(`${THU}T09:00:00Z`);
+    await coo.asUser.mutation(api.users.setActive, { userId: ceo.userId, isActive: false });
+    setClock(`${THU}T23:55:00Z`);
+    await coo.asUser.mutation(api.users.setActive, { userId: ceo.userId, isActive: true });
+    setClock(`${FRI}T00:10:00Z`);
+    await t.mutation(internal.dailyLogs.recordMissed, {});
+    const ceoDays = await t.run(async (ctx) =>
+      (await ctx.db.query("missedDays").collect())
+        .filter((m) => m.userId === ceo.userId)
+        .map((m) => m.date)
+    );
+    // Wednesday (active all day, no log) counts; Thursday (deactivated for part of it) doesn't.
+    expect(ceoDays).toEqual(["2026-11-11"]);
+
+    // Still deactivated: the day before they were deactivated counts, the rest don't.
+    setClock(`${FRI}T12:00:00Z`);
+    await coo.asUser.mutation(api.users.setActive, { userId: ceo.userId, isActive: false });
+    setClock(`${SAT}T00:10:00Z`);
+    await t.mutation(internal.dailyLogs.recordMissed, {});
+    const after = await t.run(async (ctx) =>
+      (await ctx.db.query("missedDays").collect()).filter((m) => m.userId === ceo.userId)
+    );
+    expect(after.map((m) => m.date)).toEqual(["2026-11-11"]);
+  });
+
+  test("the day locks at exactly midnight GMT", async () => {
+    const { cto } = await setup();
+    setClock(`${THU}T23:59:59.999Z`);
+    await cto.asUser.mutation(api.dailyLogs.save, { date: THU, done: "Just in time." });
+    setClock(`${FRI}T00:00:00.000Z`);
+    await expectAppError(
+      cto.asUser.mutation(api.dailyLogs.save, { date: THU, done: "A moment too late." }),
+      "INVALID_ARGUMENT"
+    );
+  });
+
+  test("edits are capped; an unchanged save still goes through", async () => {
+    const { t, cto } = await setup();
+    const logId = await cto.asUser.mutation(api.dailyLogs.save, { date: THU, done: "v1" });
+    await cto.asUser.mutation(api.dailyLogs.save, { date: THU, done: "v2" });
+    expect((await logsOf(t, cto.userId))[0].edits).toBe(1);
+    await t.run(async (ctx) => ctx.db.patch("dailyLogs", logId, { edits: DAILY_LOG_LIMITS.edits }));
+    await expectAppError(
+      cto.asUser.mutation(api.dailyLogs.save, { date: THU, done: "v3" }),
+      "INVALID_ARGUMENT"
+    );
+    expect(await cto.asUser.mutation(api.dailyLogs.save, { date: THU, done: "v2" })).toBe(logId);
+  });
+
+  test("limits: 20 tasks, a 280-character weekend line, and no empty line", async () => {
+    const { t, cto, featureId } = await setup();
+    const many = await t.run(async (ctx) => {
+      const ids: Id<"tasks">[] = [];
+      for (let i = 0; i < DAILY_LOG_LIMITS.taskIds + 1; i++) {
+        ids.push(
+          await ctx.db.insert("tasks", {
+            featureId,
+            title: `Task ${i}`,
+            description: "",
+            kind: "content",
+            acceptanceCriteria: ["Done"],
+            ownerId: cto.userId,
+            priority: "low",
+            status: "todo",
+            progress: 0,
+            countsAsLate: false,
+          })
+        );
+      }
+      return ids;
+    });
+    await expectAppError(
+      cto.asUser.mutation(api.dailyLogs.save, { date: THU, done: "Lots.", taskIds: many }),
+      "INVALID_ARGUMENT"
+    );
+    await cto.asUser.mutation(api.dailyLogs.save, {
+      date: THU,
+      done: "Twenty.",
+      taskIds: many.slice(0, DAILY_LOG_LIMITS.taskIds),
+    });
+    setClock(`${SAT}T10:00:00Z`);
+    await expectAppError(
+      cto.asUser.mutation(api.dailyLogs.save, {
+        date: SAT,
+        done: "x".repeat(DAILY_LOG_LIMITS.weekendLine + 1),
+      }),
+      "INVALID_ARGUMENT"
+    );
+    await expectAppError(
+      cto.asUser.mutation(api.dailyLogs.save, { date: SAT, done: "   " }),
+      "INVALID_ARGUMENT"
+    );
+  });
+
+  test("a task verified today is offered and can be linked; one verified earlier isn't offered", async () => {
+    const { t, coo, cto, featureId } = await setup();
+    const today = await createTask(coo.asUser, featureId, cto.userId);
+    const earlier = await createTask(coo.asUser, featureId, cto.userId);
+    await t.run(async (ctx) => {
+      await ctx.db.patch("tasks", today, { status: "verified", verifiedAt: Date.now() });
+      await ctx.db.patch("tasks", earlier, {
+        status: "verified",
+        verifiedAt: Date.now() - 3 * DAY,
+      });
+    });
+    const offered = await cto.asUser.query(api.dailyLogs.linkableTasks, { date: THU });
+    expect(offered.map((task) => task._id)).toEqual([today]);
+    await cto.asUser.mutation(api.dailyLogs.save, {
+      date: THU,
+      done: "Shipped.",
+      taskIds: [today],
+    });
+    expect((await logsOf(t, cto.userId))[0].taskIds).toEqual([today]);
+  });
+
+  test("reading needs a signed-in user; a range is at most 62 days", async () => {
+    const { t, cto } = await setup();
+    await expectAppError(t.query(api.dailyLogs.day, { date: THU }), "UNAUTHENTICATED");
+    await expectAppError(
+      t.query(api.dailyLogs.range, { userId: cto.userId, from: THU, to: THU }),
+      "UNAUTHENTICATED"
+    );
+    const from = "2026-09-12";
+    const ok = await cto.asUser.query(api.dailyLogs.range, {
+      userId: cto.userId,
+      from,
+      to: "2026-11-12", // 62 days
+    });
+    expect(ok).not.toBeNull();
+    await expectAppError(
+      cto.asUser.query(api.dailyLogs.range, { userId: cto.userId, from: "2026-09-11", to: THU }),
+      "INVALID_ARGUMENT"
+    );
   });
 });

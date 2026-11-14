@@ -270,7 +270,7 @@ export function WebDayStepper({
 }: {
   label: string;
   spoken: string;
-  onBack: () => void;
+  onBack?: () => void;
   onForward?: () => void;
 }): JSX.Element {
   const c = usePageColors();

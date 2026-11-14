@@ -487,12 +487,13 @@ UX, security) and write the findings up before moving on.
       _Ticked 11 Nov: walked through by an admin and a member on iPhone and web, every check
       passed; the team's notes (confirmations after saves, the "Ask for more time" button and
       calendar, the red tile now "team activity") fixed on `cadence-phase-2-4-walkthrough`._
-- [ ] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays;
+- [x] **Phase 5 — Daily logs:** weekday log form, weekend one-liner, history, missed weekdays;
       the Logs tab with its website design too. Branch `cadence-phase-5` (from `main`, 13 Nov).
       _Server rules, `missedDays` and the nightly job; the Logs tab (phone) and page (website),
       a person's logs, the log form, "Daily logs" on People cards. End-of-phase audit done 14 Nov
       (System audit doc, "Phase 5 audit" tab); fixes on `cadence-web-sidebar` (which also holds
-      the hover sidebar). Tick once the Logs screens are checked on iPhone._
+      the hover sidebar). Ticked 14 Nov: the user checked the Logs screens and the phone's save
+      button on iPhone, and they passed._
 - [x] **Phase 6 — Peer review & verification:** peer review for code tasks, submit with proof,
       verification queue (admin task reviewer for admin-owned tasks), feature status rollup.
       Branch `cadence-phase-6` (from `cadence-web-sidebar`, 14 Nov). _Server rules

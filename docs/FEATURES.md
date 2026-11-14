@@ -4,7 +4,7 @@ What every part of Cadence does and why it's there, in plain language. Keep this
 with each phase (see [CLAUDE.md](../CLAUDE.md) → Phases). The full spec is
 [REQUIREMENTS.md](REQUIREMENTS.md).
 
-_As of 14 Nov 2026: Phases 1 to 4 are done (sign-in and roles; features, tasks, proposals and the Board; the Settings tab with People and Team rules; progress, comments, requests for more time and the Activity page). Phase 5 (daily logs) and Phase 6 (peer review, verification and feature stages) are built and being checked; Phase 7 (notifications and release) is next._
+_As of 14 Nov 2026: Phases 1 to 6 are done (sign-in and roles; features, tasks, proposals and the Board; the Settings tab with People and Team rules; progress, comments, requests for more time and the Activity page; daily logs; peer review, verification and feature stages). Phase 7 (notifications and release) is next._
 
 ## What Cadence is for
 
@@ -682,9 +682,8 @@ A few things work without a screen of their own.
 
 ## Coming next
 
-Phases 1 to 4 are done; Phase 5 (daily logs) and Phase 6 (peer review and verification), both
-above, are built and being checked. One more phase completes version 1. Each starts once the
-previous one runs on a phone.
+Phases 1 to 6 are done, daily logs and peer review and verification included (both above). One
+more phase completes version 1.
 
 | Phase                        | What it adds                                                                                                                                                                                                                                                                                                      |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
